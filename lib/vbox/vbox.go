@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/hypersleep/easyssh"
 	virtualbox "github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/constant"
 	"github.com/xshellinc/tools/constants"
@@ -114,15 +113,7 @@ func (self *VboxConfig) runOverSshWithTimeout(command string, timeout int) (stri
 }
 
 func (self *VboxConfig) RunOverSshStream(command string) (output chan string, done chan bool, err error) {
-	ssh := &easyssh.MakeConfig{
-		User:     self.Ssh.User,
-		Password: self.Ssh.Password,
-		Port:     self.Ssh.Port,
-		Server:   self.Ssh.Ip,
-		Key:      "~/.ssh/id_rsa.pub",
-	}
-
-	out, eut, done, err := ssh.Stream(fmt.Sprintf("sudo %s", command), help.SshExtendedCommandTimeout)
+	out, eut, done, err := help.StreamEasySsh(self.Ssh.Ip, self.Ssh.User, self.Ssh.Password, self.Ssh.Port, "~/.ssh/id_rsa.pub", command, help.SshExtendedCommandTimeout)
 	if err != nil {
 		log.Error("[-] Error running command: ", eut, ",", err.Error())
 		return out, done, err
@@ -132,30 +123,7 @@ func (self *VboxConfig) RunOverSshStream(command string) (output chan string, do
 }
 
 func (self *VboxConfig) Scp(src, dst string) error {
-	ssh := &easyssh.MakeConfig{
-		User:     self.Ssh.User,
-		Password: self.Ssh.Password,
-		Port:     self.Ssh.Port,
-		Server:   self.Ssh.Ip,
-		Key:      "~/.ssh/id_rsa.pub",
-	}
-
-	//@todo duplicate with help functions
-	fileName := help.FileName(src)
-
-	err := ssh.Scp(src, fileName)
-	if err != nil {
-		fmt.Println("[-] Error uploading file:", err.Error())
-		return err
-	} else {
-		_, err := help.RunSshWithTimeout(ssh, fmt.Sprintf("sudo mv ~/%s %s", fileName, dst), help.SshExtendedCommandTimeout)
-		if err != nil {
-			fmt.Println("[-] Error moving file: ", err.Error())
-		}
-		return nil
-	}
-
-	return nil
+	return help.ScpWPort(src, dst, self.Ssh.Ip, self.Ssh.Port, self.Ssh.User, self.Ssh.Password)
 }
 
 func (self *VboxConfig) Download(img string, wg *sync.WaitGroup) error {
