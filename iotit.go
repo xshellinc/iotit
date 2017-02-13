@@ -6,6 +6,9 @@ import (
 	"github.com/xshellinc/iotit/device"
 
 	"fmt"
+	"os"
+
+	"github.com/Sirupsen/logrus"
 )
 
 const ProgName = "iotit"
@@ -24,6 +27,16 @@ GLOBAL OPTIONS:
 `
 
 var Version string
+
+func init() {
+	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", ProgName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	logrus.SetLevel(logrus.DebugLevel)
+	if err != nil {
+		logrus.Error("error opening file: %v", err)
+		return
+	}
+	logrus.SetOutput(f)
+}
 
 func main() {
 	deviceType := flag.String("dev", "", "-dev=[device-type]")
