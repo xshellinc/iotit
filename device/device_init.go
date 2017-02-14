@@ -544,15 +544,6 @@ type vBoxType struct {
 	vType int
 }
 
-func exitOnError(err error) {
-	if err != nil {
-		log.Error("erro msg:", err.Error())
-		fmt.Println("[-] Error: ", err.Error())
-		fmt.Println("[-] Exiting with exit status 1 ...")
-		os.Exit(1)
-	}
-}
-
 func deleteHost(fileName, host string) error {
 	result := []string{}
 	input, err := ioutil.ReadFile(fileName)
@@ -575,7 +566,7 @@ func deleteHost(fileName, host string) error {
 
 func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Machine, string, string, error) {
 	err := vbox.StopMachines()
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	vboxs := v.Enable(conf, template, device)
 	n := selectVboxInit(conf, vboxs)
@@ -599,7 +590,7 @@ func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Mac
 
 		// modify virtual machine
 		err := result.Modify()
-		exitOnError(err)
+		help.ExitOnError(err)
 
 		// get virtual machine
 		m, err := result.Machine()
@@ -648,12 +639,12 @@ func selectVboxInit(conf string, v []vbox.VboxConfig) int {
 func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.VboxConfig, string) {
 	w := workstation.NewWorkStation()
 	err := w.Check("VBoxManage")
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	conf := filepath.Join(help.UserHomeDir(), ".isaax", "virtualbox", "isaax-vbox.json")
 	v := vbox.NewVboxConfig(vBoxTemplate, deviceType)
 	vm, name, description, err := setVbox(v, conf, vBoxTemplate, deviceType)
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	if vm.State != virtualbox.Running {
 		fmt.Printf("[+] Selected virtual machine \n\t[\x1b[34mName\x1b[0m] - \x1b[34m%s\x1b[0m\n\t[\x1b[34mDescription\x1b[0m] - \x1b[34m%s\x1b[0m\n",
@@ -665,21 +656,21 @@ func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*vi
 			defer wg.Done()
 
 			err := vm.Start()
-			exitOnError(err)
+			help.ExitOnError(err)
 			time.Sleep(20 * time.Second) // @todo why sleeping here, check workaround
 		}(progress)
 
-		waitAndSpin("starting", progress)
+		help.WaitAndSpin("starting", progress)
 		wg.Wait()
 	}
 
 	repository, err := repo.NewRepository(deviceType)
-	exitOnError(err)
+	help.ExitOnError(err)
 	dst := filepath.Join(repository.Dir(), repository.GetVersion())
 
 	fmt.Println("[+] Starting download ", deviceType)
 	zipName, bar, err := repo.DownloadAsync(repository, wg)
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	bar.Prefix(fmt.Sprintf("[+] Download %-15s", zipName))
 	bar.Start()
@@ -695,13 +686,13 @@ func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*vi
 	// 4. upload edison img
 	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
 	err = v.Scp(filepath.Join(dst, zipName), constants.TMP_DIR)
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	// 5. unzip edison img (in VM)
 	fmt.Printf("[+] Extracting %s \n", zipName)
 	log.Debug("Extracting an image")
 	out, err := v.RunOverSshExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	log.Debug(out)
 

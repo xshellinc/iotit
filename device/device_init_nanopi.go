@@ -11,6 +11,7 @@ import (
 	"github.com/xshellinc/iotit/lib/constant"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/lib/help"
 )
 
 func initNanoPI() error {
@@ -30,7 +31,7 @@ func initNanoPI() error {
 		out, err := v.RunOverSsh(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			exitOnError(err)
+			help.ExitOnError(err)
 		}
 		log.Debug(out)
 
@@ -39,7 +40,7 @@ func initNanoPI() error {
 		out, err = v.RunOverSsh(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			exitOnError(err)
+			help.ExitOnError(err)
 		}
 		log.Debug(out)
 
@@ -47,7 +48,7 @@ func initNanoPI() error {
 		out, err = v.RunOverSsh(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			exitOnError(err)
+			help.ExitOnError(err)
 		}
 		log.Debug(out)
 	}(progress)
@@ -55,15 +56,15 @@ func initNanoPI() error {
 	// 7. setup keyboard, locale, etc...
 	config := NewSetDevice(constants.DEVICE_TYPE_NANOPI)
 	err := config.SetConfig()
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	// wait background process
-	waitAndSpin("waiting", progress)
+	help.WaitAndSpin("waiting", progress)
 	wg.Wait()
 
 	// 8. uploading config
 	err = config.Upload(v)
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	// 9. detatch nanopi img(in VM)
 	_, err = v.RunOverSsh(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
@@ -99,8 +100,8 @@ func initNanoPI() error {
 	osImg := filepath.Join(constants.TMP_DIR, img)
 
 	err, progress = local.WriteToDisk(osImg)
-	exitOnError(err)
-	waitAndSpin("flashing", progress)
+	help.ExitOnError(err)
+	help.WaitAndSpin("flashing", progress)
 
 	err = os.Remove(osImg)
 	if err != nil {

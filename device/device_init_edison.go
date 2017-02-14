@@ -54,7 +54,7 @@ func initEdison() error {
 	// 8. config edison
 	config := NewSetDevice(constants.DEVICE_TYPE_EDISON)
 	err = config.SetConfig()
-	exitOnError(err)
+	help.ExitOnError(err)
 
 	// 9. Info message
 	printDoneMessageUsb()

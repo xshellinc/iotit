@@ -4,42 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"sync"
 
-	"github.com/tj/go-spin"
 	"github.com/xshellinc/iotit/dialogs"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ping"
 )
-
-func waitAndSpin(message string, progress chan bool) {
-	s := spin.New()
-	s.Set(spin.Spin1)
-
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	prompt := true
-	spinEn := true
-
-	var ok bool
-
-	for prompt {
-		select {
-		case spinEn, ok = <-progress:
-			if !ok {
-				fmt.Print("\n")
-				prompt = false
-			}
-		case <-ticker.C:
-			if spinEn {
-				fmt.Printf("\r[+] %s: %s ", message, s.Next())
-			}
-		}
-	}
-}
 
 func printDoneMessageSd(device, username, password string) {
 	fmt.Println(strings.Repeat("*", 100))
@@ -171,7 +143,7 @@ func setIp(i *Interfaces) bool {
 			}
 			retries--
 		}(progress)
-		waitAndSpin("validating", progress)
+		help.WaitAndSpin("validating", progress)
 		wg.Wait()
 	}
 

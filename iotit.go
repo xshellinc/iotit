@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/iotit/lib/vbox"
 )
 
 const ProgName = "iotit"
@@ -21,9 +23,11 @@ USAGE:
    iotit [global options]
 
 GLOBAL OPTIONS:
-   -dev [device-type] executes iotit with specified deviceType
-   -help, -h          show help
-   -version, -v       print the version
+   -update <sd|edison> update vbox and dependencies
+   -update <sd|edison> update vbox and dependencies
+   -dev [device-type]  executes iotit with specified deviceType
+   -help, -h           show help
+   -version, -v        print the version
 `
 
 var Version string
@@ -46,6 +50,8 @@ func main() {
 	v1 := flag.Bool("version", false, helpInfo)
 	v2 := flag.Bool("v", false, helpInfo)
 
+	u := flag.String("update", "", helpInfo)
+
 	flag.Parse()
 
 	if *h1 || *h2 {
@@ -59,6 +65,15 @@ func main() {
 		}
 		fmt.Println(ProgName, Version)
 		return
+	}
+
+	if *u != "" {
+
+		if name, bool := vbox.CheckUpdate(*u); bool {
+			if dialogs.YesNoDialog("Would you like to update?") {
+				vbox.VboxUpdate(name)
+			}
+		}
 	}
 
 	device.DeviceInit(*deviceType)

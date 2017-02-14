@@ -187,37 +187,33 @@ func CheckDeps(pkg string) error {
 	return nil
 }
 
-func CheckUpdate(typeFlag string) (err error) {
+func CheckUpdate(typeFlag string) (string, bool) {
 	log.Debug("Check Update func()")
-	var (
-		vmType string
-	)
+	var vmType string
+
 	if typeFlag == "" {
-		prompt := true
-		for prompt {
-			var vmNumberIn string
+		for {
+			var inp int
 			fmt.Println("[1]", "sd")
 			fmt.Println("[2]", "edison")
 			fmt.Print("[+] Select virtual machine type: ")
-			fmt.Scanln(&vmNumberIn)
-			vmNumber, err := strconv.Atoi(vmNumberIn)
+
+			_, err := fmt.Scanf("%d", &inp)
 			if err != nil {
 				log.Debug(err)
 				fmt.Println("[-] Invalid user input")
-			} else {
-				switch vmNumber {
-				case 1:
-					vmType = "sd"
-					prompt = false
-				case 2:
-					vmType = "edison"
-					prompt = false
-				default:
-					fmt.Errorf("[-] Unknown virtual machine type %s", vmNumber)
-					prompt = false
-					return UnknownChoice
-				}
-				prompt = false
+				continue
+			}
+
+			switch inp {
+			case 1:
+				vmType = "sd"
+				break
+			case 2:
+				vmType = "edison"
+				break
+			default:
+				fmt.Errorf("[-] Unknown virtual machine type %s", inp)
 			}
 		}
 	}
@@ -228,17 +224,21 @@ func CheckUpdate(typeFlag string) (err error) {
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
-			os.Exit(0)
+			return vmType, false
 		}
 	case "edison":
 		b, _ := checkUpdate(constant.VBOX_TEMPLATE_EDISON)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
-			os.Exit(0)
+			return vmType, false
 		}
+	default:
+		fmt.Println("[-] Unknown image ", typeFlag)
+		os.Exit(1)
 	}
-	return nil
+
+	return vmType, true
 }
 
 func StopMachines() error {
