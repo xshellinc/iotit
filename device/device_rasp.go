@@ -97,11 +97,11 @@ func initRasp() error {
 	//}
 	//log.Debug(out)
 
-	out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	if err != nil {
-		log.Error("[-] Error when execute remote command: " + err.Error())
-	}
-	log.Debug(out)
+	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
+	//if err != nil {
+	//	log.Error("[-] Error when execute remote command: " + err.Error())
+	//}
+	//log.Debug(out)
 
 	// 13. unmount SD card(in host)
 	err = local.Unmount()

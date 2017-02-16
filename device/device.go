@@ -438,7 +438,7 @@ func (d *device) InitPrograms() error {
 
 		fmt.Scan(&inp)
 		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
-			conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " && ") + "\nexit 0"
+			conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
 			err := help.WriteToFile(conf, tmpfile)
 			if err != nil {
 				return err
@@ -529,13 +529,6 @@ func (d *device) Upload(vbox *vbox.VboxConfig) error {
 					os.Remove(file)
 					if err != nil {
 						return err
-					}
-
-					if help.FileName(file) == "rc.local.ext" {
-						if _, err = vbox.RunOverSsh("sed -i 's/exit 0/\"$(cat rc.local.ext)\"/g' file.txt"); err != nil {
-
-							return err
-						}
 					}
 				}
 			}
