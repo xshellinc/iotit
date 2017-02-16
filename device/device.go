@@ -531,7 +531,7 @@ func (d *device) Upload(vbox *vbox.VboxConfig) error {
 						return err
 					}
 
-					if help.FileName("rc.local.ext") {
+					if help.FileName(file) == "rc.local.ext" {
 						if _, err = vbox.RunOverSsh("sed -i 's/exit 0/\"$(cat rc.local.ext)\"/g' file.txt"); err != nil {
 
 							return err
