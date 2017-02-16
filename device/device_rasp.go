@@ -28,7 +28,7 @@ func initRasp() error {
 
 		// 5. attach raspbian img(in VM)
 		log.Debug("Attaching an image")
-		out, err := v.RunOverSsh(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img+".img")))
+		out, err := v.RunOverSsh(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -96,12 +96,12 @@ func initRasp() error {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
 	//log.Debug(out)
-	//
-	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
+
+	out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
+	if err != nil {
+		log.Error("[-] Error when execute remote command: " + err.Error())
+	}
+	log.Debug(out)
 
 	// 13. unmount SD card(in host)
 	err = local.Unmount()

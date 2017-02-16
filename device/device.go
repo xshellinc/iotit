@@ -13,7 +13,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/device/setting"
 	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/dialogs"
 	"github.com/xshellinc/iotit/lib/repo"
@@ -180,7 +179,7 @@ func (d *device) SetLocale() error {
 	)
 
 	for prompt {
-		fmt.Println("[+] Default language: ", setting.DefaultLocale)
+		fmt.Println("[+] Default language: ", constants.DefaultLocale)
 		fmt.Print("[+] Change default language?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 		fmt.Scanln(&answer)
 
@@ -206,7 +205,7 @@ func (d *device) SetLocale() error {
 			prompt = false
 		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
 			fmt.Println("[+] Writing default language")
-			conf := fmt.Sprintf(d.deviceFiles.locale, setting.DefaultLocale, setting.DefaultLocale, setting.DefaultLocale)
+			conf := fmt.Sprintf(d.deviceFiles.locale, constants.DefaultLocale, constants.DefaultLocale, constants.DefaultLocale)
 			err := help.WriteToFile(conf, tmpfile)
 			if err != nil {
 				return err
@@ -229,7 +228,7 @@ func (d *device) SetKeyborad() error {
 	)
 
 	for prompt {
-		fmt.Println("[+] Default keyboard: ", setting.DefaultKeymap)
+		fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
 		fmt.Print("[+] Change default keyboard?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 		fmt.Scanln(&answer)
 
@@ -246,7 +245,7 @@ func (d *device) SetKeyborad() error {
 			prompt = false
 		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
 			fmt.Println("[+] Writing default keyboard")
-			conf := fmt.Sprintf(d.deviceFiles.keyboard, setting.DefaultKeymap)
+			conf := fmt.Sprintf(d.deviceFiles.keyboard, constants.DefaultKeymap)
 			err := help.WriteToFile(conf, tmpfile)
 			if err != nil {
 				return err
@@ -435,12 +434,11 @@ func (d *device) InitPrograms() error {
 
 	fmt.Print("[+] Would you like to install basic software for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	for {
-		tmpfile := filepath.Join(constants.TMP_DIR, "rc.local")
+		tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
 
 		fmt.Scan(&inp)
 		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
-			conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " && ") + "\n" +
-				"cp /dev/null /etc/rc.local"
+			conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " && ") + "\nexit 0"
 			err := help.WriteToFile(conf, tmpfile)
 			if err != nil {
 				return err
@@ -531,6 +529,13 @@ func (d *device) Upload(vbox *vbox.VboxConfig) error {
 					os.Remove(file)
 					if err != nil {
 						return err
+					}
+
+					if help.FileName("rc.local.ext") {
+						if _, err = vbox.RunOverSsh("sed -i 's/exit 0/\"$(cat rc.local.ext)\"/g' file.txt"); err != nil {
+
+							return err
+						}
 					}
 				}
 			}
