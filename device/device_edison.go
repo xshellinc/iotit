@@ -41,7 +41,7 @@ func initEdison() error {
 		printWarnMessage()
 
 		for ack {
-			ack = dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? : ")
+			ack = !dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? : ")
 		}
 
 		//@todo replce
