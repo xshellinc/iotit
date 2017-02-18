@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	log "github.com/Sirupsen/logrus"
 )
 
 // Validator type will be called on user input
@@ -34,27 +32,12 @@ func IpAddressValidator(ipAddress string) bool {
 	return false
 }
 
-func AppNameValidator(name string) bool {
-	if name == "" {
-		return true
-	}
-	chars := []string{"/", "\\", "?", "%", "*", ":", "|", "\"", "<", ">", ".", " ", "$"}
-	for _, char := range chars {
-		if strings.Contains(name, char) {
-			log.Error("AppCreate func(): contains illegal char:", char)
-			fmt.Println("[-] Name is not valid, contains illegal char:", char)
-			return true
-		}
-	}
-	return false
-}
-
 func YesNoValidator(answer string) bool {
 	if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") ||
 		strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
 		return true
 	} else {
-		fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+		fmt.Print("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
 		return false
 	}
 }

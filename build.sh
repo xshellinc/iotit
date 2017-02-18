@@ -12,4 +12,4 @@ if [ -z $v ]; then
     exit 2
 fi
 
-go build -ldflags "-X main.Version=$v" iotit.go
+go build -ldflags "-X main.Version=$v -X main.Env=dev" iotit.go

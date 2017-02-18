@@ -636,8 +636,7 @@ func selectVboxInit(conf string, v []vbox.VboxConfig) int {
 
 func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.VboxConfig, string) {
 	w := workstation.NewWorkStation()
-	err := w.Check("VBoxManage")
-	help.ExitOnError(err)
+	help.ExitOnError(w.Check("VBoxManage"))
 
 	conf := filepath.Join(help.UserHomeDir(), ".isaax", "virtualbox", "isaax-vbox.json")
 	v := vbox.NewVboxConfig(vBoxTemplate, deviceType)

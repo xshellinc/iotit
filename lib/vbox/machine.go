@@ -127,41 +127,8 @@ func CheckMachine(machine, device string) error {
 
 func VboxUpdate(typeFlag string) (err error) {
 	log.Debug("Virtual Machine Update func()")
-	var (
-		vmType string
-	)
 
-	if typeFlag == "" {
-		prompt := true
-		for prompt {
-			var vmNumberIn string
-			fmt.Println("[1]", "sd")
-			fmt.Println("[2]", "edison")
-			fmt.Print("[+] Select virtual machine type: ")
-			fmt.Scanln(&vmNumberIn)
-			vmNumber, err := strconv.Atoi(vmNumberIn)
-			if err != nil {
-				log.Debug(err)
-				fmt.Println("[-] Invalid user input")
-			} else {
-				switch vmNumber {
-				case 1:
-					vmType = "sd"
-					prompt = false
-				case 2:
-					vmType = "edison"
-					prompt = false
-				default:
-					fmt.Errorf("[-] Unknown virtual machine type %s", vmNumber)
-					prompt = false
-					return UnknownChoice
-				}
-				prompt = false
-			}
-		}
-	}
-
-	switch vmType {
+	switch typeFlag {
 	case "sd":
 		update(constant.VBOX_TEMPLATE_SD)
 	case "edison":
@@ -189,56 +156,28 @@ func CheckDeps(pkg string) error {
 
 func CheckUpdate(typeFlag string) (string, bool) {
 	log.Debug("Check Update func()")
-	var vmType string
 
-	if typeFlag == "" {
-		for {
-			var inp int
-			fmt.Println("[1]", "sd")
-			fmt.Println("[2]", "edison")
-			fmt.Print("[+] Select virtual machine type: ")
-
-			_, err := fmt.Scanf("%d", &inp)
-			if err != nil {
-				log.Debug(err)
-				fmt.Println("[-] Invalid user input")
-				continue
-			}
-
-			switch inp {
-			case 1:
-				vmType = "sd"
-				break
-			case 2:
-				vmType = "edison"
-				break
-			default:
-				fmt.Errorf("[-] Unknown virtual machine type %s", inp)
-			}
-		}
-	}
-
-	switch vmType {
+	switch typeFlag {
 	case "sd":
 		b, _ := checkUpdate(constant.VBOX_TEMPLATE_SD)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
-			return vmType, false
+			return typeFlag, false
 		}
 	case "edison":
 		b, _ := checkUpdate(constant.VBOX_TEMPLATE_EDISON)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
-			return vmType, false
+			return typeFlag, false
 		}
 	default:
 		fmt.Println("[-] Unknown image ", typeFlag)
 		os.Exit(1)
 	}
 
-	return vmType, true
+	return typeFlag, true
 }
 
 func StopMachines() error {
@@ -387,6 +326,7 @@ func update(machine string) {
 		wg         sync.WaitGroup
 		repository repo.Repository
 	)
+
 	bars := make([]*pb.ProgressBar, 0)
 	err := CheckDeps("VBoxManage")
 	exit(err)

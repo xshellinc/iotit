@@ -1,4 +1,3 @@
-[![Build status](https://badge.buildkite.com/a079390efcfff71aca1f6e47dcefbc3d6ec95c3b2ad4108bd2.svg)](https://buildkite.com/xshell/isaax-cli)
 ISAAX iotit flashing tool
 ==========================
 

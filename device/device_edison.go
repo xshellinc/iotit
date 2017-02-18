@@ -5,147 +5,164 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/xshellinc/iotit/dialogs"
 	"github.com/xshellinc/iotit/lib/constant"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
 
+const (
+	baseConf  string = "base-feeds.conf"
+	iotdkConf string = "intel-iotdk.conf"
+
+	baseFeeds string = "src/gz all        http://repo.opkg.net/edison/repo/all\n" +
+		"src/gz edison     http://repo.opkg.net/edison/repo/edison\n" +
+		"src/gz core2-32   http://repo.opkg.net/edison/repo/core2-32\n"
+
+	intelIotdk string = "src intel-all     http://iotdk.intel.com/repos/1.1/iotdk/all\n" +
+		"src intel-iotdk   http://iotdk.intel.com/repos/1.1/intelgalactic\n" +
+		"src intel-quark   http://iotdk.intel.com/repos/1.1/iotdk/quark\n" +
+		"src intel-i586    http://iotdk.intel.com/repos/1.1/iotdk/i586\n" +
+		"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
+)
+
 func initEdison() error {
 	wg := &sync.WaitGroup{}
 
-	vm, _, _, _ := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON) // @todo check local
+	ack := dialogs.YesNoDialog("[+] Would you like to flash your device? : ")
 
-	printWarnMessage()
-	// 6. flash edison (in VM)
-	var answer string
-	for {
-		fmt.Print("[+] Would you like to flash your device? (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m): ")
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			script := "flashall.sh"
-			// @todo replace with help
-			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
-			break
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			//do nothing
-			break
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (y/yes OR n/no)")
+	if ack {
+		vm, _, _, _ := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
+
+		printWarnMessage()
+
+		for ack {
+			ack = dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? : ")
 		}
+
+		//@todo replce
+		script := "flashall.sh"
+		cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+
+		fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
+
+		if err := vm.Poweroff(); err != nil {
+			log.Error(err)
+		}
+
 	}
 
-	// 7. Stop VM
-	fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
-
-	err := vm.Poweroff()
-	if err != nil {
-		log.Error(err)
-	}
-
-	// 8. config edison
+	// Config edison
 	config := NewSetDevice(constants.DEVICE_TYPE_EDISON)
-	err = config.SetConfig()
-	help.ExitOnError(err)
+	help.ExitOnError(config.SetConfig())
 
-	// 9. Info message
+	// Info message
 	printDoneMessageUsb()
 
 	return nil
 }
 
-func printWarnMessage() {
-	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t WARNNING!!  \t\t\t\t\t\t\t\t\t   *")
-	fmt.Println("*\t\t IF YOUR EDISON BOARD IS CONNECTED TO YOUR MACHINE, PLEASE DISCONNECT IT!  \t   *")
-	fmt.Println("*\t\t PLEASE FOLLOW THE INSTRUCTIONS! \t\t\t\t\t\t   *")
-	fmt.Println(strings.Repeat("*", 100))
-}
-
 func (e *edison) SetConfig() error {
-	const (
-		base_conf  string = "base-feeds.conf"
-		iotdk_conf string = "intel-iotdk.conf"
-
-		base_feeds string = "src/gz all        http://repo.opkg.net/edison/repo/all\n" +
-			"src/gz edison     http://repo.opkg.net/edison/repo/edison\n" +
-			"src/gz core2-32   http://repo.opkg.net/edison/repo/core2-32\n"
-
-		intel_iotdk string = "src intel-all     http://iotdk.intel.com/repos/1.1/iotdk/all\n" +
-			"src intel-iotdk   http://iotdk.intel.com/repos/1.1/intelgalactic\n" +
-			"src intel-quark   http://iotdk.intel.com/repos/1.1/iotdk/quark\n" +
-			"src intel-i586    http://iotdk.intel.com/repos/1.1/iotdk/i586\n" +
-			"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
-	)
-
 	// get IP
-	edisonIp := ""
-	fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
-	time.Sleep(time.Second * 30)
-	fmt.Print("[+] Input Edison board IP Address: ")
 
-	fmt.Scanln(&edisonIp)
-	re := regexp.MustCompile("(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})")
-	match := re.FindAllString(edisonIp, -1)
-	edisonIp = e.ip
-	for i := range match {
-		edisonIp = match[i]
+	i := dialogs.SelectOneDialog("[+] Chose the edison's inteface: ", []string{"Default", "Enter IP"})
+	fallback := false
+
+	if i == 0 {
+		out, err := help.ExecCmd("sh", []string{"-c", "ifconfig | expand | cut -c1-8 | sort | uniq -u | awk -F: '{print $1;}'"})
+
+		if err != nil {
+			log.Error(err)
+			fmt.Println("[-] ", err.Error())
+			fallback = true
+		}
+
+		if !fallback {
+			arr := strings.Split(out, "\n")
+
+			tmp := -1
+			for idx, v := range arr {
+				if strings.Contains(v, "usb") || strings.Contains(v, "en") {
+					tmp = idx
+				}
+			}
+
+			arrSel := make([]string, len(arr)-1)
+			copy(arrSel, arr)
+
+			if tmp < 0 {
+				arr = append(arr, "\x1b[34musb0\x1b[0m")
+			} else {
+				arrSel[tmp] = "\x1b[34m" + arr[tmp] + "\x1b[0m"
+			}
+
+			i = dialogs.SelectOneDialog("[+] Please chose correct interface: ", arrSel)
+
+			if out, err = help.ExecSudo(help.InputPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
+				fallback = true
+			}
+
+			e.ip = "192.168.2.15"
+		}
 	}
 
-	fmt.Println("[+] Edison IP: " + edisonIp)
+	if i == 1 || fallback {
+		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
+		e.ip = dialogs.GetSingleAnswer("[+] Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.YesNoValidator})
+	}
 
-	err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), edisonIp)
-	if err != nil {
+	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), e.ip); err != nil {
 		log.Error(err)
 	}
 
-	// static ip config
-	err = e.SetInterfaces(*ifaces)
-	if err != nil {
+	if err := e.SetInterfaces(*ifaces); err != nil {
 		return err
 	}
 
 	// @todo replace with help
-	cmd := exec.Command("ssh", "root@"+edisonIp, "-t", "sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison")
+	cmd := exec.Command("ssh", "root@"+e.ip, "-t", "sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return err
 	}
 
-	base := filepath.Join(constants.TMP_DIR, base_conf)
-	baseConf := base_feeds
+	base := filepath.Join(constants.TMP_DIR, baseConf)
+	baseConf := baseFeeds
 	help.WriteToFile(baseConf, base)
 	// @todo replace with help
-	cmd = exec.Command("scp", base, fmt.Sprintf("root@%s:%s", edisonIp, filepath.Join("/etc", "opkg")))
+	cmd = exec.Command("scp", base, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg")))
 	err = cmd.Run()
 	if err != nil {
 		return err
 	}
 	os.Remove(base)
 
-	iotdk := filepath.Join(constants.TMP_DIR, iotdk_conf)
-	iotdkConf := intel_iotdk
+	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
+	iotdkConf := intelIotdk
 	help.WriteToFile(iotdkConf, iotdk)
 	// @todo replace with help
-	cmd = exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", edisonIp, filepath.Join("/etc", "opkg")))
+	cmd = exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg")))
 	err = cmd.Run()
 	if err != nil {
 		return err
 	}
 	os.Remove(iotdk)
+
 	// @todo replace with help
-	cmd = exec.Command("ssh", "root@"+edisonIp, "-t", "configure_edison --wifi")
+	cmd = exec.Command("ssh", "root@"+e.ip, "-t", "configure_edison --wifi")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -153,8 +170,9 @@ func (e *edison) SetConfig() error {
 	if err != nil {
 		return err
 	}
+
 	// @todo replace with help
-	cmd = exec.Command("ssh", "root@"+edisonIp, "-t", "configure_edison --password")
+	cmd = exec.Command("ssh", "root@"+e.ip, "-t", "configure_edison --password")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -228,4 +246,12 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 		}
 	}
 	return nil
+}
+
+func printWarnMessage() {
+	fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("*\t\t WARNNING!!  \t\t\t\t\t\t\t\t\t   *")
+	fmt.Println("*\t\t IF YOUR EDISON BOARD IS CONNECTED TO YOUR MACHINE, PLEASE DISCONNECT IT!  \t   *")
+	fmt.Println("*\t\t PLEASE FOLLOW THE INSTRUCTIONS! \t\t\t\t\t\t   *")
+	fmt.Println(strings.Repeat("*", 100))
 }

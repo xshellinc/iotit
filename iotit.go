@@ -24,33 +24,38 @@ USAGE:
 
 GLOBAL OPTIONS:
    -update <sd|edison> update vbox and dependencies
-   -update <sd|edison> update vbox and dependencies
    -dev [device-type]  executes iotit with specified deviceType
-   -help, -h           show help
-   -version, -v        print the version
+   --help, -h           show help
+   --version, -v        print the version
 `
 
 var Version string
+var Env string
 
 func init() {
+	logrus.SetLevel(logrus.WarnLevel)
+	if Env == "dev" {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", ProgName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-	logrus.SetLevel(logrus.DebugLevel)
 	if err != nil {
 		logrus.Error("error opening file: %v", err)
 		return
 	}
+
 	logrus.SetOutput(f)
 }
 
 func main() {
-	deviceType := flag.String("dev", "", "-dev=[device-type]")
-	h1 := flag.Bool("help", false, helpInfo)
-	h2 := flag.Bool("h", false, helpInfo)
+	deviceType := flag.String("dev", "", "")
+	h1 := flag.Bool("help", false, "")
+	h2 := flag.Bool("h", false, "")
 
 	v1 := flag.Bool("version", false, helpInfo)
-	v2 := flag.Bool("v", false, helpInfo)
+	v2 := flag.Bool("v", false, "")
 
-	u := flag.String("update", "", helpInfo)
+	u := flag.String("update", "", "")
 
 	flag.Parse()
 
@@ -61,7 +66,7 @@ func main() {
 
 	if *v1 || *v2 {
 		if Version == "" {
-			Version = "-1 not set"
+			Version = "no version"
 		}
 		fmt.Println(ProgName, Version)
 		return
@@ -70,7 +75,7 @@ func main() {
 	if *u != "" {
 
 		if name, bool := vbox.CheckUpdate(*u); bool {
-			if dialogs.YesNoDialog("Would you like to update?") {
+			if dialogs.YesNoDialog("[?] Would you like to update?") {
 				vbox.VboxUpdate(name)
 			}
 		}
