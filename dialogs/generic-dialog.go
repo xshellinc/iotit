@@ -12,11 +12,11 @@ import (
 func GetSingleAnswer(question string, validators []ValidatorFn) string {
 	reader := bufio.NewReader(os.Stdin)
 	retries := 3
+	fmt.Print(question)
 
 Loop:
 	for retries > 0 {
 		retries--
-		fmt.Print(question)
 
 		answer, err := reader.ReadString('\n')
 		if err != nil {

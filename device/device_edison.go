@@ -33,7 +33,7 @@ const (
 func initEdison() error {
 	wg := &sync.WaitGroup{}
 
-	ack := dialogs.YesNoDialog("[+] Would you like to flash your device? : ")
+	ack := dialogs.YesNoDialog("[+] Would you like to flash your device? ")
 
 	if ack {
 		vm, _, _, _ := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
@@ -41,16 +41,30 @@ func initEdison() error {
 		printWarnMessage()
 
 		for ack {
-			ack = !dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? : ")
+			ack = !dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? ")
 		}
 
 		//@todo replce
-		script := "flashall.sh"
-		cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return err
+		for {
+			script := "flashall.sh"
+			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				fmt.Println("error running script, rerunning")
+				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, "lsusb | grep Intel")
+				cmd2.Stderr = os.Stderr
+				out, err := cmd2.Output()
+				fmt.Println(string(out), err)
+
+				if string(out) == "" {
+					fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
+
+					if !dialogs.YesNoDialog("[+] Press yes once mounted? ") {
+						break
+					}
+				}
+			}
 		}
 
 		fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
@@ -118,7 +132,7 @@ func (e *edison) SetConfig() error {
 
 	if i == 1 || fallback {
 		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
-		e.ip = dialogs.GetSingleAnswer("[+] Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.YesNoValidator})
+		e.ip = dialogs.GetSingleAnswer("[+] Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	}
 
 	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), e.ip); err != nil {
