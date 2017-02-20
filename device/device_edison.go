@@ -64,6 +64,8 @@ func initEdison() error {
 						os.Exit(2)
 					}
 				}
+
+				continue
 			}
 
 			break
