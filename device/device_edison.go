@@ -61,10 +61,12 @@ func initEdison() error {
 					fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
 
 					if !dialogs.YesNoDialog("[+] Press yes once mounted? ") {
-						break
+						os.Exit(2)
 					}
 				}
 			}
+
+			break
 		}
 
 		fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
