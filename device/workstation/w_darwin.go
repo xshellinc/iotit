@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
@@ -119,7 +119,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 					d.workstation.mount.diskName,
 				}
 
-				if out, eut, err := sudo.Exec(help.InputPassword, progress, args...); err != nil {
+				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
 					help.LogCmdErrors(string(out), string(eut), err, args...)
 
 					progress <- false
@@ -139,7 +139,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 					fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
 					"bs=1048576",
 				}
-				if out, eut, err := sudo.Exec(help.InputPassword, progress, args...); err != nil {
+				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
 					help.LogCmdErrors(string(out), string(eut), err, args...)
 
 					progress <- false
@@ -233,7 +233,7 @@ func (d *darwin) ListRemovableDisk() error {
 func (d *darwin) Eject() error {
 	if d.workstation.boolean != false {
 		fmt.Printf("[+] Eject your sd card :%s\n", d.workstation.mount.diskName)
-		stdout, err := help.ExecSudo(help.InputPassword, nil, d.unix.eject, d.workstation.mount.diskName)
+		stdout, err := help.ExecSudo(help.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
 
 		if err != nil {
 			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: %s\n", d.workstation.mount.diskName, stdout)

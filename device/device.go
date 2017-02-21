@@ -14,7 +14,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/device/workstation"
-	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
@@ -120,7 +120,7 @@ func DeviceInit(typeFlag string) (err error) {
 	var deviceType string
 
 	if typeFlag != "" {
-		if help.StringInSlice(typeFlag, devices[:]) {
+		if help.StringToSlice(typeFlag, devices[:]) {
 			deviceType = typeFlag
 		} else {
 			fmt.Println("[-]", typeFlag, "device is not supported")

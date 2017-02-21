@@ -9,8 +9,8 @@ import (
 	"os"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/dialogs"
 	"github.com/xshellinc/iotit/lib/vbox"
+	"github.com/xshellinc/tools/dialogs"
 )
 
 const ProgName = "iotit"

@@ -8,9 +8,12 @@ import (
 	"strings"
 	"sync"
 
+	"time"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -61,6 +64,7 @@ func initEdison() error {
 					fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
 
 					if !dialogs.YesNoDialog("[+] Press yes once mounted? ") {
+						fmt.Println("Exiting with exit status 2 ...")
 						os.Exit(2)
 					}
 				}
@@ -73,14 +77,25 @@ func initEdison() error {
 
 		fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
 
-		if err := vm.Poweroff(); err != nil {
+		err := vbox.Stop(vm.UUID)
+		if err != nil {
 			log.Error(err)
 		}
+
+		progress := make(chan bool)
+		go func() {
+			defer close(progress)
+			time.Sleep(120 * time.Second)
+		}()
+
+		help.WaitAndSpin("Configuring edison", progress)
+		<-progress
 
 	}
 
 	// Config edison
 	config := NewSetDevice(constants.DEVICE_TYPE_EDISON)
+
 	help.ExitOnError(config.SetConfig())
 
 	// Info message
@@ -125,7 +140,7 @@ func (e *edison) SetConfig() error {
 
 			i = dialogs.SelectOneDialog("[+] Please chose correct interface: ", arrSel)
 
-			if out, err = help.ExecSudo(help.InputPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+			if out, err = help.ExecSudo(help.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
 				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
 				fallback = true
 			}

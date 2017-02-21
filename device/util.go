@@ -7,10 +7,10 @@ import (
 
 	"sync"
 
-	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/constants"
-	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ping"
+	"github.com/xshellinc/tools/lib/help"
 )
 
 func printDoneMessageSd(device, username, password string) {

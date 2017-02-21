@@ -109,7 +109,7 @@ func (self *VboxConfig) RunOverSshExtendedPeriod(command string) (string, error)
 
 func (self *VboxConfig) runOverSshWithTimeout(command string, timeout int) (string, error) {
 	return help.GenericRunOverSsh(command, self.Ssh.Ip, self.Ssh.User, self.Ssh.Password, self.Ssh.Port,
-		true, "", false, timeout)
+		true, false, timeout)
 }
 
 func (self *VboxConfig) RunOverSshStream(command string) (output chan string, done chan bool, err error) {

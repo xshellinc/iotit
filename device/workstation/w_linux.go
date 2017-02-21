@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/dialogs"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
@@ -104,7 +104,7 @@ func (l *linux) ListRemovableDisk() error {
 func (l *linux) Unmount() error {
 	if l.workstation.boolean != false {
 		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
-		stdout, err := help.ExecSudo(help.InputPassword, nil, l.unix.unmount, l.workstation.mount.deviceName)
+		stdout, err := help.ExecSudo(help.InputMaskedPassword, nil, l.unix.unmount, l.workstation.mount.deviceName)
 		if err != nil {
 			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.unix.folder, err.Error(), stdout)
 		}
@@ -192,7 +192,7 @@ func (l *linux) WriteToDisk(img string) (err error, progress chan bool) {
 					"bs=4M",
 				}
 
-				if out, eut, err := sudo.Exec(help.InputPassword, progress, args...); err != nil {
+				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
 					help.LogCmdErrors(string(out), string(eut), err, args...)
 
 					progress <- false
@@ -217,7 +217,7 @@ func (l *linux) WriteToDisk(img string) (err error, progress chan bool) {
 func (l *linux) Eject() error {
 	if l.workstation.boolean != false {
 		fmt.Printf("[+] Eject your sd card :%s\n", l.workstation.mount.diskName)
-		eut, err := help.ExecSudo(help.InputPassword, nil, l.unix.eject, l.workstation.mount.diskName)
+		eut, err := help.ExecSudo(help.InputMaskedPassword, nil, l.unix.eject, l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: \n", l.workstation.mount.diskName, eut)
 		}

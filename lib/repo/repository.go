@@ -329,11 +329,6 @@ func DownloadAsync(repo Repository, wg *sync.WaitGroup) (string, *pb.ProgressBar
 	return help.DownloadFromUrlWithAttemptsAsync(repo.GetURL(), dst, 3, wg)
 }
 
-func Download(repo Repository) (string, error) {
-	dst := filepath.Join(repo.Dir(), repo.GetVersion())
-	return help.DownloadFromUrlWithAttemptsSilent(repo.GetURL(), dst, 3)
-}
-
 func NewGenericRepository(url, version string, dir string) Repository {
 	help.CreateDir(dir)
 	return &GenericRepository{
