@@ -1,10 +1,8 @@
 package workstation
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
 
+// Workstation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
 	Check(string) error
 	ListRemovableDisk() error
@@ -13,14 +11,16 @@ type WorkStation interface {
 	Eject() error
 }
 
+// Workstation struct contains parameters such as:
+// OS, all available mounts, selected mount to write data and is the mount is writable
 type workstation struct {
-	os      string
-	boolean bool
-	mount   *MountInfo
-	mounts  []*MountInfo
+	os       string
+	writable bool
+	mount    *MountInfo
+	mounts   []*MountInfo
 }
 
-// shared type linux/darwin
+// shared type linux/darwin commands
 type unix struct {
 	dd      string
 	folder  string
@@ -28,6 +28,7 @@ type unix struct {
 	eject   string
 }
 
+// MountInfo contains mounted disks information
 type MountInfo struct {
 	deviceName  string
 	diskName    string
@@ -35,31 +36,14 @@ type MountInfo struct {
 	deviceSize  string
 }
 
+// Constructor which will return workstation depending on the OS
 func NewWorkStation() WorkStation {
 
 	return newWorkstation()
 }
 
+// Stringer method
 func (m *MountInfo) String() string {
 	return fmt.Sprintf("DiskName=%s\n\tdeviceName=%s\n\tdiskNameRaw=%s\n\tdeviceSize=%s",
 		m.diskName, m.deviceName, m.diskNameRaw, m.deviceSize)
-}
-
-func verify() bool {
-	var (
-		answer string
-		prompt = true
-	)
-	for prompt {
-		fmt.Print("[+] Are you sure?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			return true
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			return false
-		} else {
-			fmt.Println("[-] Please enter?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-		}
-	}
-	return false
 }

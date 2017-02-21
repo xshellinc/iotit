@@ -22,8 +22,7 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-var UnknownChoice = errors.New("UNKNOWN CHOICE")
-
+// stops vbox
 func Stop(name string) error {
 	var (
 		prompt bool = true
@@ -53,6 +52,8 @@ func Stop(name string) error {
 	return nil
 }
 
+// Check if any vbox is running with the ability to power-off
+// After that imports and runs the vbox image according to the selected device type
 func CheckMachine(machine, device string) error {
 	bars := make([]*pb.ProgressBar, 0)
 	var wg sync.WaitGroup
@@ -125,6 +126,7 @@ func CheckMachine(machine, device string) error {
 	return nil
 }
 
+// Updates virtualbox
 func VboxUpdate(typeFlag string) (err error) {
 	log.Debug("Virtual Machine Update func()")
 
@@ -137,6 +139,7 @@ func VboxUpdate(typeFlag string) (err error) {
 	return nil
 }
 
+// check for virtualbox dependencies
 func CheckDeps(pkg string) error {
 	// @todo replace with help
 	err := exec.Command("which", pkg).Run()
@@ -154,6 +157,7 @@ func CheckDeps(pkg string) error {
 	return nil
 }
 
+// Check for virtualbox image updates
 func CheckUpdate(typeFlag string) (string, bool) {
 	log.Debug("Check Update func()")
 
@@ -180,6 +184,7 @@ func CheckUpdate(typeFlag string) (string, bool) {
 	return typeFlag, true
 }
 
+// Stops running machines
 func StopMachines() error {
 	var (
 		answer string

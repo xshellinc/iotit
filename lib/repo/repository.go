@@ -15,7 +15,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
 )
-
 const S3Bucket = "https://s3-ap-northeast-1.amazonaws.com/isaax-distro/versions.json"
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")

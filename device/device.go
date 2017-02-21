@@ -14,10 +14,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/device/workstation"
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -37,6 +37,7 @@ const (
 )
 
 type (
+	// Static network interfaces used to setup devices
 	Interfaces struct {
 		Address string
 		Gateway string
@@ -45,11 +46,13 @@ type (
 		Dns     string
 	}
 
+	// Wpa supplicant detail used to setup wlan on devices
 	wifi struct {
 		Name     string
 		Password []byte
 	}
 
+	// Contains device values and file path's to write these values
 	deviceFiles struct {
 		locale          string
 		locale_f        string
@@ -64,39 +67,48 @@ type (
 		resolv_f        string
 	}
 
+	// Wrapper on device files collecting files to write
 	device struct {
 		deviceType string
 		*deviceFiles
-		files   []string
-		boolean bool
+		files     []string
+		writeable bool
 	}
 
+	// Mount type
 	sd struct {
 		*device
 	}
 
+	// Mount type
 	usb struct {
 		*device
 	}
 
+	// RaspberryPi mount type
 	raspberryPi struct {
 		*sd
 	}
 
+	// Mount type, contains ip address specific for edison
 	edison struct {
 		*usb
 		ip string
 	}
 
+	// NanoPi mount type
 	nanoPi struct {
 		*sd
 	}
 
+	// BeagleBone mount type
 	beagleBone struct {
 		*sd
 	}
 )
 
+// Interface used to setup device's locale, keyboard layout, wifi, static network interfaces
+// and upload them into the image
 type SetDevice interface {
 	SetLocale() error
 	SetKeyborad() error
@@ -107,6 +119,7 @@ type SetDevice interface {
 	Upload(*vbox.VboxConfig) error
 }
 
+// Function starts init process, either by receiving `typeFlag` or providing a user to choose from a list
 func DeviceInit(typeFlag string) (err error) {
 	log.Info("DeviceInit")
 	log.Debug("Flag: ", typeFlag)
@@ -147,6 +160,7 @@ func DeviceInit(typeFlag string) (err error) {
 	return nil
 }
 
+// Init device structure for particular device
 func NewSetDevice(d string) SetDevice {
 	w := &device{d, &deviceFiles{
 		constants.LOCALE_LANG + constants.LOCALE + constants.LANG, constants.LOCALE_F,
@@ -171,6 +185,7 @@ func NewSetDevice(d string) SetDevice {
 	}
 }
 
+// Notifies a user if he wants to change locale and provides with the list of locales
 func (d *device) SetLocale() error {
 	var (
 		prompt  bool = true
@@ -220,6 +235,7 @@ func (d *device) SetLocale() error {
 	return nil
 }
 
+// Notifies a user if he wants to change a keyboard layout, user types a layout name
 func (d *device) SetKeyborad() error {
 	var (
 		prompt  bool = true
@@ -260,6 +276,7 @@ func (d *device) SetKeyborad() error {
 	return nil
 }
 
+// Notifies a user, if he wants to set up wifi credentials, user types SSID and pass
 func (d *device) SetWifi() error {
 	var (
 		answer  string
@@ -294,6 +311,7 @@ func (d *device) SetWifi() error {
 	return nil
 }
 
+// Notifies a user, if he wants to set a static ip interfaces
 func (d *device) SelectInterfaces() int {
 	var (
 		answer string
@@ -326,6 +344,7 @@ func (d *device) SelectInterfaces() int {
 	return num
 }
 
+// Users selects either eth0 or wlan0 interface and then he types manually ip addresses for all Interface values
 func (d *device) SetInterfaces(i Interfaces) error {
 	var (
 		answer string
@@ -411,6 +430,8 @@ func (d *device) SetInterfaces(i Interfaces) error {
 	return nil
 }
 
+// @todo make installation from the isaax repo, copy deb packages and install on the first startup
+// Notifies user if he wants to install default software package
 func (d *device) InitPrograms() error {
 
 	var inp string
@@ -457,6 +478,7 @@ func (d *device) InitPrograms() error {
 	return nil
 }
 
+// Setup board notification which then triggers setLocale, setWifi, setKeyBoard, InitPrograms, SetInterface methods
 func (d *device) SetConfig() error {
 	var (
 		answer string
@@ -506,8 +528,9 @@ func (d *device) SetConfig() error {
 	return nil
 }
 
+// Upload config files to the mounted image on the vbox instance
 func (d *device) Upload(vbox *vbox.VboxConfig) error {
-	if d.boolean == true {
+	if d.writeable == true {
 		for _, file := range d.files {
 			if _, err := os.Stat(file); !os.IsNotExist(err) {
 				fmt.Println("[+] Uploading file : ", file)
@@ -537,11 +560,13 @@ func (d *device) Upload(vbox *vbox.VboxConfig) error {
 	return nil
 }
 
+// VirtualBox type option, contains VBOX constant and name used for the list
 type vBoxType struct {
 	name  string
 	vType int
 }
 
+// delete host from ssh file or any other provided
 func deleteHost(fileName, host string) error {
 	result := []string{}
 	input, err := ioutil.ReadFile(fileName)
@@ -562,6 +587,7 @@ func deleteHost(fileName, host string) error {
 	return nil
 }
 
+// Creates custom virtualbox specs
 func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Machine, string, string, error) {
 	err := vbox.StopMachines()
 	help.ExitOnError(err)
@@ -602,6 +628,8 @@ func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Mac
 	}
 }
 
+// Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
+// the name of vbox doesn't change
 func selectVboxInit(conf string, v []vbox.VboxConfig) int {
 	opts := make(map[int]vBoxType)
 	n := 0
@@ -634,6 +662,7 @@ func selectVboxInit(conf string, v []vbox.VboxConfig) int {
 	}
 }
 
+// Starts a vbox, inits repository, downloads the image into repository, then uploads and unpacks it into the vbox
 func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.VboxConfig, string) {
 	w := workstation.NewWorkStation()
 	help.ExitOnError(w.Check("VBoxManage"))

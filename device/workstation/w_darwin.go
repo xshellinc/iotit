@@ -5,17 +5,18 @@ import (
 	"io/ioutil"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
+// Darwing specific workstation type, contains unMount and diskUtil strings
+// that are used to perform operations on mounted disks
 type darwin struct {
 	*workstation
 	*unix
@@ -23,6 +24,7 @@ type darwin struct {
 	diskUtil string
 }
 
+// Initializes darwing workstation with unix and darwin specific program names
 func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
@@ -38,6 +40,7 @@ func newWorkstation() WorkStation {
 
 const diskSelectionTries = 3
 
+// Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("[-] Continue?") {
@@ -50,35 +53,15 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 			continue
 		}
 
-		var num int
-		for {
-			var (
-				answer string
-				err    error
-			)
-			fmt.Println("[+] Available mounts: ")
-			for i, e := range d.workstation.mounts {
-				fmt.Printf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, e.deviceName, e.diskName)
-			}
-			fmt.Print("[?] Select mount to format: ")
-			fmt.Scanln(&answer)
-			num, err = strconv.Atoi(answer)
+		fmt.Println("[+] Available mounts: ")
 
-			if err != nil {
-				fmt.Println("[-] Invalid user input")
-				log.Error("Error parsing mount option ", "error msg:", err.Error())
-			} else {
-				fmt.Println("[+] Selected:", num)
-				//check if outside of range
-				if num < 0 || num > len(d.workstation.mounts)-1 {
-					fmt.Printf("[-] Mount unavailable with option:%d\n", num)
-				} else {
-					break
-				}
-			}
+		rng := make([]string, len(d.workstation.mounts))
+		for i, e := range d.workstation.mounts {
+			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
 		}
-
+		num := dialogs.SelectOneDialog("[?] Select mount to format: ", rng)
 		dev := d.workstation.mounts[num]
+
 		var ok bool
 		if ok, err = help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
@@ -99,7 +82,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 		return err, nil
 	}
 
-	if boolean := verify(); boolean == true {
+	if dialogs.YesNoDialog("[?] Are you sure? ") {
 		fmt.Printf("[+] Writing %s to %s\n", img, d.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter your OS X user password")
 
@@ -119,8 +102,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 					d.workstation.mount.diskName,
 				}
 
-				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
-					help.LogCmdErrors(string(out), string(eut), err, args...)
+				if _, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
 
 					progress <- false
 					fmt.Println("\r[-] Can't unmount disk. Please make sure your password is correct and press Enter to retry")
@@ -139,8 +121,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 					fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
 					"bs=1048576",
 				}
-				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
-					help.LogCmdErrors(string(out), string(eut), err, args...)
+				if _, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
 
 					progress <- false
 					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct and press Enter to retry")
@@ -154,13 +135,15 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 			}
 		}(progress)
 
-		d.workstation.boolean = boolean
+		d.workstation.writable = true
 		return nil, progress
 	} else {
-		d.workstation.boolean = boolean
+		d.workstation.writable = false
 		return nil, progress
 	}
 }
+
+// Lists available mounts
 func (d *darwin) ListRemovableDisk() error {
 	regex := regexp.MustCompile("^disk([0-9]+)$")
 	var (
@@ -179,7 +162,7 @@ func (d *darwin) ListRemovableDisk() error {
 		var p = &MountInfo{}
 		diskMap := make(map[string]string)
 		removable := true
-		// @todo is execCmd is sufficient here, or create execCmd with returning stdout, stderr, err?
+
 		stdout, err := help.ExecCmd("diskutil", []string{"info", "/dev/" + devDisk})
 		if err != nil {
 			stdout = ""
@@ -230,8 +213,9 @@ func (d *darwin) ListRemovableDisk() error {
 	return nil
 }
 
+// Ejects the mounted disk
 func (d *darwin) Eject() error {
-	if d.workstation.boolean != false {
+	if d.workstation.writable {
 		fmt.Printf("[+] Eject your sd card :%s\n", d.workstation.mount.diskName)
 		stdout, err := help.ExecSudo(help.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
 
@@ -242,13 +226,15 @@ func (d *darwin) Eject() error {
 	return nil
 }
 
+// Checks virtualbox Dependencies
 func (d *darwin) Check(pkg string) error {
 	return vbox.CheckDeps(pkg)
 }
 
 //TODO : THIS WILL FAIL(REQUIRES SUDO USER)
+// Unmounts the mounted disk
 func (d *darwin) Unmount() error {
-	if d.workstation.boolean != false {
+	if d.workstation.writable {
 		fmt.Printf("[+] Unmounting your sd card :%s\n", d.workstation.mount.diskName)
 		stdout, err := help.ExecCmd(d.diskUtil,
 			[]string{

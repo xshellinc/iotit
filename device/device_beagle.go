@@ -14,6 +14,8 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
+// Inits vbox, mounts image, copies config files into image, then closes image, copies image into /tmp
+// on the host machine, then flashes it onto mounted disk and eject it cleaning up temporary files
 func initBeagleBone() error {
 	wg := &sync.WaitGroup{}
 

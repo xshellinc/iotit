@@ -15,6 +15,7 @@ import (
 )
 
 type (
+	// Vbox parameters with ssh and http configurations
 	VboxConfig struct {
 		Name        string     `json:"name"`
 		Uuid        string     `json:"uuid"`
@@ -54,6 +55,7 @@ type (
 	}
 )
 
+// @todo replace with Help
 func exit(err error) {
 	if err != nil {
 		log.Error("erro msg:", err.Error())
@@ -63,6 +65,8 @@ func exit(err error) {
 	}
 }
 
+// Virtualbox wrapper, containing helper functions to copy into vbox and dowload from it
+// Run commands over ssh and get Virtual box configuration files
 func NewVboxConfig(template, device string) *VboxConfig {
 	err := CheckMachine(template, device)
 	exit(err)

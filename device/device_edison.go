@@ -11,10 +11,10 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/iotit/lib/constant"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -33,6 +33,8 @@ const (
 		"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
 )
 
+// Inits vbox, mounts image, copies config files into image, then closes image, copies image into /tmp
+// on the host machine, then flashes it onto mounted disk and eject it cleaning up temporary files
 func initEdison() error {
 	wg := &sync.WaitGroup{}
 
@@ -104,6 +106,7 @@ func initEdison() error {
 	return nil
 }
 
+// Uses ifconfig to setup edison interface to be accessable via 192.168.2.2 ip
 func (e *edison) SetConfig() error {
 	// get IP
 
@@ -218,6 +221,7 @@ func (e *edison) SetConfig() error {
 
 }
 
+// Set up Interface values
 func (e *edison) SetInterfaces(i Interfaces) error {
 	var (
 		answer string

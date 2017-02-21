@@ -10,6 +10,7 @@ import (
 	"github.com/xshellinc/tools/constants"
 )
 
+// Virtualbox dialogs
 func onoff() string {
 
 	var inp int

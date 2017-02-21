@@ -7,12 +7,13 @@ import (
 
 	"sync"
 
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/constants"
-	"github.com/xshellinc/tools/lib/ping"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"github.com/xshellinc/tools/lib/ping"
 )
 
+// Prints sd card flashed message
 func printDoneMessageSd(device, username, password string) {
 	fmt.Println(strings.Repeat("*", 100))
 	fmt.Println("*\t\t SD CARD READY!  \t\t\t\t\t\t\t\t   *")
@@ -24,6 +25,7 @@ func printDoneMessageSd(device, username, password string) {
 	fmt.Println(strings.Repeat("*", 100))
 }
 
+// Prints flashed message over usb
 func printDoneMessageUsb() {
 	fmt.Println(strings.Repeat("*", 100))
 	fmt.Println("*\t\t ALL DONE!  \t\t\t\t\t\t\t\t\t   *")
@@ -31,6 +33,7 @@ func printDoneMessageUsb() {
 	fmt.Println(strings.Repeat("*", 100))
 }
 
+// Dialog to change primary language
 func selectLanguagePriority(d string) string {
 	var answer string
 
@@ -63,6 +66,7 @@ func selectLanguagePriority(d string) string {
 	return d
 }
 
+// Select locale dialog
 func selectLocale(locales []string, err error) (string, error) {
 	if err != nil {
 		return "", err
@@ -96,6 +100,7 @@ func selectLocale(locales []string, err error) (string, error) {
 	return "", errors.New("No results")
 }
 
+// set interfaces dialog
 func setInterfaces(i *Interfaces) {
 
 	var answ string
@@ -122,6 +127,7 @@ func setInterfaces(i *Interfaces) {
 	i.Dns = dialogs.GetSingleAnswer("[+] Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 }
 
+// @todo replace by dialog
 func setIp(i *Interfaces) bool {
 	wg := &sync.WaitGroup{}
 
