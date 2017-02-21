@@ -161,6 +161,8 @@ func (e *edison) SetConfig() error {
 		log.Error(err)
 	}
 
+	time.Sleep(time.Second * 4)
+
 	if err := e.SetInterfaces(*ifaces); err != nil {
 		return err
 	}
