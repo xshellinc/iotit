@@ -1,0 +1,27 @@
+#!/bin/bash
+set -eo pipefail
+echo '--- :sparkles: Uploading artifacts to s3 bucket'
+
+if [ ! -z "$BUILDKITE_TAG" ]; then
+
+	VERSION=$(git describe --tags)
+    echo "Current tag is $VERSION"
+
+    # Uploading to folder by tag for user-app
+    aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
+    aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
+    aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
+elif [ "$BUILDKITE_BRANCH" == "develop" ]; then
+
+	VERSION=$(git describe --tags)
+	echo "Current version is $VERSION"
+
+	# Uploading to latest folder for old versios support
+    aws s3 rm  s3://iotit/latest --recursive
+    aws s3 cp build/${VERSION}/. s3://iotit/latest/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
+    aws s3 cp build/${VERSION}/. s3://iotit/latest/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
+    aws s3 cp build/${VERSION}/. s3://iotit/latest/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
+else
+	echo 'Release was not tagged, artifact upload cancelled'
+fi
+
