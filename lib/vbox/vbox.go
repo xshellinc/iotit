@@ -34,13 +34,13 @@ type (
 	}
 
 	UsbController struct {
-		Usb     string            `json:"self"`
+		Usb     bool              `json:"self"`
 		UsbType UsbTypeController `json:"type"`
 	}
 
 	UsbTypeController struct {
-		Ehci string `json:"2.0"`
-		Xhci string `json:"3.0"`
+		Ehci bool `json:"2.0"`
+		Xhci bool `json:"3.0"`
 	}
 
 	SshConfig struct {
@@ -83,10 +83,10 @@ func NewVboxConfig(template, device string) *VboxConfig {
 			Cpu:    m.CPUs,
 			Memory: m.Memory,
 			Usb: UsbController{
-				Usb: m.Usb.Usb,
+				Usb: m.Flag&virtualbox.F_usb != 0,
 				UsbType: UsbTypeController{
-					Ehci: m.Usb.UsbType.Ehci,
-					Xhci: m.Usb.UsbType.Xhci,
+					Ehci: m.Flag&virtualbox.F_usbehci != 0,
+					Xhci: m.Flag&virtualbox.F_usbxhci != 0,
 				},
 			},
 		},
@@ -195,9 +195,24 @@ func (self *VboxConfig) Modify() error {
 	usb, ehci, xhci := self.GetUsbs()
 	m.CPUs = self.Option.Cpu
 	m.Memory = self.Option.Memory
-	m.Usb.Usb = usb
-	m.Usb.UsbType.Ehci = ehci
-	m.Usb.UsbType.Xhci = xhci
+	if usb {
+		m.Flag |= virtualbox.F_usb
+	} else {
+		m.Flag &^= virtualbox.F_usb
+	}
+
+	if ehci {
+		m.Flag |= virtualbox.F_usbehci
+	} else {
+		m.Flag &^= virtualbox.F_usbehci
+	}
+
+	if xhci {
+		m.Flag |= virtualbox.F_usbxhci
+	} else {
+		m.Flag &^= virtualbox.F_usbxhci
+	}
+
 	if m.State != virtualbox.Poweroff {
 		err := m.Poweroff()
 		if err != nil {
@@ -266,6 +281,6 @@ func (self *VboxConfig) GetCpu() int {
 	return int(self.Option.Cpu)
 }
 
-func (self *VboxConfig) GetUsbs() (string, string, string) {
+func (self *VboxConfig) GetUsbs() (usb, ehci, xhci bool) {
 	return self.Option.Usb.Usb, self.Option.Usb.UsbType.Ehci, self.Option.Usb.UsbType.Xhci
 }

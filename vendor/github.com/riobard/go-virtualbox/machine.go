@@ -29,7 +29,7 @@ const (
 	F_cpuhotplug
 	F_pae
 	F_longmode
-	F_synthcpu
+	//F_synthcpu
 	F_hpet
 	F_hwvirtex
 	F_triplefaultreset
@@ -38,6 +38,10 @@ const (
 	F_vtxvpid
 	F_vtxux
 	F_accelerate3d
+
+	F_usb
+	F_usbehci
+	F_usbxhci
 )
 
 // Convert bool to "on"/"off"
@@ -66,7 +70,6 @@ type Machine struct {
 	OSType     string
 	Flag       Flag
 	BootOrder  []string // max 4 slots, each in {none|floppy|dvd|disk|net}
-	Usb        UsbController
 }
 
 // Refresh reloads the machine information.
@@ -234,12 +237,6 @@ func GetMachine(id string) (*Machine, error) {
 		case "CfgFile":
 			m.CfgFile = val
 			m.BaseFolder = filepath.Dir(val)
-		case "usb":
-			m.Usb.Usb = val
-		case "ehci":
-			m.Usb.UsbType.Ehci = val
-		case "xhci":
-			m.Usb.UsbType.Xhci = val
 		}
 	}
 	if err := s.Err(); err != nil {
@@ -327,7 +324,7 @@ func (m *Machine) Modify() error {
 		"--cpuhotplug", m.Flag.Get(F_cpuhotplug),
 		"--pae", m.Flag.Get(F_pae),
 		"--longmode", m.Flag.Get(F_longmode),
-		"--synthcpu", m.Flag.Get(F_synthcpu),
+		//"--synthcpu", m.Flag.Get(F_synthcpu),
 		"--hpet", m.Flag.Get(F_hpet),
 		"--hwvirtex", m.Flag.Get(F_hwvirtex),
 		"--triplefaultreset", m.Flag.Get(F_triplefaultreset),
@@ -336,6 +333,9 @@ func (m *Machine) Modify() error {
 		"--vtxvpid", m.Flag.Get(F_vtxvpid),
 		"--vtxux", m.Flag.Get(F_vtxux),
 		"--accelerate3d", m.Flag.Get(F_accelerate3d),
+		"--usb", m.Flag.Get(F_usb),
+		"--usbehci", m.Flag.Get(F_usbehci),
+		"--usbxhci", m.Flag.Get(F_usbxhci),
 	}
 
 	for i, dev := range m.BootOrder {
@@ -354,9 +354,9 @@ func (m *Machine) ModifySimple() error {
 	args := []string{"modifyvm", m.Name,
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
 		"--memory", fmt.Sprintf("%d", m.Memory),
-		"--usb", fmt.Sprintf("%s", m.Usb.Usb),
-		"--usbehci", fmt.Sprintf("%s", m.Usb.UsbType.Ehci),
-		"--usbxhci", fmt.Sprintf("%s", m.Usb.UsbType.Xhci),
+		"--usb", m.Flag.Get(F_usb),
+		"--usbehci", m.Flag.Get(F_usbehci),
+		"--usbxhci", m.Flag.Get(F_usbxhci),
 	}
 
 	if err := vbm(args...); err != nil {

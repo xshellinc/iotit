@@ -11,7 +11,7 @@ import (
 )
 
 // Virtualbox dialogs
-func onoff() string {
+func onoff() bool {
 
 	var inp int
 	var a = []string{"on", "off"}
@@ -28,7 +28,7 @@ func onoff() string {
 			continue
 		}
 
-		return a[inp]
+		return inp == 0
 	}
 }
 
@@ -184,10 +184,13 @@ func (self *VboxConfig) UsbDialog() {
 			}
 			fmt.Println("[+] USB: ")
 			self.Option.Usb.Usb = onoff()
+
 			fmt.Println("[+] USB 2.0: ")
 			self.Option.Usb.UsbType.Ehci = onoff()
+
 			fmt.Println("[+] USB 3.0: ")
 			self.Option.Usb.UsbType.Xhci = onoff()
+
 			break
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
 			self.Option.Usb.Usb = self.Option.Usb.Usb
