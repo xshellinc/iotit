@@ -45,3 +45,8 @@ GLOBAL OPTIONS:
    -help, -h           show help
    -version, -v        print the version
 ```
+
+REQUIREMENTS
+------------
+
+IotIT requires VirtualBox 5.X with correlating version of Extension Pack to be installed
