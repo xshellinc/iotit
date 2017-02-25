@@ -1,13 +1,9 @@
-[![Build status](https://badge.buildkite.com/a079390efcfff71aca1f6e47dcefbc3d6ec95c3b2ad4108bd2.svg)](https://buildkite.com/xshell/isaax-cli)
-ISAAX iotit flashing tool
+IOTIT command line flashing utility
 ==========================
 
-VERSION 0.1.0
 
-LAST UPDATE 2017-02-16
 
-IotIT (written in Golang) is a Flashing Tool for iot devices used by Isaax Cloud
-
+**iotit** (written in Golang) is a command line utility for flashing Single Board Computers (SBCs, aka IoT devices).
 
 
 INSTALLATION
@@ -49,4 +45,6 @@ GLOBAL OPTIONS:
 REQUIREMENTS
 ------------
 
-IotIT requires VirtualBox 5.X with correlating version of Extension Pack to be installed
+IotIT requires [VirtualBox](https://www.virtualbox.org/) with correlating version of [Extension Pack](https://www.virtualbox.org/wiki/Downloads) to be installed.
+
+
