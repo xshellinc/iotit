@@ -198,7 +198,14 @@ func StopMachines() error {
 	for _, m := range machines {
 		prompt = true
 		if m.State == virtualbox.Running {
-			fmt.Printf("[+] \x1b[34m%s\x1b[0m is running, would you stop this virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):", m.Name)
+			var nameStr string
+			if m.Description != "" {
+				nameStr = m.Description
+			} else {
+				nameStr = "default"
+			}
+
+			fmt.Printf("[+] \x1b[34m%s (%s)\x1b[0m is running, would you stop this virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):", m.Name, nameStr)
 			for prompt {
 				fmt.Scanln(&answer)
 				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {

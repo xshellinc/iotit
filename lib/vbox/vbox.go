@@ -34,13 +34,13 @@ type (
 	}
 
 	UsbController struct {
-		Usb     bool              `json:"self"`
+		Usb     OnOff             `json:"self"`
 		UsbType UsbTypeController `json:"type"`
 	}
 
 	UsbTypeController struct {
-		Ehci bool `json:"2.0"`
-		Xhci bool `json:"3.0"`
+		Ehci OnOff `json:"2.0"`
+		Xhci OnOff `json:"3.0"`
 	}
 
 	SshConfig struct {
@@ -53,7 +53,17 @@ type (
 		Url  string `json:"url"`
 		Port string `json:"url"`
 	}
+
+	OnOff bool
 )
+
+func (o OnOff) String() string {
+	if o {
+		return "on"
+	} else {
+		return "off"
+	}
+}
 
 // @todo replace with Help
 func exit(err error) {
@@ -219,6 +229,9 @@ func (self *VboxConfig) Modify() error {
 			return err
 		}
 	}
+
+	m.Description = self.Name
+
 	err = m.ModifySimple()
 	if err != nil {
 		return err
@@ -281,6 +294,6 @@ func (self *VboxConfig) GetCpu() int {
 	return int(self.Option.Cpu)
 }
 
-func (self *VboxConfig) GetUsbs() (usb, ehci, xhci bool) {
+func (self *VboxConfig) GetUsbs() (usb, ehci, xhci OnOff) {
 	return self.Option.Usb.Usb, self.Option.Usb.UsbType.Ehci, self.Option.Usb.UsbType.Xhci
 }

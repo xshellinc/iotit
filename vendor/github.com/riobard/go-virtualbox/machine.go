@@ -59,17 +59,18 @@ func (f Flag) Get(o Flag) string {
 
 // Machine information.
 type Machine struct {
-	Name       string
-	UUID       string
-	State      MachineState
-	CPUs       uint
-	Memory     uint // main memory (in MB)
-	VRAM       uint // video memory (in MB)
-	CfgFile    string
-	BaseFolder string
-	OSType     string
-	Flag       Flag
-	BootOrder  []string // max 4 slots, each in {none|floppy|dvd|disk|net}
+	Name        string
+	UUID        string
+	State       MachineState
+	CPUs        uint
+	Memory      uint // main memory (in MB)
+	VRAM        uint // video memory (in MB)
+	CfgFile     string
+	BaseFolder  string
+	OSType      string
+	Flag        Flag
+	BootOrder   []string // max 4 slots, each in {none|floppy|dvd|disk|net}
+	Description string
 }
 
 // Refresh reloads the machine information.
@@ -237,6 +238,8 @@ func GetMachine(id string) (*Machine, error) {
 		case "CfgFile":
 			m.CfgFile = val
 			m.BaseFolder = filepath.Dir(val)
+		case "description":
+			m.Description = val
 		}
 	}
 	if err := s.Err(); err != nil {
@@ -317,6 +320,7 @@ func (m *Machine) Modify() error {
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
 		"--memory", fmt.Sprintf("%d", m.Memory),
 		"--vram", fmt.Sprintf("%d", m.VRAM),
+		"--description", m.Description,
 
 		"--acpi", m.Flag.Get(F_acpi),
 		"--ioapic", m.Flag.Get(F_ioapic),
@@ -357,6 +361,7 @@ func (m *Machine) ModifySimple() error {
 		"--usb", m.Flag.Get(F_usb),
 		"--usbehci", m.Flag.Get(F_usbehci),
 		"--usbxhci", m.Flag.Get(F_usbxhci),
+		"--description", m.Description,
 	}
 
 	if err := vbm(args...); err != nil {

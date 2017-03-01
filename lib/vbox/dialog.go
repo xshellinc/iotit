@@ -11,7 +11,7 @@ import (
 )
 
 // Virtualbox dialogs
-func onoff() bool {
+func onoff() OnOff {
 
 	var inp int
 	var a = []string{"on", "off"}
@@ -28,7 +28,7 @@ func onoff() bool {
 			continue
 		}
 
-		return inp == 0
+		return OnOff(inp == 0)
 	}
 }
 
@@ -171,7 +171,7 @@ func (self *VboxConfig) UsbDialog() {
 	var inp string
 
 	usb, ehci, xhci := self.GetUsbs()
-	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%s\x1b[0m | USB 2.0:\x1b[34m%s\x1b[0m | USB 3.0:\x1b[34m%s\x1b[0m } \n",
+	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%v\x1b[0m | USB 2.0:\x1b[34m%v\x1b[0m | USB 3.0:\x1b[34m%v\x1b[0m } \n",
 		usb, ehci, xhci)
 
 	fmt.Print("[+] Would you like to change virtual machine usb type?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
