@@ -332,7 +332,7 @@ func (m *Machine) Modify() error {
 		"--acpi", m.Flag.Get(FlagACPI),
 		"--ioapic", m.Flag.Get(FlagIOAPIC),
 		"--rtcuseutc", m.Flag.Get(FlagRTCUseUTC),
-		"--cpuhotplug", m.Flag.Get(FlagCpuHotplug),
+		"--cpuhotplug", m.Flag.Get(FlagCPUHotplug),
 		"--pae", m.Flag.Get(FlagPAE),
 		"--longmode", m.Flag.Get(FlagLongMode),
 		//"--synthcpu", m.Flag.Get(F_synthcpu),
