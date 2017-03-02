@@ -10,7 +10,7 @@ func SetExtra(name, key, val string) error {
 	return vbm("setextradata", name, key, val)
 }
 
-// DelExtraData deletes extra data. Name could be "global"|<uuid>|<vmname>
+// DelExtra deletes extra data. Name could be "global"|<uuid>|<vmname>
 func DelExtra(name, key string) error {
 	return vbm("setextradata", name, key)
 }

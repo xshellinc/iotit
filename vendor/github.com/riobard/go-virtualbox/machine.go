@@ -9,16 +9,23 @@ import (
 	"time"
 )
 
+// MachineState represents machine state like running, poweroff etc
 type MachineState string
 
 const (
+	// Poweroff state when machine is powered off
 	Poweroff = MachineState("poweroff")
-	Running  = MachineState("running")
-	Paused   = MachineState("paused")
-	Saved    = MachineState("saved")
-	Aborted  = MachineState("aborted")
+	// Running state when machine is running
+	Running = MachineState("running")
+	// Paused state when machine is paused
+	Paused = MachineState("paused")
+	// Saved state when machine is saved
+	Saved = MachineState("saved")
+	// Aborted state when machine is aborted
+	Aborted = MachineState("aborted")
 )
 
+// Flag is a wrapper around int
 type Flag int
 
 // Flag names in lowercases to be consistent with VBoxManage options.
@@ -26,7 +33,7 @@ const (
 	FlagACPI Flag = 1 << iota
 	FlagIOAPIC
 	FlagRTCUseUTC
-	FlagCpuHotplug
+	FlagCPUHotplug
 	FlagPAE
 	FlagLongMode
 	//F_synthcpu
@@ -52,7 +59,7 @@ func bool2string(b bool) string {
 	return "off"
 }
 
-// Test if flag is set. Return "on" or "off".
+// Get tests if flag is set. Return "on" or "off".
 func (f Flag) Get(o Flag) string {
 	return bool2string(f&o == o)
 }
@@ -98,7 +105,7 @@ func (m *Machine) Start() error {
 	return nil
 }
 
-// Suspend suspends the machine and saves its state to disk.
+// Save suspends the machine and saves its state to disk.
 func (m *Machine) Save() error {
 	switch m.State {
 	case Paused:
@@ -354,6 +361,7 @@ func (m *Machine) Modify() error {
 	return m.Refresh()
 }
 
+// ModifySimple is a stripped down version of Modify
 func (m *Machine) ModifySimple() error {
 	args := []string{"modifyvm", m.Name,
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
