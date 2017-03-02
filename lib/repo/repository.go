@@ -15,6 +15,8 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
 )
+
+// S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://s3-ap-northeast-1.amazonaws.com/isaax-distro/versions.json"
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
@@ -27,6 +29,7 @@ func init() {
 	help.CreateDir(vboxDir)
 }
 
+// Repository represents image repo
 type Repository interface {
 	//version of latest distro
 	GetVersion() string
@@ -39,45 +42,55 @@ type Repository interface {
 }
 
 type (
+	// Raspberry image
 	Raspberry struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
+	// Edison image
 	Edison struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
+	// Beaglebone image
 	Beaglebone struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
+	// Nanopi image
 	Nanopi struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
+	// Chirimen image
 	Chirimen struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
+	// GenericRepository is so generic
 	GenericRepository struct {
 		Version   string
 		URL       string
 		Directory string
 	}
-	Vms struct {
-		Sd     *VmSd     `json:"vm-sd"`
-		Edison *VmEdison `json:"vm-edison"`
+	// VMs represents virtual machines repos
+	VMs struct {
+		SD     *VMSD     `json:"vm-sd"`
+		Edison *VMEdison `json:"vm-edison"`
 	}
-	VmSd struct {
+	// VMSD represents VM image for SD-based platforms
+	VMSD struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
-	VmEdison struct {
+	// VMEdison represents VM image for Edison
+	VMEdison struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
 )
 
+// S3Repository is a configuration entry for all images
 type S3Repository struct {
 	Raspberry  `json:"raspberry"`
 	Edison     `json:"edison"`
@@ -86,73 +99,87 @@ type S3Repository struct {
 	Chirimen   `json:"chirimen"`
 }
 
-type S3RepositoryVm struct {
-	Vms `json:"vms"`
+// S3RepositoryVM is a configuration entry for all VMs
+type S3RepositoryVM struct {
+	VMs `json:"vms"`
 }
 
 /*
 	Raspberry Repository
 */
 
+// GetVersion of RaspberryPI image
 func (r *Raspberry) GetVersion() string {
 	return r.Version
 }
 
+// GetURL of RaspberryPI image
 func (r *Raspberry) GetURL() string {
 	return r.URL
 }
 
+// Name of RaspberryPI image
 func (r *Raspberry) Name() string {
 	tokens := strings.Split(r.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
+// Dir of RaspberryPI image
 func (r *Raspberry) Dir() string {
-	rasp_repo := filepath.Join(imageDir, "raspberry")
-	help.CreateDir(rasp_repo)
-	return rasp_repo
+	raspRepo := filepath.Join(imageDir, "raspberry")
+	help.CreateDir(raspRepo)
+	return raspRepo
 }
 
 /*
 	Edison Repository
 */
 
+// GetVersion of Edison image
 func (r *Edison) GetVersion() string {
 	return r.Version
 }
 
+// GetURL of Edison image
 func (r *Edison) GetURL() string {
 	return r.URL
 }
 
+// Name of Edison image
 func (r *Edison) Name() string {
 	tokens := strings.Split(r.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
+// Dir of Edison image
 func (r *Edison) Dir() string {
-	edison_repo := filepath.Join(imageDir, "edison")
-	help.CreateDir(edison_repo)
-	return edison_repo
+	edisonRepo := filepath.Join(imageDir, "edison")
+	help.CreateDir(edisonRepo)
+	return edisonRepo
 }
 
 /*
 	NanoPi Repository
 */
+
+// GetVersion of NanoPI image
 func (n *Nanopi) GetVersion() string {
 	return n.Version
 }
 
+// GetURL of NanoPI image
 func (n *Nanopi) GetURL() string {
 	return n.URL
 }
 
+// Dir of NanoPI image
 func (n *Nanopi) Dir() string {
-	rasp_repo := filepath.Join(imageDir, "nanopi")
-	help.CreateDir(rasp_repo)
-	return rasp_repo
+	raspRepo := filepath.Join(imageDir, "nanopi")
+	help.CreateDir(raspRepo)
+	return raspRepo
 }
 
+// Name of NanoPI image
 func (n *Nanopi) Name() string {
 	tokens := strings.Split(n.URL, "/")
 	return tokens[len(tokens)-1]
@@ -161,20 +188,25 @@ func (n *Nanopi) Name() string {
 /*
 	Beaglebone Repository
 */
+
+// GetVersion of Beaglebone image
 func (n *Beaglebone) GetVersion() string {
 	return n.Version
 }
 
+// GetURL of Beaglebone image
 func (n *Beaglebone) GetURL() string {
 	return n.URL
 }
 
+// Dir of Beaglebone image
 func (n *Beaglebone) Dir() string {
-	beagle_repo := filepath.Join(imageDir, "beaglebone")
-	help.CreateDir(beagle_repo)
-	return beagle_repo
+	beagleRepo := filepath.Join(imageDir, "beaglebone")
+	help.CreateDir(beagleRepo)
+	return beagleRepo
 }
 
+// Name of Beaglebone image
 func (n *Beaglebone) Name() string {
 	tokens := strings.Split(n.URL, "/")
 	return tokens[len(tokens)-1]
@@ -183,21 +215,27 @@ func (n *Beaglebone) Name() string {
 /*
 	Chirimen Repository
 */
+
+// GetVersion of Chirimen image
 func (c *Chirimen) GetVersion() string {
 	return c.Version
 }
 
+// GetURL of Chirimen image
 func (c *Chirimen) GetURL() string {
 	return c.URL
 }
-func (n *Chirimen) Dir() string {
-	nano_pi_repo := filepath.Join(imageDir, "chirimen")
-	help.CreateDir(nano_pi_repo)
-	return nano_pi_repo
+
+// Dir of Chirimen image
+func (c *Chirimen) Dir() string {
+	nanoPiRepo := filepath.Join(imageDir, "chirimen")
+	help.CreateDir(nanoPiRepo)
+	return nanoPiRepo
 }
 
-func (n *Chirimen) Name() string {
-	tokens := strings.Split(n.URL, "/")
+// Name of Chirimen image
+func (c *Chirimen) Name() string {
+	tokens := strings.Split(c.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
@@ -205,59 +243,72 @@ func (n *Chirimen) Name() string {
 	Generic Repository
 */
 
+// GetVersion of generic repo
 func (g *GenericRepository) GetVersion() string {
 	return g.Version
 }
 
+// GetURL of generic repo
 func (g *GenericRepository) GetURL() string {
 	return g.URL
 }
 
+// Dir of generic repo
 func (g *GenericRepository) Dir() string {
 	return g.Directory
 }
 
+// Name of generic repo
 func (g *GenericRepository) Name() string {
 	tokens := strings.Split(g.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
-func (v *VmSd) GetVersion() string {
+// GetVersion of VM for SD-based platforms
+func (v *VMSD) GetVersion() string {
 	return v.Version
 }
 
-func (v *VmSd) GetURL() string {
+// GetURL of VM for SD-based platforms
+func (v *VMSD) GetURL() string {
 	return v.URL
 }
 
-func (*VmSd) Dir() string {
-	sd_repo := filepath.Join(vboxDir, "sd")
-	return sd_repo
+// Dir of VM for SD-based platforms
+func (*VMSD) Dir() string {
+	sdRepo := filepath.Join(vboxDir, "sd")
+	return sdRepo
 }
 
-func (v *VmSd) Name() string {
+// Name of VM for SD-based platforms
+func (v *VMSD) Name() string {
 	tokens := strings.Split(v.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
-func (v *VmEdison) GetVersion() string {
+// GetVersion of Edison VM
+func (v *VMEdison) GetVersion() string {
 	return v.Version
 }
 
-func (v *VmEdison) GetURL() string {
+// GetURL of Edison VM
+func (v *VMEdison) GetURL() string {
 	return v.URL
 }
 
-func (*VmEdison) Dir() string {
-	edison_repo := filepath.Join(vboxDir, "edison")
-	return edison_repo
+// Dir of Edison VM
+func (*VMEdison) Dir() string {
+	edisonRepo := filepath.Join(vboxDir, "edison")
+	return edisonRepo
 }
 
-func (v *VmEdison) Name() string {
+// Name of Edison VM
+func (v *VMEdison) Name() string {
 	tokens := strings.Split(v.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
+// NewRepository creates new repository for specified device type
 func NewRepository(deviceType string) (Repository, error) {
 	var (
 		client http.Client
@@ -293,11 +344,12 @@ func NewRepository(deviceType string) (Repository, error) {
 
 }
 
-func NewRepositoryVm(vmType string) (Repository, error) {
+// NewRepositoryVM creates new repository for specified VM type
+func NewRepositoryVM(vmType string) (Repository, error) {
 	var (
 		client http.Client
 		url    = S3Bucket
-		repo   S3RepositoryVm
+		repo   S3RepositoryVM
 	)
 	resp, err := client.Get(url)
 	if err != nil {
@@ -313,9 +365,9 @@ func NewRepositoryVm(vmType string) (Repository, error) {
 		return nil, err
 	}
 	switch vmType {
-	case constant.VBOX_TEMPLATE_SD:
-		return repo.Sd, nil
-	case constant.VBOX_TEMPLATE_EDISON:
+	case constant.VBoxTemplateSD:
+		return repo.SD, nil
+	case constant.VBoxTemplateEdison:
 		return repo.Edison, nil
 	default:
 		return nil, errors.New("unknown virtual machine type")
@@ -323,11 +375,13 @@ func NewRepositoryVm(vmType string) (Repository, error) {
 
 }
 
+// DownloadAsync starts async download
 func DownloadAsync(repo Repository, wg *sync.WaitGroup) (string, *pb.ProgressBar, error) {
 	dst := filepath.Join(repo.Dir(), repo.GetVersion())
 	return help.DownloadFromUrlWithAttemptsAsync(repo.GetURL(), dst, 3, wg)
 }
 
+// NewGenericRepository creates new generic repo
 func NewGenericRepository(url, version string, dir string) Repository {
 	help.CreateDir(dir)
 	return &GenericRepository{
@@ -337,8 +391,9 @@ func NewGenericRepository(url, version string, dir string) Repository {
 	}
 }
 
+// VirtualBoxRepository gets currents repo status for SD platforms
 func VirtualBoxRepository() Repository {
-	rp, err := NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+	rp, err := NewRepositoryVM(constant.VBoxTemplateSD)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil
@@ -348,8 +403,9 @@ func VirtualBoxRepository() Repository {
 
 }
 
+// VirtualBoxRepositoryEdison gets currents repo status for Edison
 func VirtualBoxRepositoryEdison() Repository {
-	rp, err := NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+	rp, err := NewRepositoryVM(constant.VBoxTemplateEdison)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil

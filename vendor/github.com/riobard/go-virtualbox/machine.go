@@ -23,25 +23,25 @@ type Flag int
 
 // Flag names in lowercases to be consistent with VBoxManage options.
 const (
-	F_acpi Flag = 1 << iota
-	F_ioapic
-	F_rtcuseutc
-	F_cpuhotplug
-	F_pae
-	F_longmode
+	FlagACPI Flag = 1 << iota
+	FlagIOAPIC
+	FlagRTCUseUTC
+	FlagCpuHotplug
+	FlagPAE
+	FlagLongMode
 	//F_synthcpu
-	F_hpet
-	F_hwvirtex
-	F_triplefaultreset
-	F_nestedpaging
-	F_largepages
-	F_vtxvpid
-	F_vtxux
-	F_accelerate3d
+	FlagHPET
+	FlagHWvirtEx
+	FlagTripleRaultReset
+	FlagNestedPaging
+	FlagLargePages
+	FlagVTXVPID
+	FlagVTXUX
+	FlagAccelerate3D
 
-	F_usb
-	F_usbehci
-	F_usbxhci
+	FlagUSB
+	FlagUSBEHCI
+	FlagUSBXHCI
 )
 
 // Convert bool to "on"/"off"
@@ -322,24 +322,24 @@ func (m *Machine) Modify() error {
 		"--vram", fmt.Sprintf("%d", m.VRAM),
 		"--description", m.Description,
 
-		"--acpi", m.Flag.Get(F_acpi),
-		"--ioapic", m.Flag.Get(F_ioapic),
-		"--rtcuseutc", m.Flag.Get(F_rtcuseutc),
-		"--cpuhotplug", m.Flag.Get(F_cpuhotplug),
-		"--pae", m.Flag.Get(F_pae),
-		"--longmode", m.Flag.Get(F_longmode),
+		"--acpi", m.Flag.Get(FlagACPI),
+		"--ioapic", m.Flag.Get(FlagIOAPIC),
+		"--rtcuseutc", m.Flag.Get(FlagRTCUseUTC),
+		"--cpuhotplug", m.Flag.Get(FlagCpuHotplug),
+		"--pae", m.Flag.Get(FlagPAE),
+		"--longmode", m.Flag.Get(FlagLongMode),
 		//"--synthcpu", m.Flag.Get(F_synthcpu),
-		"--hpet", m.Flag.Get(F_hpet),
-		"--hwvirtex", m.Flag.Get(F_hwvirtex),
-		"--triplefaultreset", m.Flag.Get(F_triplefaultreset),
-		"--nestedpaging", m.Flag.Get(F_nestedpaging),
-		"--largepages", m.Flag.Get(F_largepages),
-		"--vtxvpid", m.Flag.Get(F_vtxvpid),
-		"--vtxux", m.Flag.Get(F_vtxux),
-		"--accelerate3d", m.Flag.Get(F_accelerate3d),
-		"--usb", m.Flag.Get(F_usb),
-		"--usbehci", m.Flag.Get(F_usbehci),
-		"--usbxhci", m.Flag.Get(F_usbxhci),
+		"--hpet", m.Flag.Get(FlagHPET),
+		"--hwvirtex", m.Flag.Get(FlagHWvirtEx),
+		"--triplefaultreset", m.Flag.Get(FlagTripleRaultReset),
+		"--nestedpaging", m.Flag.Get(FlagNestedPaging),
+		"--largepages", m.Flag.Get(FlagLargePages),
+		"--vtxvpid", m.Flag.Get(FlagVTXVPID),
+		"--vtxux", m.Flag.Get(FlagVTXUX),
+		"--accelerate3d", m.Flag.Get(FlagAccelerate3D),
+		"--usb", m.Flag.Get(FlagUSB),
+		"--usbehci", m.Flag.Get(FlagUSBEHCI),
+		"--usbxhci", m.Flag.Get(FlagUSBXHCI),
 	}
 
 	for i, dev := range m.BootOrder {
@@ -358,9 +358,9 @@ func (m *Machine) ModifySimple() error {
 	args := []string{"modifyvm", m.Name,
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
 		"--memory", fmt.Sprintf("%d", m.Memory),
-		"--usb", m.Flag.Get(F_usb),
-		"--usbehci", m.Flag.Get(F_usbehci),
-		"--usbxhci", m.Flag.Get(F_usbxhci),
+		"--usb", m.Flag.Get(FlagUSB),
+		"--usbehci", m.Flag.Get(FlagUSBEHCI),
+		"--usbxhci", m.Flag.Get(FlagUSBXHCI),
 		"--description", m.Description,
 	}
 

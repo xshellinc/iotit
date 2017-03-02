@@ -41,7 +41,7 @@ func initEdison() error {
 	ack := dialogs.YesNoDialog("[+] Would you like to flash your device? ")
 
 	if ack {
-		vm, _, _, _ := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
+		vm, _, _, _ := vboxDownloadImage(wg, constant.VBoxTemplateEdison, constants.DEVICE_TYPE_EDISON)
 
 		printWarnMessage()
 
@@ -52,12 +52,12 @@ func initEdison() error {
 		//@todo replce
 		for {
 			script := "flashall.sh"
-			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
+			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TemplateUser, constant.TemplateIP), "-p", constant.TemplateSSHPort, constants.TMP_DIR+script)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				fmt.Println("error running script, rerunning")
-				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, "lsusb | grep Intel")
+				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TemplateUser, constant.TemplateIP), "-p", constant.TemplateSSHPort, "lsusb | grep Intel")
 				cmd2.Stderr = os.Stderr
 				out, err := cmd2.Output()
 				fmt.Println(string(out), err)
@@ -240,7 +240,7 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 			fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 			for prompt {
 				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] Dns:%s\n",
-					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.Dns))
+					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
 				fmt.Print("[+] Change values?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 				fmt.Scanln(&answer)
 				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
@@ -264,7 +264,7 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 						return err
 					}
 					// @todo replace with help
-					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.Dns, e.resolv_f))
+					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF))
 					cmd.Stdout = os.Stdout
 					cmd.Stderr = os.Stderr
 					cmd.Stdin = os.Stdin
