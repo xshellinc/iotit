@@ -105,7 +105,7 @@ func setInterfaces(i *Interfaces) {
 
 	var answ string
 
-	if !setIp(i) {
+	if !setIP(i) {
 		for {
 			fmt.Print("[-] Do you want to try again. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m) ")
 			fmt.Scan(&answ)
@@ -124,11 +124,11 @@ func setInterfaces(i *Interfaces) {
 	i.Network = dialogs.GetSingleAnswer("[+] Please enter your network: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	i.Gateway = dialogs.GetSingleAnswer("[+] Please enter your gateway: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	i.Netmask = dialogs.GetSingleAnswer("[+] Please enter your netmask: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
-	i.Dns = dialogs.GetSingleAnswer("[+] Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+	i.DNS = dialogs.GetSingleAnswer("[+] Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 }
 
 // @todo replace by dialog
-func setIp(i *Interfaces) bool {
+func setIP(i *Interfaces) bool {
 	wg := &sync.WaitGroup{}
 
 	loop := true

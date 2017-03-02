@@ -18,7 +18,9 @@ type PFRule struct {
 type PFProto string
 
 const (
+	// PFTCP specifies TCP rule
 	PFTCP = PFProto("tcp")
+	// PFUDP specifies UDP rule
 	PFUDP = PFProto("udp")
 )
 

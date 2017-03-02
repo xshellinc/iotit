@@ -19,7 +19,7 @@ import (
 func initBeagleBone() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_BEAGLEBONE)
+	vm, local, v, img := vboxDownloadImage(wg, constant.VBoxTemplateSD, constants.DEVICE_TYPE_BEAGLEBONE)
 
 	// background process
 	wg.Add(1)
@@ -30,7 +30,7 @@ func initBeagleBone() error {
 
 		// 5. mount loopback device(nanopi img) (in VM)
 		log.Debug("Creating tmp folder")
-		out, err := v.RunOverSsh(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
+		out, err := v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -38,7 +38,7 @@ func initBeagleBone() error {
 		log.Debug(out)
 
 		log.Debug("mounting tmp folder")
-		out, err = v.RunOverSsh(fmt.Sprintf("%s -o rw /dev/loop0p1 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p1 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -46,7 +46,7 @@ func initBeagleBone() error {
 		log.Debug(out)
 
 		// 6. disable rename interface name
-		out, err = v.RunOverSsh(fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules"))
+		out, err = v.RunOverSSH(fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules"))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -68,11 +68,11 @@ func initBeagleBone() error {
 	help.ExitOnError(err)
 
 	// 9. detatch beaglebone img(in VM)
-	_, err = v.RunOverSsh(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
+	_, err = v.RunOverSSH(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
-	_, err = v.RunOverSsh("losetup -D")
+	_, err = v.RunOverSSH("losetup -D")
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
@@ -86,13 +86,13 @@ func initBeagleBone() error {
 	// 11. remove beaglebone img(in VM)
 	//fmt.Println("[+] Removing BeagleBone image from virtual machine")
 	//log.Debug("removing image")
-	//out, err := v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
+	//out, err := v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
 	//log.Debug(out)
 	//
-	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
+	//out, err = v.RunOverSSh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
@@ -101,7 +101,7 @@ func initBeagleBone() error {
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
 
-	err, progress = local.WriteToDisk(osImg)
+	progress, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
 	help.WaitAndSpin("flashing", progress)
 

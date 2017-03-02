@@ -19,7 +19,7 @@ import (
 func initRasp() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_RASPBERRY)
+	vm, local, v, img := vboxDownloadImage(wg, constant.VBoxTemplateSD, constants.DEVICE_TYPE_RASPBERRY)
 
 	// background process
 	progress := make(chan bool)
@@ -30,7 +30,7 @@ func initRasp() error {
 
 		// 5. attach raspbian img(in VM)
 		log.Debug("Attaching an image")
-		out, err := v.RunOverSsh(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
+		out, err := v.RunOverSSH(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -40,7 +40,7 @@ func initRasp() error {
 		// 6. mount loopback device(nanopi img) (in VM)
 		log.Debug("Creating tmp folder")
 		// 6. mount loopback device(raspbian img) (in VM)
-		out, err = v.RunOverSsh(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -48,7 +48,7 @@ func initRasp() error {
 		log.Debug(out)
 
 		log.Debug("mounting tmp folder")
-		out, err = v.RunOverSsh(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -71,14 +71,14 @@ func initRasp() error {
 
 	// 9. detatch raspbian img(in VM)
 	log.Debug("unmounting tmp folder")
-	out, err := v.RunOverSsh(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
+	out, err := v.RunOverSSH(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
 	log.Debug(out)
 
 	log.Debug("removing losetup")
-	out, err = v.RunOverSsh("losetup -D")
+	out, err = v.RunOverSSH("losetup -D")
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
@@ -93,13 +93,13 @@ func initRasp() error {
 	//// 11. remove beaglebone img(in VM)
 	//fmt.Println("[+] Removing RaspberryPI image from virtual machine")
 	//log.Debug("removing image")
-	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
+	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
 	//log.Debug(out)
 
-	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
+	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
@@ -113,7 +113,7 @@ func initRasp() error {
 
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
-	err, progress = local.WriteToDisk(osImg)
+	progress, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
 	help.WaitAndSpin("flashing", progress)
 

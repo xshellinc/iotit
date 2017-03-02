@@ -26,7 +26,7 @@ var ifaces = &Interfaces{
 	Netmask: "255.255.255.0",
 	Gateway: "192.168.0.1",
 	Network: "192.168.0.0",
-	Dns:     "192.168.0.1",
+	DNS:     "192.168.0.1",
 }
 
 // vbox types
@@ -37,13 +37,13 @@ const (
 )
 
 type (
-	// Static network interfaces used to setup devices
+	// Interfaces represents network interfaces used to setup devices
 	Interfaces struct {
 		Address string
 		Gateway string
 		Netmask string
 		Network string
-		Dns     string
+		DNS     string
 	}
 
 	// Wpa supplicant detail used to setup wlan on devices
@@ -54,17 +54,17 @@ type (
 
 	// Contains device values and file path's to write these values
 	deviceFiles struct {
-		locale          string
-		locale_f        string
-		keyboard        string
-		keyboard_f      string
-		wpa             string
-		wpa_f           string
-		interfaces_wlan string
-		interfaces_eth  string
-		interfaces_f    string
-		resolv          string
-		resolv_f        string
+		locale         string
+		localeF        string
+		keyboard       string
+		keyboardF      string
+		wpa            string
+		wpaF           string
+		interfacesWLAN string
+		interfacesEth  string
+		interfacesF    string
+		resolv         string
+		resolvF        string
 	}
 
 	// Wrapper on device files collecting files to write
@@ -107,7 +107,7 @@ type (
 	}
 )
 
-// Interface used to setup device's locale, keyboard layout, wifi, static network interfaces
+// SetDevice interface used to setup device's locale, keyboard layout, wifi, static network interfaces
 // and upload them into the image
 type SetDevice interface {
 	SetLocale() error
@@ -116,11 +116,11 @@ type SetDevice interface {
 	SetInterfaces(i Interfaces) error
 	SelectInterfaces() int
 	SetConfig() error
-	Upload(*vbox.VboxConfig) error
+	Upload(*vbox.Config) error
 }
 
-// Function starts init process, either by receiving `typeFlag` or providing a user to choose from a list
-func DeviceInit(typeFlag string) (err error) {
+// Init starts init process, either by receiving `typeFlag` or providing a user to choose from a list
+func Init(typeFlag string) (err error) {
 	log.Info("DeviceInit")
 	log.Debug("Flag: ", typeFlag)
 
@@ -160,7 +160,7 @@ func DeviceInit(typeFlag string) (err error) {
 	return nil
 }
 
-// Init device structure for particular device
+// NewSetDevice creates new device structure for particular device
 func NewSetDevice(d string) SetDevice {
 	w := &device{d, &deviceFiles{
 		constants.LOCALE_LANG + constants.LOCALE + constants.LANG, constants.LOCALE_F,
@@ -188,9 +188,9 @@ func NewSetDevice(d string) SetDevice {
 // Notifies a user if he wants to change locale and provides with the list of locales
 func (d *device) SetLocale() error {
 	var (
-		prompt  bool = true
+		prompt  = true
 		answer  string
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.locale_f)
+		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.localeF)
 	)
 
 	for prompt {
@@ -238,9 +238,9 @@ func (d *device) SetLocale() error {
 // Notifies a user if he wants to change a keyboard layout, user types a layout name
 func (d *device) SetKeyborad() error {
 	var (
-		prompt  bool = true
+		prompt  = true
 		answer  string
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.keyboard_f)
+		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.keyboardF)
 	)
 
 	for prompt {
@@ -282,7 +282,7 @@ func (d *device) SetWifi() error {
 		answer  string
 		w       wifi
 		prompt  = true
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.wpa_f)
+		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.wpaF)
 	)
 
 	for prompt {
@@ -315,9 +315,9 @@ func (d *device) SetWifi() error {
 func (d *device) SelectInterfaces() int {
 	var (
 		answer string
-		num    int = 0
-		device     = []string{"eth0", "wlan0"}
-		prompt     = true
+		num    = 0
+		device = []string{"eth0", "wlan0"}
+		prompt = true
 	)
 	// select network interface
 	for prompt {
@@ -348,13 +348,13 @@ func (d *device) SelectInterfaces() int {
 func (d *device) SetInterfaces(i Interfaces) error {
 	var (
 		answer string
-		num    int = 0
-		s      int = 0
-		device     = []string{"eth0", "wlan0"}
+		num    = 0
+		s      = 0
+		device = []string{"eth0", "wlan0"}
 	)
 
-	interfaces := filepath.Join(constants.TMP_DIR, d.deviceFiles.interfaces_f)
-	resolv := filepath.Join(constants.TMP_DIR, d.deviceFiles.resolv_f)
+	interfaces := filepath.Join(constants.TMP_DIR, d.deviceFiles.interfacesF)
+	resolv := filepath.Join(constants.TMP_DIR, d.deviceFiles.resolvF)
 
 	fmt.Print("[+] Would you like to assign static IP address for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	for {
@@ -368,7 +368,7 @@ func (d *device) SetInterfaces(i Interfaces) error {
 			fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 			for prompt {
 				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] Dns:%s\n",
-					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.Dns))
+					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
 				fmt.Print("[+] Change values?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 				answer = ""
 				fmt.Scanln(&answer)
@@ -377,14 +377,14 @@ func (d *device) SetInterfaces(i Interfaces) error {
 
 					switch device[num] {
 					case "eth0":
-						conf := fmt.Sprintf(d.deviceFiles.interfaces_eth, i.Address, i.Netmask, i.Network, i.Gateway, i.Dns)
+						conf := fmt.Sprintf(d.deviceFiles.interfacesEth, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
 						err := help.WriteToFile(conf, interfaces)
 						if err != nil {
 							return err
 						}
 						d.files = append(d.files, interfaces)
 
-						conf = fmt.Sprintf(d.deviceFiles.resolv, i.Dns)
+						conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
 						err = help.WriteToFile(conf, resolv)
 						if err != nil {
 							return err
@@ -394,14 +394,14 @@ func (d *device) SetInterfaces(i Interfaces) error {
 						fmt.Println("[+]  Ethernet interface configuration was updated")
 						s++
 					case "wlan0":
-						conf := fmt.Sprintf(d.deviceFiles.interfaces_wlan, i.Address, i.Netmask, i.Network, i.Gateway, i.Dns)
+						conf := fmt.Sprintf(d.deviceFiles.interfacesWLAN, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
 						err := help.WriteToFile(conf, interfaces)
 						if err != nil {
 							return err
 						}
 						d.files = append(d.files, interfaces)
 
-						conf = fmt.Sprintf(d.deviceFiles.resolv, i.Dns)
+						conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
 						err = help.WriteToFile(conf, resolv)
 						if err != nil {
 							return err
@@ -529,26 +529,26 @@ func (d *device) SetConfig() error {
 }
 
 // Upload config files to the mounted image on the vbox instance
-func (d *device) Upload(vbox *vbox.VboxConfig) error {
+func (d *device) Upload(vbox *vbox.Config) error {
 	if d.writeable == true {
 		for _, file := range d.files {
 			if _, err := os.Stat(file); !os.IsNotExist(err) {
 				fmt.Println("[+] Uploading file : ", file)
 				switch help.FileName(file) {
 				case "wpa_supplicant.conf":
-					err := vbox.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "wpa_supplicant"))
+					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "wpa_supplicant"))
 					os.Remove(file)
 					if err != nil {
 						return err
 					}
 				case "interfaces":
-					err := vbox.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "network"))
+					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "network"))
 					os.Remove(file)
 					if err != nil {
 						return err
 					}
 				default:
-					err := vbox.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc"))
+					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc"))
 					os.Remove(file)
 					if err != nil {
 						return err
@@ -588,7 +588,7 @@ func deleteHost(fileName, host string) error {
 }
 
 // Creates custom virtualbox specs
-func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Machine, string, string, error) {
+func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine, string, string, error) {
 	err := vbox.StopMachines()
 	help.ExitOnError(err)
 
@@ -601,8 +601,8 @@ func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Mac
 		v.NameDialog()
 		v.DescriptionDialog()
 		v.MemoryDialog()
-		v.CpuDialog()
-		v.UsbDialog()
+		v.CPUDialog()
+		v.USBDialog()
 		v.WriteToFile(conf)
 
 		// select virtual machine
@@ -630,7 +630,7 @@ func setVbox(v *vbox.VboxConfig, conf, template, device string) (*virtualbox.Mac
 
 // Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
 // the name of vbox doesn't change
-func selectVboxInit(conf string, v []vbox.VboxConfig) int {
+func selectVboxInit(conf string, v []vbox.Config) int {
 	opts := make(map[int]vBoxType)
 	n := 0
 
@@ -663,12 +663,12 @@ func selectVboxInit(conf string, v []vbox.VboxConfig) int {
 }
 
 // Starts a vbox, inits repository, downloads the image into repository, then uploads and unpacks it into the vbox
-func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.VboxConfig, string) {
+func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.Config, string) {
 	w := workstation.NewWorkStation()
 	help.ExitOnError(w.Check("VBoxManage"))
 
 	conf := filepath.Join(help.UserHomeDir(), ".isaax", "virtualbox", "isaax-vbox.json")
-	v := vbox.NewVboxConfig(vBoxTemplate, deviceType)
+	v := vbox.NewConfig(vBoxTemplate, deviceType)
 	vm, name, description, err := setVbox(v, conf, vBoxTemplate, deviceType)
 	help.ExitOnError(err)
 
@@ -711,13 +711,13 @@ func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*vi
 
 	// 4. upload edison img
 	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	err = v.Scp(filepath.Join(dst, zipName), constants.TMP_DIR)
+	err = v.SCP(filepath.Join(dst, zipName), constants.TMP_DIR)
 	help.ExitOnError(err)
 
 	// 5. unzip edison img (in VM)
 	fmt.Printf("[+] Extracting %s \n", zipName)
 	log.Debug("Extracting an image")
-	out, err := v.RunOverSshExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
+	out, err := v.RunOverSSHExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
 	help.ExitOnError(err)
 
 	log.Debug(out)

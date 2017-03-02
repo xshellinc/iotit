@@ -22,10 +22,10 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-// stops vbox
+// Stop stops VM
 func Stop(name string) error {
 	var (
-		prompt bool = true
+		prompt = true
 		answer string
 	)
 	m, err := virtualbox.GetMachine(name)
@@ -52,18 +52,18 @@ func Stop(name string) error {
 	return nil
 }
 
-// Check if any vbox is running with the ability to power-off
+// CheckMachine checks if any vbox is running with the ability to power-off
 // After that imports and runs the vbox image according to the selected device type
 func CheckMachine(machine, device string) error {
 	bars := make([]*pb.ProgressBar, 0)
 	var wg sync.WaitGroup
 	var repository repo.Repository
 	var path = getPath()
-	var machine_path = filepath.Join(path, machine, machine+".vbox")
+	var machinePath = filepath.Join(path, machine, machine+".vbox")
 
 	fmt.Println("[+] Checking virtual machine")
 	// checking file location
-	if !fileExists(machine_path) {
+	if !fileExists(machinePath) {
 		if device == constants.DEVICE_TYPE_EDISON {
 			repository = repo.VirtualBoxRepositoryEdison()
 		} else {
@@ -115,7 +115,7 @@ func CheckMachine(machine, device string) error {
 		_, err := help.ExecCmd("VBoxManage",
 			[]string{
 				"registervm",
-				fmt.Sprintf("%s", machine_path),
+				fmt.Sprintf("%s", machinePath),
 			})
 		if err != nil {
 			return err
@@ -126,51 +126,50 @@ func CheckMachine(machine, device string) error {
 	return nil
 }
 
-// Updates virtualbox
-func VboxUpdate(typeFlag string) (err error) {
+// Update virtualbox image
+func Update(typeFlag string) (err error) {
 	log.Debug("Virtual Machine Update func()")
 
 	switch typeFlag {
 	case "sd":
-		update(constant.VBOX_TEMPLATE_SD)
+		update(constant.VBoxTemplateSD)
 	case "edison":
-		update(constant.VBOX_TEMPLATE_EDISON)
+		update(constant.VBoxTemplateEdison)
 	}
 	return nil
 }
 
-// check for virtualbox dependencies
+// CheckDeps checks for virtualbox dependencies
 func CheckDeps(pkg string) error {
 	// @todo replace with help
 	err := exec.Command("which", pkg).Run()
 	if err != nil {
 		log.Error("Error while running `which` : ", err.Error())
 		return fmt.Errorf("[-] Could not find virtualbox, please install virtualbox, try")
-	} else {
-		out, _ := exec.Command("VBoxManage", "list", "extpacks").Output()
+	}
+	out, _ := exec.Command("VBoxManage", "list", "extpacks").Output()
 
-		match, _ := regexp.MatchString(".*Oracle VM VirtualBox Extension Pack.*", string(out))
-		if !match {
-			return fmt.Errorf("[-] Could not find virtualbox extension pack, please install virtualbox extension pack, try")
-		}
+	match, _ := regexp.MatchString(".*Oracle VM VirtualBox Extension Pack.*", string(out))
+	if !match {
+		return fmt.Errorf("[-] Could not find virtualbox extension pack, please install virtualbox extension pack, try")
 	}
 	return nil
 }
 
-// Check for virtualbox image updates
+// CheckUpdate checks for virtualbox image updates
 func CheckUpdate(typeFlag string) (string, bool) {
 	log.Debug("Check Update func()")
 
 	switch typeFlag {
 	case "sd":
-		b, _ := checkUpdate(constant.VBOX_TEMPLATE_SD)
+		b, _ := checkUpdate(constant.VBoxTemplateSD)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
 			return typeFlag, false
 		}
 	case "edison":
-		b, _ := checkUpdate(constant.VBOX_TEMPLATE_EDISON)
+		b, _ := checkUpdate(constant.VBoxTemplateEdison)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
@@ -184,11 +183,11 @@ func CheckUpdate(typeFlag string) (string, bool) {
 	return typeFlag, true
 }
 
-// Stops running machines
+// StopMachines stops running machines
 func StopMachines() error {
 	var (
 		answer string
-		prompt bool = true
+		prompt = true
 	)
 	machines, err := virtualbox.ListMachines()
 	if err != nil {
@@ -198,7 +197,14 @@ func StopMachines() error {
 	for _, m := range machines {
 		prompt = true
 		if m.State == virtualbox.Running {
-			fmt.Printf("[+] \x1b[34m%s\x1b[0m is running, would you stop this virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):", m.Name)
+			var nameStr string
+			if m.Description != "" {
+				nameStr = m.Description
+			} else {
+				nameStr = "default"
+			}
+
+			fmt.Printf("[+] \x1b[34m%s (%s)\x1b[0m is running, would you stop this virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):", m.Name, nameStr)
 			for prompt {
 				fmt.Scanln(&answer)
 				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
@@ -243,10 +249,10 @@ func checkUpdate(machine string) (bool, error) {
 	err := CheckDeps("VBoxManage")
 	exit(err)
 
-	var base_dir = filepath.Join(help.UserHomeDir(), ".isaax")
-	var vbox_dir = filepath.Join(base_dir, "virtualbox")
+	var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
+	var vboxDir = filepath.Join(baseDir, "virtualbox")
 	var repository repo.Repository
-	var current_version string
+	var currentVersion string
 	var comparison = func(s string, width int) (int64, error) {
 		strList := strings.Split(s, ".")
 		format := fmt.Sprintf("%%s%%0%ds", width)
@@ -263,8 +269,8 @@ func checkUpdate(machine string) (bool, error) {
 		return result, nil
 	}
 
-	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+	if machine == constant.VBoxTemplateEdison {
+		repo, err := repo.NewRepositoryVM(constant.VBoxTemplateEdison)
 		if err != nil {
 			return false, err
 		}
@@ -273,7 +279,7 @@ func checkUpdate(machine string) (bool, error) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(constant.VBoxTemplateSD)
 		if err != nil {
 			return false, err
 		}
@@ -283,34 +289,34 @@ func checkUpdate(machine string) (bool, error) {
 		}
 	}
 
-	new_version := repository.GetVersion()
-	if machine == constant.VBOX_TEMPLATE_EDISON {
+	newVersion := repository.GetVersion()
+	if machine == constant.VBoxTemplateEdison {
 		out, err := pipeline.Output(
-			[]string{"ls", filepath.Join(vbox_dir, "edison")},
+			[]string{"ls", filepath.Join(vboxDir, "edison")},
 			[]string{"sort", "-n"},
 			[]string{"tail", "-1"},
 		)
 		if err != nil {
 			return false, err
 		}
-		current_version = strings.Trim(string(out), "\n")
+		currentVersion = strings.Trim(string(out), "\n")
 	} else {
 		out, err := pipeline.Output(
-			[]string{"ls", filepath.Join(vbox_dir, "sd")},
+			[]string{"ls", filepath.Join(vboxDir, "sd")},
 			[]string{"sort", "-n"},
 			[]string{"tail", "-1"},
 		)
 		if err != nil {
 			return false, err
 		}
-		current_version = strings.Trim(string(out), "\n")
+		currentVersion = strings.Trim(string(out), "\n")
 	}
 
-	c, err := comparison(current_version, 3)
+	c, err := comparison(currentVersion, 3)
 	if err != nil {
 		return false, err
 	}
-	n, err := comparison(new_version, 3)
+	n, err := comparison(newVersion, 3)
 	if err != nil {
 		return false, err
 	}
@@ -327,7 +333,7 @@ func checkUpdate(machine string) (bool, error) {
 func update(machine string) {
 	var (
 		answer     string
-		prompt     bool = true
+		prompt     = true
 		wg         sync.WaitGroup
 		repository repo.Repository
 	)
@@ -336,8 +342,8 @@ func update(machine string) {
 	err := CheckDeps("VBoxManage")
 	exit(err)
 
-	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+	if machine == constant.VBoxTemplateEdison {
+		repo, err := repo.NewRepositoryVM(constant.VBoxTemplateEdison)
 		if err != nil {
 			exit(err)
 		}
@@ -346,7 +352,7 @@ func update(machine string) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(constant.VBoxTemplateSD)
 		if err != nil {
 			exit(err)
 		}
@@ -378,7 +384,7 @@ func update(machine string) {
 			}
 
 			var path = getPath()
-			var machine_path = filepath.Join(path, machine, machine+".vbox")
+			var machinePath = filepath.Join(path, machine, machine+".vbox")
 
 			fmt.Println("[+] Unregistering old virtual machine")
 			if isActive(machine) {
@@ -395,7 +401,7 @@ func update(machine string) {
 				help.ExecCmd("VBoxManage",
 					[]string{
 						"unregistervm",
-						fmt.Sprintf("%s", machine_path),
+						fmt.Sprintf("%s", machinePath),
 					})
 				fmt.Println("[+] Done")
 			}
@@ -411,16 +417,16 @@ func update(machine string) {
 				if err != nil {
 					exit(err)
 				}
-				current_version := strings.Trim(string(out), "\n")
+				currentVersion := strings.Trim(string(out), "\n")
 
-				err = help.Unzip(filepath.Join(repository.Dir(), repository.GetVersion(), current_version, machine+".zip"), path)
+				err = help.Unzip(filepath.Join(repository.Dir(), repository.GetVersion(), currentVersion, machine+".zip"), path)
 				if err != nil {
 					exit(err)
 				}
 				_, err = help.ExecCmd("VBoxManage",
 					[]string{
 						"registervm",
-						fmt.Sprintf("%s", machine_path),
+						fmt.Sprintf("%s", machinePath),
 					})
 				if err != nil {
 					exit(err)
@@ -456,7 +462,7 @@ func update(machine string) {
 			_, err = help.ExecCmd("VBoxManage",
 				[]string{
 					"registervm",
-					fmt.Sprintf("%s", machine_path),
+					fmt.Sprintf("%s", machinePath),
 				})
 			if err != nil {
 				exit(err)

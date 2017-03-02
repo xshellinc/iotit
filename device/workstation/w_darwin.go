@@ -41,7 +41,7 @@ func newWorkstation() WorkStation {
 const diskSelectionTries = 3
 
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
-func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
+func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("[-] Continue?") {
 			break
@@ -66,7 +66,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 		if ok, err = help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
 				log.Error(err)
-				return err, nil
+				break
 
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
@@ -79,7 +79,7 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 	}
 
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if dialogs.YesNoDialog("[?] Are you sure? ") {
@@ -136,11 +136,11 @@ func (d *darwin) WriteToDisk(img string) (err error, progress chan bool) {
 		}(progress)
 
 		d.workstation.writable = true
-		return nil, progress
-	} else {
-		d.workstation.writable = false
-		return nil, progress
+		return progress, nil
 	}
+
+	d.workstation.writable = false
+	return progress, nil
 }
 
 // Lists available mounts

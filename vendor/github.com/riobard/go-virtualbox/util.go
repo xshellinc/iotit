@@ -15,13 +15,14 @@ func ParseIPv4Mask(s string) net.IPMask {
 	return net.IPv4Mask(mask[12], mask[13], mask[14], mask[15])
 }
 
+// Exists checks if file exists
 func Exists(name string) bool {
 	_, err := os.Stat(name)
 	return err == nil
 }
 
+// SystemProperties returns VM system properties as raw string
 func SystemProperties() (string, error) {
-
 	out, err := vbmOut("list", "systemproperties")
 	if err != nil {
 		return "", err
