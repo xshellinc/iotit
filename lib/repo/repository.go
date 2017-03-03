@@ -17,7 +17,7 @@ import (
 )
 
 // S3Bucket keeps default S3 bucket path
-const S3Bucket = "https://s3-ap-northeast-1.amazonaws.com/isaax-distro/versions.json"
+const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
 var imageDir = filepath.Join(baseDir, "images")
