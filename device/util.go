@@ -19,7 +19,6 @@ func printDoneMessageSd(device, username, password string) {
 	fmt.Println("*\t\t SD CARD READY!  \t\t\t\t\t\t\t\t   *")
 	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s \t\t\t\t\t   *\n", device)
 	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET \t\t   *")
-	fmt.Println("*\t\t AFTER BOOT IS COMPLETE, RUN `isaax device register` \t\t\t\t   *")
 	fmt.Printf("*\t\t SSH USERNAME:\x1b[31m%s\x1b[0m PASSWORD:\x1b[31m%s\x1b[0m \t\t\t\t\t\t\t   *\n",
 		username, password)
 	fmt.Println(strings.Repeat("*", 100))
@@ -29,7 +28,6 @@ func printDoneMessageSd(device, username, password string) {
 func printDoneMessageUsb() {
 	fmt.Println(strings.Repeat("*", 100))
 	fmt.Println("*\t\t ALL DONE!  \t\t\t\t\t\t\t\t\t   *")
-	fmt.Println("*\t\t AFTER BOOT IS COMPLETE, RUN `isaax device register` \t\t\t\t   *")
 	fmt.Println(strings.Repeat("*", 100))
 }
 
@@ -48,7 +46,7 @@ func selectLanguagePriority(d string) string {
 				fmt.Print("[+] Primary language locale: ")
 
 				fmt.Scan(&answer)
-				val, err := selectLocale(constants.GetLocale(answer))
+				val, err := selectLocale(answer, constants.GetLocale)
 				if err != nil {
 					fmt.Println("[-] Error: ", err)
 					continue
@@ -67,20 +65,29 @@ func selectLanguagePriority(d string) string {
 }
 
 // Select locale dialog
-func selectLocale(locales []string, err error) (string, error) {
-	if err != nil {
-		return "", err
+func selectLocale(inp string, fn func(string) ([]string, error)) (string, error) {
+	var arr []string
+	var err error
+
+	for {
+		arr, err = fn(inp)
+
+		if err != nil {
+			continue
+		}
+
+		break
 	}
 
-	if len(locales) == 1 {
-		return strings.Split(locales[0], " ")[0], nil
+	if len(arr) == 1 {
+		return strings.Split(arr[0], " ")[0], nil
 	}
 
 	var answ int
 
 	for {
 		fmt.Println("[+] Please select correct locale")
-		for i, l := range locales {
+		for i, l := range arr {
 			fmt.Printf(" [%d] %s\n", (i + 1), l)
 		}
 
@@ -89,12 +96,12 @@ func selectLocale(locales []string, err error) (string, error) {
 			continue
 		}
 
-		if answ < 1 || len(locales) < answ {
+		if answ < 1 || len(arr) < answ {
 			fmt.Println("[-] Error: invalid selection")
 			continue
 		}
 
-		return strings.Split(locales[answ-1], " ")[0], nil
+		return strings.Split(arr[answ-1], " ")[0], nil
 	}
 
 	return "", errors.New("No results")
@@ -105,7 +112,7 @@ func setInterfaces(i *Interfaces) {
 
 	var answ string
 
-	if !setIp(i) {
+	if !setIP(i) {
 		for {
 			fmt.Print("[-] Do you want to try again. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m) ")
 			fmt.Scan(&answ)
@@ -124,11 +131,11 @@ func setInterfaces(i *Interfaces) {
 	i.Network = dialogs.GetSingleAnswer("[+] Please enter your network: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	i.Gateway = dialogs.GetSingleAnswer("[+] Please enter your gateway: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	i.Netmask = dialogs.GetSingleAnswer("[+] Please enter your netmask: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
-	i.Dns = dialogs.GetSingleAnswer("[+] Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+	i.DNS = dialogs.GetSingleAnswer("[+] Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 }
 
 // @todo replace by dialog
-func setIp(i *Interfaces) bool {
+func setIP(i *Interfaces) bool {
 	wg := &sync.WaitGroup{}
 
 	loop := true

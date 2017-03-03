@@ -101,7 +101,7 @@ func initBeagleBone() error {
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
 
-	err, progress = local.WriteToDisk(osImg)
+	progress, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
 	help.WaitAndSpin("flashing", progress)
 

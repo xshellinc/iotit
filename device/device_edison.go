@@ -16,6 +16,7 @@ import (
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"github.com/xshellinc/tools/lib/sudo"
 )
 
 const (
@@ -143,7 +144,7 @@ func (e *edison) SetConfig() error {
 
 			i = dialogs.SelectOneDialog("[+] Please chose correct interface: ", arrSel)
 
-			if out, err = help.ExecSudo(help.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+			if out, err = help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
 				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
 				fallback = true
 			}
@@ -239,8 +240,8 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 			prompt := true
 			fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 			for prompt {
-				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] Dns:%s\n",
-					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.Dns))
+				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
 				fmt.Print("[+] Change values?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 				fmt.Scanln(&answer)
 				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
@@ -264,7 +265,7 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 						return err
 					}
 					// @todo replace with help
-					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.Dns, e.resolv_f))
+					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolv_f))
 					cmd.Stdout = os.Stdout
 					cmd.Stderr = os.Stderr
 					cmd.Stdin = os.Stdin

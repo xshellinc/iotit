@@ -264,7 +264,7 @@ func checkUpdate(machine string) (bool, error) {
 	}
 
 	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
 		if err != nil {
 			return false, err
 		}
@@ -273,7 +273,7 @@ func checkUpdate(machine string) (bool, error) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
 		if err != nil {
 			return false, err
 		}
@@ -337,7 +337,7 @@ func update(machine string) {
 	exit(err)
 
 	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
 		if err != nil {
 			exit(err)
 		}
@@ -346,7 +346,7 @@ func update(machine string) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
 		if err != nil {
 			exit(err)
 		}

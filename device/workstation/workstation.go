@@ -4,10 +4,9 @@ import "fmt"
 
 // Workstation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
-	Check(string) error
 	ListRemovableDisk() error
 	Unmount() error
-	WriteToDisk(img string) (err error, done chan bool)
+	WriteToDisk(img string) (done chan bool, err error)
 	Eject() error
 }
 

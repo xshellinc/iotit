@@ -64,15 +64,15 @@ type (
 		URL       string
 		Directory string
 	}
-	Vms struct {
-		Sd     *VmSd     `json:"vm-sd"`
-		Edison *VmEdison `json:"vm-edison"`
+	VMs struct {
+		Sd     *VMSd     `json:"vm-sd"`
+		Edison *VMEdison `json:"vm-edison"`
 	}
-	VmSd struct {
+	VMSd struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
-	VmEdison struct {
+	VMEdison struct {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}
@@ -86,8 +86,8 @@ type S3Repository struct {
 	Chirimen   `json:"chirimen"`
 }
 
-type S3RepositoryVm struct {
-	Vms `json:"vms"`
+type S3RepositoryVM struct {
+	VMs `json:"vms"`
 }
 
 /*
@@ -222,38 +222,38 @@ func (g *GenericRepository) Name() string {
 	return tokens[len(tokens)-1]
 }
 
-func (v *VmSd) GetVersion() string {
+func (v *VMSd) GetVersion() string {
 	return v.Version
 }
 
-func (v *VmSd) GetURL() string {
+func (v *VMSd) GetURL() string {
 	return v.URL
 }
 
-func (*VmSd) Dir() string {
+func (*VMSd) Dir() string {
 	sd_repo := filepath.Join(vboxDir, "sd")
 	return sd_repo
 }
 
-func (v *VmSd) Name() string {
+func (v *VMSd) Name() string {
 	tokens := strings.Split(v.URL, "/")
 	return tokens[len(tokens)-1]
 }
 
-func (v *VmEdison) GetVersion() string {
+func (v *VMEdison) GetVersion() string {
 	return v.Version
 }
 
-func (v *VmEdison) GetURL() string {
+func (v *VMEdison) GetURL() string {
 	return v.URL
 }
 
-func (*VmEdison) Dir() string {
+func (*VMEdison) Dir() string {
 	edison_repo := filepath.Join(vboxDir, "edison")
 	return edison_repo
 }
 
-func (v *VmEdison) Name() string {
+func (v *VMEdison) Name() string {
 	tokens := strings.Split(v.URL, "/")
 	return tokens[len(tokens)-1]
 }
@@ -293,11 +293,11 @@ func NewRepository(deviceType string) (Repository, error) {
 
 }
 
-func NewRepositoryVm(vmType string) (Repository, error) {
+func NewRepositoryVM(vmType string) (Repository, error) {
 	var (
 		client http.Client
-		url    = S3Bucket
-		repo   S3RepositoryVm
+		url        = S3Bucket
+		repo   S3RepositoryVM
 	)
 	resp, err := client.Get(url)
 	if err != nil {
@@ -338,7 +338,7 @@ func NewGenericRepository(url, version string, dir string) Repository {
 }
 
 func VirtualBoxRepository() Repository {
-	rp, err := NewRepositoryVm(constant.VBOX_TEMPLATE_SD)
+	rp, err := NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil
@@ -349,7 +349,7 @@ func VirtualBoxRepository() Repository {
 }
 
 func VirtualBoxRepositoryEdison() Repository {
-	rp, err := NewRepositoryVm(constant.VBOX_TEMPLATE_EDISON)
+	rp, err := NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil

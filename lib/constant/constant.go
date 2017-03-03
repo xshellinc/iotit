@@ -2,8 +2,8 @@ package constant
 
 // box images and credentials constants
 const (
-	VBOX_TEMPLATE_SD     = "isaax-box-sd"
-	VBOX_TEMPLATE_EDISON = "isaax-box-edison"
+	VBOX_TEMPLATE_SD     = "iotit-box-sd"
+	VBOX_TEMPLATE_EDISON = "iotit-box-edison"
 
 	TEMPLATE_IP        = "localhost"
 	TEMPLATE_USER      = "root"
