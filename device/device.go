@@ -431,7 +431,7 @@ func (d *device) SetInterfaces(i Interfaces) error {
 }
 
 // @todo make installation from the isaax repo, copy deb packages and install on the first startup
-// Notifies user if he wants to install default software package
+// Notifies user if they wants to install default software package
 func (d *device) InitPrograms() error {
 
 	var inp string
@@ -453,7 +453,7 @@ func (d *device) InitPrograms() error {
 		"git",
 	}
 
-	fmt.Print("[+] Would you like to install basic software for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
+	fmt.Print("[+] Would you like to install the following basic software for your device?\n\t-", strings.Join(softwareList[:], "\n\t-"), "\n(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	for {
 		tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
 
