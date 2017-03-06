@@ -237,8 +237,7 @@ func (d *device) SetKeyborad() error {
 	}
 
 	fmt.Println("[+] Writing default keyboard")
-	err := help.WriteToFile(conf, tmpfile)
-	if err != nil {
+	if err := help.WriteToFile(conf, tmpfile); err != nil {
 		return err
 	}
 
@@ -257,8 +256,7 @@ func (d *device) SetWifi() error {
 		w.Password = []byte(dialogs.WiFiPassword())
 
 		conf := fmt.Sprintf(d.deviceFiles.wpa, w.Name, w.Password)
-		err := help.WriteToFile(conf, tmpfile)
-		if err != nil {
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err
 		}
 		fmt.Printf("[+] Writing to %s:\n", tmpfile)
@@ -340,8 +338,7 @@ func (d *device) InitPrograms() error {
 
 	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
 		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
-		err := help.WriteToFile(conf, tmpfile)
-		if err != nil {
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err
 		}
 		d.files = append(d.files, tmpfile)
