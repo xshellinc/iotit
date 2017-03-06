@@ -11,7 +11,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -39,26 +39,26 @@ const (
 func initEdison() error {
 	wg := &sync.WaitGroup{}
 
-	ack := dialogs.YesNoDialog("[+] Would you like to flash your device? ")
+	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		vm, _, _, _ := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
+		vm, _, _, _ := vboxDownloadImage(wg, lib.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
 
 		printWarnMessage()
 
 		for ack {
-			ack = !dialogs.YesNoDialog("[+] Please unplug your edison board. Press yes once unpluged? ")
+			ack = !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ")
 		}
 
 		//@todo replce
 		for {
 			script := "flashall.sh"
-			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
+			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TEMPLATE_USER, lib.TEMPLATE_IP), "-p", lib.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				fmt.Println("error running script, rerunning")
-				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", constant.TEMPLATE_USER, constant.TEMPLATE_IP), "-p", constant.TEMPLATE_SSH_PORT, "lsusb | grep Intel")
+				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TEMPLATE_USER, lib.TEMPLATE_IP), "-p", lib.TEMPLATE_SSH_PORT, "lsusb | grep Intel")
 				cmd2.Stderr = os.Stderr
 				out, err := cmd2.Output()
 				fmt.Println(string(out), err)
@@ -66,7 +66,7 @@ func initEdison() error {
 				if string(out) == "" {
 					fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
 
-					if !dialogs.YesNoDialog("[+] Press yes once mounted? ") {
+					if !dialogs.YesNoDialog("Press yes once mounted? ") {
 						fmt.Println("Exiting with exit status 2 ...")
 						os.Exit(2)
 					}
@@ -111,7 +111,7 @@ func initEdison() error {
 func (e *edison) SetConfig() error {
 	// get IP
 
-	i := dialogs.SelectOneDialog("[+] Chose the edison's inteface: ", []string{"Default", "Enter IP"})
+	i := dialogs.SelectOneDialog("Chose the edison's inteface: ", []string{"Default", "Enter IP"})
 	fallback := false
 
 	if i == 0 {
@@ -142,7 +142,7 @@ func (e *edison) SetConfig() error {
 				arrSel[tmp] = "\x1b[34m" + arr[tmp] + "\x1b[0m"
 			}
 
-			i = dialogs.SelectOneDialog("[+] Please chose correct interface: ", arrSel)
+			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
 
 			if out, err = help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
 				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
@@ -155,7 +155,7 @@ func (e *edison) SetConfig() error {
 
 	if i == 1 || fallback {
 		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
-		e.ip = dialogs.GetSingleAnswer("[+] Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+		e.ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 	}
 
 	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), e.ip); err != nil {

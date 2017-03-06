@@ -141,7 +141,7 @@ func DeviceInit(typeFlag string) (err error) {
 	}
 
 	if deviceType == "" {
-		deviceType = devices[dialogs.SelectOneDialog("[?] Select device type: ", devices[:])]
+		deviceType = devices[dialogs.SelectOneDialog("Select device type: ", devices[:])]
 	}
 
 	fmt.Println("[+] flashing", deviceType)
@@ -190,23 +190,25 @@ func (d *device) SetLocale() error {
 	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.locale_f)
 
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
-	act := dialogs.YesNoDialog("[+] Change default language?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
+	act := dialogs.YesNoDialog("Change default language?")
 
 	if act {
-		var inp string
-		fmt.Print("[+] New locale: ")
-		fmt.Scanln(&inp)
+		inp := dialogs.GetSingleAnswer("New locale: ", []dialogs.ValidatorFn{
+			dialogs.EmptyStringValidator,
+			dialogs.CreateValidatorFn(constants.ValidateLocale)})
 
-		locale, err := selectLocale(inp, constants.GetLocale)
-		if err != nil {
-			fmt.Println("[-] Error:", err)
-			return err // @todo loop error
+		arr, _ := constants.GetLocale(inp)
+
+		var locale string
+		if len(arr) == 1 {
+			locale = arr[0]
+		} else {
+			locale = arr[dialogs.SelectOneDialog("Please select a locale from a list", arr)]
 		}
 
-		locale2 := selectLanguagePriority(locale)
+		conf := fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale)
 
-		conf := fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale2)
-		err = help.WriteToFile(conf, tmpfile)
+		err := help.WriteToFile(conf, tmpfile)
 		if err != nil {
 			return err
 		}
@@ -234,7 +236,7 @@ func (d *device) SetKeyborad() error {
 	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.keyboard_f)
 
 	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
-	act := dialogs.YesNoDialog("[+] Change default language?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
+	act := dialogs.YesNoDialog("Change default language?")
 
 	if act {
 		fmt.Print("[+] New keyboard: ")

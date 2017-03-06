@@ -10,11 +10,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
 )
+
 const S3Bucket = "https://s3-ap-northeast-1.amazonaws.com/isaax-distro/versions.json"
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
@@ -296,7 +297,7 @@ func NewRepository(deviceType string) (Repository, error) {
 func NewRepositoryVM(vmType string) (Repository, error) {
 	var (
 		client http.Client
-		url        = S3Bucket
+		url    = S3Bucket
 		repo   S3RepositoryVM
 	)
 	resp, err := client.Get(url)
@@ -313,9 +314,9 @@ func NewRepositoryVM(vmType string) (Repository, error) {
 		return nil, err
 	}
 	switch vmType {
-	case constant.VBOX_TEMPLATE_SD:
+	case lib.VBOX_TEMPLATE_SD:
 		return repo.Sd, nil
-	case constant.VBOX_TEMPLATE_EDISON:
+	case lib.VBOX_TEMPLATE_EDISON:
 		return repo.Edison, nil
 	default:
 		return nil, errors.New("unknown virtual machine type")
@@ -338,7 +339,7 @@ func NewGenericRepository(url, version string, dir string) Repository {
 }
 
 func VirtualBoxRepository() Repository {
-	rp, err := NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
+	rp, err := NewRepositoryVM(lib.VBOX_TEMPLATE_SD)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil
@@ -349,7 +350,7 @@ func VirtualBoxRepository() Repository {
 }
 
 func VirtualBoxRepositoryEdison() Repository {
-	rp, err := NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
+	rp, err := NewRepositoryVM(lib.VBOX_TEMPLATE_EDISON)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil

@@ -1,4 +1,4 @@
-package constant
+package lib
 
 // box images and credentials constants
 const (

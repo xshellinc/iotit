@@ -2,13 +2,11 @@ package main
 
 import (
 	"flag"
-
-	"github.com/xshellinc/iotit/device"
-
 	"fmt"
 	"os"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
 )
@@ -75,7 +73,7 @@ func main() {
 	if *u != "" {
 
 		if name, bool := vbox.CheckUpdate(*u); bool {
-			if dialogs.YesNoDialog("[?] Would you like to update?") {
+			if dialogs.YesNoDialog("Would you like to update?") {
 				vbox.VboxUpdate(name)
 			}
 		}

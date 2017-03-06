@@ -42,7 +42,7 @@ const diskSelectionTries = 3
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
-		if attempt > 0 && !dialogs.YesNoDialog("[-] Continue?") {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
 		}
 
@@ -58,11 +58,10 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		for i, e := range d.workstation.mounts {
 			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
 		}
-		num := dialogs.SelectOneDialog("[?] Select mount to format: ", rng)
+		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
 		dev := d.workstation.mounts[num]
 
-		var ok bool
-		if ok, err = help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
+		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
 				log.Error(err)
 				return nil, err
@@ -81,7 +80,7 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		return nil, err
 	}
 
-	if dialogs.YesNoDialog("[?] Are you sure? ") {
+	if dialogs.YesNoDialog("Are you sure? ") {
 		fmt.Printf("[+] Writing %s to %s\n", img, d.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter your OS X user password")
 
@@ -162,7 +161,7 @@ func (d *darwin) ListRemovableDisk() error {
 		diskMap := make(map[string]string)
 		removable := true
 
-		stdout, err := help.ExecCmd("diskutil", []string{"info", "/dev/" + devDisk})
+		stdout, err := help.ExecCmd(d.diskUtil, []string{"info", "/dev/" + devDisk})
 		if err != nil {
 			stdout = ""
 		}

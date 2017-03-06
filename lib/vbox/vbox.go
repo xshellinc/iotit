@@ -9,7 +9,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -91,14 +91,14 @@ func NewVboxConfig(template, device string) *VboxConfig {
 			},
 		},
 		Ssh: SshConfig{
-			Ip:       constant.TEMPLATE_IP,
-			User:     constant.TEMPLATE_USER,
-			Password: constant.TEMPLATE_PASSWORD,
-			Port:     constant.TEMPLATE_SSH_PORT,
+			Ip:       lib.TEMPLATE_IP,
+			User:     lib.TEMPLATE_USER,
+			Password: lib.TEMPLATE_PASSWORD,
+			Port:     lib.TEMPLATE_SSH_PORT,
 		},
 		Http: HttpConfig{
-			Url:  constant.TEMPLATE_URL,
-			Port: constant.TEMPLATE_HTTP_PORT,
+			Url:  lib.TEMPLATE_URL,
+			Port: lib.TEMPLATE_HTTP_PORT,
 		},
 	}
 }

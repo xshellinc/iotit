@@ -15,7 +15,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	pipeline "github.com/mattn/go-pipeline"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
@@ -132,9 +132,9 @@ func VboxUpdate(typeFlag string) (err error) {
 
 	switch typeFlag {
 	case "sd":
-		update(constant.VBOX_TEMPLATE_SD)
+		update(lib.VBOX_TEMPLATE_SD)
 	case "edison":
-		update(constant.VBOX_TEMPLATE_EDISON)
+		update(lib.VBOX_TEMPLATE_EDISON)
 	}
 	return nil
 }
@@ -163,14 +163,14 @@ func CheckUpdate(typeFlag string) (string, bool) {
 
 	switch typeFlag {
 	case "sd":
-		b, _ := checkUpdate(constant.VBOX_TEMPLATE_SD)
+		b, _ := checkUpdate(lib.VBOX_TEMPLATE_SD)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
 			return typeFlag, false
 		}
 	case "edison":
-		b, _ := checkUpdate(constant.VBOX_TEMPLATE_EDISON)
+		b, _ := checkUpdate(lib.VBOX_TEMPLATE_EDISON)
 		if !b {
 			fmt.Println("[+] Current virtual machine is latest version")
 			fmt.Println("[+] Done")
@@ -263,8 +263,8 @@ func checkUpdate(machine string) (bool, error) {
 		return result, nil
 	}
 
-	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
+	if machine == lib.VBOX_TEMPLATE_EDISON {
+		repo, err := repo.NewRepositoryVM(lib.VBOX_TEMPLATE_EDISON)
 		if err != nil {
 			return false, err
 		}
@@ -273,7 +273,7 @@ func checkUpdate(machine string) (bool, error) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(lib.VBOX_TEMPLATE_SD)
 		if err != nil {
 			return false, err
 		}
@@ -284,7 +284,7 @@ func checkUpdate(machine string) (bool, error) {
 	}
 
 	new_version := repository.GetVersion()
-	if machine == constant.VBOX_TEMPLATE_EDISON {
+	if machine == lib.VBOX_TEMPLATE_EDISON {
 		out, err := pipeline.Output(
 			[]string{"ls", filepath.Join(vbox_dir, "edison")},
 			[]string{"sort", "-n"},
@@ -336,8 +336,8 @@ func update(machine string) {
 	err := CheckDeps("VBoxManage")
 	exit(err)
 
-	if machine == constant.VBOX_TEMPLATE_EDISON {
-		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_EDISON)
+	if machine == lib.VBOX_TEMPLATE_EDISON {
+		repo, err := repo.NewRepositoryVM(lib.VBOX_TEMPLATE_EDISON)
 		if err != nil {
 			exit(err)
 		}
@@ -346,7 +346,7 @@ func update(machine string) {
 			fmt.Println("[+] could not find the virtual machine, lease execute `isaax device init`")
 		}
 	} else {
-		repo, err := repo.NewRepositoryVM(constant.VBOX_TEMPLATE_SD)
+		repo, err := repo.NewRepositoryVM(lib.VBOX_TEMPLATE_SD)
 		if err != nil {
 			exit(err)
 		}

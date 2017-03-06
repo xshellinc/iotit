@@ -8,7 +8,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
@@ -19,7 +19,7 @@ import (
 func initBeagleBone() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_BEAGLEBONE)
+	vm, local, v, img := vboxDownloadImage(wg, lib.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_BEAGLEBONE)
 
 	// background process
 	wg.Add(1)
