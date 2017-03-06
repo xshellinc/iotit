@@ -90,21 +90,6 @@ func initRasp() error {
 	err = v.Download(img, wg)
 	time.Sleep(time.Second * 2)
 
-	//// 11. remove beaglebone img(in VM)
-	//fmt.Println("[+] Removing RaspberryPI image from virtual machine")
-	//log.Debug("removing image")
-	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-
-	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-
 	// 13. unmount SD card(in host)
 	err = local.Unmount()
 	if err != nil {

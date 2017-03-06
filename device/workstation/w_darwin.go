@@ -224,7 +224,6 @@ func (d *darwin) Eject() error {
 	return nil
 }
 
-//TODO : THIS WILL FAIL(REQUIRES SUDO USER)
 // Unmounts the mounted disk
 func (d *darwin) Unmount() error {
 	if d.workstation.writable {

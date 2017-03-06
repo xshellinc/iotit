@@ -50,26 +50,22 @@ func initEdison() error {
 			ack = !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ")
 		}
 
-		//@todo replce
 		for {
 			script := "flashall.sh"
-			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP), "-p", lib.TemplateSSHPort, constants.TMP_DIR+script)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				fmt.Println("error running script, rerunning")
-				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP), "-p", lib.TemplateSSHPort, "lsusb | grep Intel")
-				cmd2.Stderr = os.Stderr
-				out, err := cmd2.Output()
-				fmt.Println(string(out), err)
 
-				if string(out) == "" {
-					fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
+			args := []string{
+				fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP),
+				"-p",
+				lib.TemplateSSHPort,
+				constants.TMP_DIR + script,
+			}
 
-					if !dialogs.YesNoDialog("Press yes once mounted? ") {
-						fmt.Println("Exiting with exit status 2 ...")
-						os.Exit(2)
-					}
+			if err := help.ExecStandardStd("ssh", args...); err != nil {
+				fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
+
+				if !dialogs.YesNoDialog("Press yes once mounted? ") {
+					fmt.Println("Exiting with exit status 2 ...")
+					os.Exit(2)
 				}
 
 				continue
@@ -80,8 +76,7 @@ func initEdison() error {
 
 		fmt.Printf("[+] Stopping virtual machine - Name:%s UUID:%s\n", vm.Name, vm.UUID)
 
-		err := vbox.Stop(vm.UUID)
-		if err != nil {
+		if err := vbox.Stop(vm.UUID); err != nil {
 			log.Error(err)
 		}
 
@@ -111,7 +106,7 @@ func initEdison() error {
 func (e *edison) SetConfig() error {
 	// get IP
 
-	i := dialogs.SelectOneDialog("Chose the edison's inteface: ", []string{"Default", "Enter IP"})
+	i := dialogs.SelectOneDialog("Chose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
 	fallback := false
 
 	if i == 0 {
@@ -168,23 +163,20 @@ func (e *edison) SetConfig() error {
 		return err
 	}
 
-	// @todo replace with help
-	cmd := exec.Command("ssh", "root@"+e.ip, "-t", "sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	err := cmd.Run()
-	if err != nil {
+	args := []string{
+		"root@" + e.ip,
+		"-t",
+		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
+	}
+
+	if err := help.ExecStandardStd("ssh", args...); err != nil {
 		return err
 	}
 
 	base := filepath.Join(constants.TMP_DIR, baseConf)
 	baseConf := baseFeeds
 	help.WriteToFile(baseConf, base)
-	// @todo replace with help
-	cmd = exec.Command("scp", base, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg")))
-	err = cmd.Run()
-	if err != nil {
+	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
 		return err
 	}
 	os.Remove(base)
@@ -192,31 +184,16 @@ func (e *edison) SetConfig() error {
 	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
 	iotdkConf := intelIotdk
 	help.WriteToFile(iotdkConf, iotdk)
-	// @todo replace with help
-	cmd = exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg")))
-	err = cmd.Run()
-	if err != nil {
+	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", e.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
 		return err
 	}
 	os.Remove(iotdk)
 
-	// @todo replace with help
-	cmd = exec.Command("ssh", "root@"+e.ip, "-t", "configure_edison --wifi")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
+	if err := help.ExecStandardStd("ssh", "root@"+e.ip, "-t", "configure_edison --wifi"); err != nil {
 		return err
 	}
 
-	// @todo replace with help
-	cmd = exec.Command("ssh", "root@"+e.ip, "-t", "configure_edison --password")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	err = cmd.Run()
-	if err != nil {
+	if err := help.ExecStandardStd("ssh", "root@"+e.ip, "-t", "configure_edison --password"); err != nil {
 		return err
 	}
 
@@ -226,65 +203,48 @@ func (e *edison) SetConfig() error {
 
 // Set up Interface values
 func (e *edison) SetInterfaces(i Interfaces) error {
-	var (
-		answer string
-	)
 
-	fmt.Print("[+] Would you like to assign static IP address for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-	for {
-		// select network interface
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
+	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
 
-			// assign static ip
-			prompt := true
-			fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
-			for prompt {
-				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
-				fmt.Print("[+] Change values?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-				fmt.Scanln(&answer)
-				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-					setInterfaces(&i)
-					// @todo replace with help
-					cmd := exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("sed -i.bak -e '53 s/.*/ifconfig $IFNAME %s netmask %s/g' /etc/wpa_supplicant/wpa_cli-actions.sh", i.Address, i.Netmask))
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					cmd.Stdin = os.Stdin
-					err := cmd.Run()
-					if err != nil {
-						return err
-					}
-					// @todo replace with help
-					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("sed -i -e '54i route add default gw %s' /etc/wpa_supplicant/wpa_cli-actions.sh", i.Gateway))
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					cmd.Stdin = os.Stdin
-					err = cmd.Run()
-					if err != nil {
-						return err
-					}
-					// @todo replace with help
-					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF))
-					cmd.Stdout = os.Stdout
-					cmd.Stderr = os.Stderr
-					cmd.Stdin = os.Stdin
-					err = cmd.Run()
-					if err != nil {
-						return err
-					}
-				} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-					return nil
-				} else {
-					fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-				}
+		// assign static ip
+		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
+
+		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+			string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
+
+		if dialogs.YesNoDialog("Change values?") {
+			setInterfaces(&i)
+
+			args1 := []string{
+				"root@" + e.ip,
+				"-t",
+				fmt.Sprintf("sed -i.bak -e '53 s/.*/ifconfig $IFNAME %s netmask %s/g' /etc/wpa_supplicant/wpa_cli-actions.sh", i.Address, i.Netmask),
 			}
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			return nil
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+			args2 := []string{
+				"root@" + e.ip,
+				"-t",
+				fmt.Sprintf("sed -i -e '54i route add default gw %s' /etc/wpa_supplicant/wpa_cli-actions.sh", i.Gateway),
+			}
+			args3 := []string{
+				"root@" + e.ip,
+				"-t",
+				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF),
+			}
+
+			if err := help.ExecStandardStd("ssh", args1...); err != nil {
+				return err
+			}
+
+			if err := help.ExecStandardStd("ssh", args2...); err != nil {
+				return err
+			}
+
+			if err := help.ExecStandardStd("ssh", args3...); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 

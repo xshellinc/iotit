@@ -83,20 +83,6 @@ func initBeagleBone() error {
 	err = v.Download(img, wg)
 	time.Sleep(time.Second * 2)
 
-	// 11. remove beaglebone img(in VM)
-	//fmt.Println("[+] Removing BeagleBone image from virtual machine")
-	//log.Debug("removing image")
-	//out, err := v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-	//
-	//out, err = v.RunOverSSh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
 
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)

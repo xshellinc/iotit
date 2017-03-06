@@ -21,7 +21,7 @@ go get ./...
 To build and run with debug log use:
 
 ```
-./build.sh && ./isaax
+./build.sh && ./iotit
 ```
 
 COMMANDS

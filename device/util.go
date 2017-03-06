@@ -30,23 +30,12 @@ func printDoneMessageUsb() {
 
 // set interfaces dialog
 func setInterfaces(i *Interfaces) {
-
-	var answ string
-
 	if !setIP(i) {
-		for {
-			fmt.Print("[-] Do you want to try again. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m) ")
-			fmt.Scan(&answ)
-
-			if strings.EqualFold(answ, "y") || strings.EqualFold(answ, "yes") {
-				setInterfaces(i)
-				return
-			} else if strings.EqualFold(answ, "n") || strings.EqualFold(answ, "no") {
-				return
-			} else {
-				fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-			}
+		if dialogs.YesNoDialog("Do you want to try again?") {
+			setInterfaces(i)
 		}
+
+		return
 	}
 
 	i.Network = dialogs.GetSingleAnswer("Please enter your network: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
@@ -55,15 +44,16 @@ func setInterfaces(i *Interfaces) {
 	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 }
 
-// @todo replace by dialog
 func setIP(i *Interfaces) bool {
 	wg := &sync.WaitGroup{}
 
 	loop := true
 	retries := 3
 
+	var ip string
+
 	for retries > 0 && loop {
-		i.Address = dialogs.GetSingleAnswer("IP address of the device: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+		ip := dialogs.GetSingleAnswer("IP address of the device: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
 
 		progress := make(chan bool)
 		wg.Add(1)
@@ -71,10 +61,11 @@ func setIP(i *Interfaces) bool {
 			defer close(progress)
 			defer wg.Done()
 
-			loop = !ping.PingIp(i.Address)
+			loop = !ping.PingIp(ip)
 			if loop {
 				fmt.Printf("\n[-] Sorry, a device with %s was already registered", i.Address)
 			}
+
 			retries--
 		}(progress)
 		help.WaitAndSpin("validating", progress)
@@ -84,6 +75,8 @@ func setIP(i *Interfaces) bool {
 	if retries == 0 {
 		return false
 	}
+
+	i.Address = ip
 
 	return true
 }

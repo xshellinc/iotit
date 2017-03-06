@@ -19,7 +19,7 @@ import (
 // S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
 
-var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
+var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
 var imageDir = filepath.Join(baseDir, "images")
 var vboxDir = filepath.Join(baseDir, "virtualbox")
 
@@ -315,7 +315,7 @@ func NewRepository(deviceType string) (Repository, error) {
 		url    = S3Bucket
 		repo   S3Repository
 	)
-	//@todo checking via timeout
+	//@todo re-try if timeout
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Error("Could not make GET request to url:", url, " error msg:", err.Error())

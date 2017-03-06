@@ -11,6 +11,7 @@ import (
 	virtualbox "github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -72,23 +73,13 @@ func (o OnOff) String() string {
 	return "off"
 }
 
-// @todo replace with Help
-func exit(err error) {
-	if err != nil {
-		log.Error("erro msg:", err.Error())
-		fmt.Println("[-] Error: ", err.Error())
-		fmt.Println("[-] Exiting with exit status 1 ...")
-		os.Exit(1)
-	}
-}
-
 // NewConfig returns new VirtualBox wrapper, containing helper functions to copy into vbox and dowload from it
 // Run commands over ssh and get Virtual box configuration files
 func NewConfig(template, device string) *Config {
 	err := CheckMachine(template, device)
-	exit(err)
+	help.ExitOnError(err)
 	m, err := virtualbox.GetMachine(template)
-	exit(err)
+	help.ExitOnError(err)
 
 	return &Config{
 		Name:        "",
@@ -264,23 +255,13 @@ func (vc *Config) Machine() (*virtualbox.Machine, error) {
 // Select displays VM selection dialog
 func Select(vboxs []Config) Config {
 
-	for {
-		fmt.Println("[+] Available virtual machine: ")
-		for i, v := range vboxs {
-			fmt.Printf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
-		}
-
-		fmt.Print("[+] Please select a virtual machine: ")
-		var inp int
-		_, err := fmt.Scanf("%d", &inp)
-
-		if err != nil || inp < 0 || inp >= len(vboxs) {
-			fmt.Println("[-] Invalid user input")
-			continue
-		}
-
-		return vboxs[inp]
+	opts := make([]string, len(vboxs))
+	for i, v := range vboxs {
+		opts[i] = fmt.Sprintf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
 	}
+
+	fmt.Println("[+] Available virtual machine: ")
+	return vboxs[dialogs.SelectOneDialog("Please select a virtual machine: ", opts)]
 }
 
 // Enable picks allowed VMs
