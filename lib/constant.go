@@ -2,14 +2,14 @@ package lib
 
 // box images and credentials constants
 const (
-	VBOX_TEMPLATE_SD     = "iotit-box-sd"
-	VBOX_TEMPLATE_EDISON = "iotit-box-edison"
+	VBoxTemplateSD     = "iotit-box-sd"
+	VBoxTemplateEdison = "iotit-box-edison"
 
-	TEMPLATE_IP        = "localhost"
-	TEMPLATE_USER      = "root"
-	TEMPLATE_PASSWORD  = "isaax"
-	TEMPLATE_SSH_PORT  = "2222"
-	TEMPLATE_HTTP_PORT = "8080"
+	TemplateIP       = "localhost"
+	TemplateUser     = "root"
+	TemplatePassword = "isaax"
+	TemplateSSHPort  = "2222"
+	TemplateHTTPPort = "8080"
 
-	TEMPLATE_URL = "http://localhost"
+	TemplateURL = "http://localhost"
 )

@@ -9,35 +9,46 @@ import (
 	"time"
 )
 
+// MachineState represents machine state like running, poweroff etc
 type MachineState string
 
 const (
+	// Poweroff state when machine is powered off
 	Poweroff = MachineState("poweroff")
-	Running  = MachineState("running")
-	Paused   = MachineState("paused")
-	Saved    = MachineState("saved")
-	Aborted  = MachineState("aborted")
+	// Running state when machine is running
+	Running = MachineState("running")
+	// Paused state when machine is paused
+	Paused = MachineState("paused")
+	// Saved state when machine is saved
+	Saved = MachineState("saved")
+	// Aborted state when machine is aborted
+	Aborted = MachineState("aborted")
 )
 
+// Flag is a wrapper around int
 type Flag int
 
 // Flag names in lowercases to be consistent with VBoxManage options.
 const (
-	F_acpi Flag = 1 << iota
-	F_ioapic
-	F_rtcuseutc
-	F_cpuhotplug
-	F_pae
-	F_longmode
-	F_synthcpu
-	F_hpet
-	F_hwvirtex
-	F_triplefaultreset
-	F_nestedpaging
-	F_largepages
-	F_vtxvpid
-	F_vtxux
-	F_accelerate3d
+	FlagACPI Flag = 1 << iota
+	FlagIOAPIC
+	FlagRTCUseUTC
+	FlagCPUHotplug
+	FlagPAE
+	FlagLongMode
+	//F_synthcpu
+	FlagHPET
+	FlagHWvirtEx
+	FlagTripleRaultReset
+	FlagNestedPaging
+	FlagLargePages
+	FlagVTXVPID
+	FlagVTXUX
+	FlagAccelerate3D
+
+	FlagUSB
+	FlagUSBEHCI
+	FlagUSBXHCI
 )
 
 // Convert bool to "on"/"off"
@@ -48,25 +59,25 @@ func bool2string(b bool) string {
 	return "off"
 }
 
-// Test if flag is set. Return "on" or "off".
+// Get tests if flag is set. Return "on" or "off".
 func (f Flag) Get(o Flag) string {
 	return bool2string(f&o == o)
 }
 
 // Machine information.
 type Machine struct {
-	Name       string
-	UUID       string
-	State      MachineState
-	CPUs       uint
-	Memory     uint // main memory (in MB)
-	VRAM       uint // video memory (in MB)
-	CfgFile    string
-	BaseFolder string
-	OSType     string
-	Flag       Flag
-	BootOrder  []string // max 4 slots, each in {none|floppy|dvd|disk|net}
-	Usb        UsbController
+	Name        string
+	UUID        string
+	State       MachineState
+	CPUs        uint
+	Memory      uint // main memory (in MB)
+	VRAM        uint // video memory (in MB)
+	CfgFile     string
+	BaseFolder  string
+	OSType      string
+	Flag        Flag
+	BootOrder   []string // max 4 slots, each in {none|floppy|dvd|disk|net}
+	Description string
 }
 
 // Refresh reloads the machine information.
@@ -94,7 +105,7 @@ func (m *Machine) Start() error {
 	return nil
 }
 
-// Suspend suspends the machine and saves its state to disk.
+// Save suspends the machine and saves its state to disk.
 func (m *Machine) Save() error {
 	switch m.State {
 	case Paused:
@@ -234,12 +245,8 @@ func GetMachine(id string) (*Machine, error) {
 		case "CfgFile":
 			m.CfgFile = val
 			m.BaseFolder = filepath.Dir(val)
-		case "usb":
-			m.Usb.Usb = val
-		case "ehci":
-			m.Usb.UsbType.Ehci = val
-		case "xhci":
-			m.Usb.UsbType.Xhci = val
+		case "description":
+			m.Description = val
 		}
 	}
 	if err := s.Err(); err != nil {
@@ -320,22 +327,26 @@ func (m *Machine) Modify() error {
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
 		"--memory", fmt.Sprintf("%d", m.Memory),
 		"--vram", fmt.Sprintf("%d", m.VRAM),
+		"--description", m.Description,
 
-		"--acpi", m.Flag.Get(F_acpi),
-		"--ioapic", m.Flag.Get(F_ioapic),
-		"--rtcuseutc", m.Flag.Get(F_rtcuseutc),
-		"--cpuhotplug", m.Flag.Get(F_cpuhotplug),
-		"--pae", m.Flag.Get(F_pae),
-		"--longmode", m.Flag.Get(F_longmode),
-		"--synthcpu", m.Flag.Get(F_synthcpu),
-		"--hpet", m.Flag.Get(F_hpet),
-		"--hwvirtex", m.Flag.Get(F_hwvirtex),
-		"--triplefaultreset", m.Flag.Get(F_triplefaultreset),
-		"--nestedpaging", m.Flag.Get(F_nestedpaging),
-		"--largepages", m.Flag.Get(F_largepages),
-		"--vtxvpid", m.Flag.Get(F_vtxvpid),
-		"--vtxux", m.Flag.Get(F_vtxux),
-		"--accelerate3d", m.Flag.Get(F_accelerate3d),
+		"--acpi", m.Flag.Get(FlagACPI),
+		"--ioapic", m.Flag.Get(FlagIOAPIC),
+		"--rtcuseutc", m.Flag.Get(FlagRTCUseUTC),
+		"--cpuhotplug", m.Flag.Get(FlagCPUHotplug),
+		"--pae", m.Flag.Get(FlagPAE),
+		"--longmode", m.Flag.Get(FlagLongMode),
+		//"--synthcpu", m.Flag.Get(F_synthcpu),
+		"--hpet", m.Flag.Get(FlagHPET),
+		"--hwvirtex", m.Flag.Get(FlagHWvirtEx),
+		"--triplefaultreset", m.Flag.Get(FlagTripleRaultReset),
+		"--nestedpaging", m.Flag.Get(FlagNestedPaging),
+		"--largepages", m.Flag.Get(FlagLargePages),
+		"--vtxvpid", m.Flag.Get(FlagVTXVPID),
+		"--vtxux", m.Flag.Get(FlagVTXUX),
+		"--accelerate3d", m.Flag.Get(FlagAccelerate3D),
+		"--usb", m.Flag.Get(FlagUSB),
+		"--usbehci", m.Flag.Get(FlagUSBEHCI),
+		"--usbxhci", m.Flag.Get(FlagUSBXHCI),
 	}
 
 	for i, dev := range m.BootOrder {
@@ -350,13 +361,15 @@ func (m *Machine) Modify() error {
 	return m.Refresh()
 }
 
+// ModifySimple is a stripped down version of Modify
 func (m *Machine) ModifySimple() error {
 	args := []string{"modifyvm", m.Name,
 		"--cpus", fmt.Sprintf("%d", m.CPUs),
 		"--memory", fmt.Sprintf("%d", m.Memory),
-		"--usb", fmt.Sprintf("%s", m.Usb.Usb),
-		"--usbehci", fmt.Sprintf("%s", m.Usb.UsbType.Ehci),
-		"--usbxhci", fmt.Sprintf("%s", m.Usb.UsbType.Xhci),
+		"--usb", m.Flag.Get(FlagUSB),
+		"--usbehci", m.Flag.Get(FlagUSBEHCI),
+		"--usbxhci", m.Flag.Get(FlagUSBXHCI),
+		"--description", m.Description,
 	}
 
 	if err := vbm(args...); err != nil {

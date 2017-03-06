@@ -11,7 +11,7 @@ import (
 	"github.com/xshellinc/tools/dialogs"
 )
 
-const ProgName = "iotit"
+const progName = "iotit"
 
 const helpInfo = `
 NAME:
@@ -27,7 +27,10 @@ GLOBAL OPTIONS:
    --version, -v        print the version
 `
 
+// Version string came from linker
 var Version string
+
+// Env string came from linker
 var Env string
 
 func init() {
@@ -36,7 +39,7 @@ func init() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", ProgName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", progName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		logrus.Error("error opening file: %v", err)
 		return
@@ -66,7 +69,7 @@ func main() {
 		if Version == "" {
 			Version = "no version"
 		}
-		fmt.Println(ProgName, Version)
+		fmt.Println(progName, Version)
 		return
 	}
 
@@ -74,10 +77,10 @@ func main() {
 
 		if name, bool := vbox.CheckUpdate(*u); bool {
 			if dialogs.YesNoDialog("Would you like to update?") {
-				vbox.VboxUpdate(name)
+				vbox.Update(name)
 			}
 		}
 	}
 
-	device.DeviceInit(*deviceType)
+	device.Init(*deviceType)
 }

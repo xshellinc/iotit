@@ -2,7 +2,7 @@ package workstation
 
 import "fmt"
 
-// Workstation is your computer's Operating System, which should perform specific actions
+// WorkStation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
 	ListRemovableDisk() error
 	Unmount() error
@@ -35,7 +35,7 @@ type MountInfo struct {
 	deviceSize  string
 }
 
-// Constructor which will return workstation depending on the OS
+// NewWorkStation returns workstation depending on the OS
 func NewWorkStation() WorkStation {
 
 	return newWorkstation()

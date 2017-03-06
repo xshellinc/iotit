@@ -19,7 +19,7 @@ import (
 func initNanoPI() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, lib.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_RASPBERRY)
+	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_RASPBERRY)
 
 	// background process
 	wg.Add(1)
@@ -30,7 +30,7 @@ func initNanoPI() error {
 
 		// 5. attach nanopi img(in VM)
 		log.Debug("Attaching an image")
-		out, err := v.RunOverSsh(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
+		out, err := v.RunOverSSH(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -39,7 +39,7 @@ func initNanoPI() error {
 
 		// 6. mount loopback device(nanopi img) (in VM)
 		log.Debug("Creating tmp folder")
-		out, err = v.RunOverSsh(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -47,7 +47,7 @@ func initNanoPI() error {
 		log.Debug(out)
 
 		log.Debug("mounting tmp folder")
-		out, err = v.RunOverSsh(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			help.ExitOnError(err)
@@ -69,11 +69,11 @@ func initNanoPI() error {
 	help.ExitOnError(err)
 
 	// 9. detatch nanopi img(in VM)
-	_, err = v.RunOverSsh(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
+	_, err = v.RunOverSSH(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
-	_, err = v.RunOverSsh("losetup -D")
+	_, err = v.RunOverSSH("losetup -D")
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
@@ -86,13 +86,13 @@ func initNanoPI() error {
 	//// 11. remove nanopi img(in VM)
 	//fmt.Println("[+] Removing NanoPI image from virtual machine")
 	//log.Debug("removing image")
-	//out, err := v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
+	//out, err := v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}
 	//log.Debug(out)
 	//
-	//out, err := v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
+	//out, err := v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
 	//if err != nil {
 	//	log.Error("[-] Error when execute remote command: " + err.Error())
 	//}

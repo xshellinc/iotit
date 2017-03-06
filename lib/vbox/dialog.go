@@ -11,7 +11,7 @@ import (
 )
 
 // Virtualbox dialogs
-func onoff() string {
+func onoff() OnOff {
 
 	var inp int
 	var a = []string{"on", "off"}
@@ -28,20 +28,21 @@ func onoff() string {
 			continue
 		}
 
-		return a[inp]
+		return OnOff(inp == 0)
 	}
 }
 
-func (self *VboxConfig) NameDialog() {
+// NameDialog asks for VM name
+func (v *Config) NameDialog() {
 
 	var inp string
 
-	if self.Name != "" {
-		fmt.Printf("[+] Your VB name set to \x1b[34m%s\x1b[0m: \n", self.Name)
+	if v.Name != "" {
+		fmt.Printf("[+] Your VB name set to \x1b[34m%s\x1b[0m: \n", v.Name)
 		fmt.Print("[+] Would you like to change virtual machine name?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	} else {
-		self.Name = uuid.New()
-		fmt.Printf("[+] Your VB name is generated \x1b[34m%s\x1b[0m: \n", self.Name)
+		v.Name = uuid.New()
+		fmt.Printf("[+] Your VB name is generated \x1b[34m%s\x1b[0m: \n", v.Name)
 		fmt.Print("[+] Would you like to change virtual machine name?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	}
 Loop:
@@ -57,7 +58,7 @@ Loop:
 					continue
 				}
 
-				self.Name = inp
+				v.Name = inp
 				break Loop
 			}
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
@@ -68,11 +69,12 @@ Loop:
 	}
 }
 
-func (self *VboxConfig) DescriptionDialog() {
+// DescriptionDialog asks for VM description
+func (v *Config) DescriptionDialog() {
 	var inp string
 
-	if self.Description != "" {
-		fmt.Printf("[+] Your VB description set to \x1b[34m%s\x1b[0m: \n", self.Description)
+	if v.Description != "" {
+		fmt.Printf("[+] Your VB description set to \x1b[34m%s\x1b[0m: \n", v.Description)
 		fmt.Print("[+] Would you like to change virtual machine description?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	} else {
 		fmt.Print("[+] Would you like to set a description for the virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
@@ -89,7 +91,7 @@ func (self *VboxConfig) DescriptionDialog() {
 				continue
 			}
 			description = strings.TrimSpace(description)
-			self.Description = description
+			v.Description = description
 
 			break
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
@@ -100,10 +102,11 @@ func (self *VboxConfig) DescriptionDialog() {
 	}
 }
 
-func (self *VboxConfig) MemoryDialog() {
+// MemoryDialog asks for VM memory size
+func (v *Config) MemoryDialog() {
 	var inp string
 
-	fmt.Printf("[+] Your VB memory set to \x1b[34m%d\x1b[0m MB: \n", int(self.Option.Memory))
+	fmt.Printf("[+] Your VB memory set to \x1b[34m%d\x1b[0m MB: \n", int(v.Option.Memory))
 	fmt.Print("[+] Would you like to change virtual machine memory?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 
 Loop:
@@ -111,7 +114,7 @@ Loop:
 		fmt.Scanln(&inp)
 		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
 			for {
-				if self.Device == constants.DEVICE_TYPE_EDISON {
+				if v.Device == constants.DEVICE_TYPE_EDISON {
 					fmt.Println("[+] WARNING, please increase memory size to \x1b[34m1024\x1b[0m MB or more!")
 				}
 				fmt.Print("[+] Change memory. Enter number:")
@@ -123,7 +126,7 @@ Loop:
 					continue
 				}
 
-				self.Option.Memory = uint(a)
+				v.Option.Memory = uint(a)
 				break Loop
 			}
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
@@ -134,11 +137,12 @@ Loop:
 	}
 }
 
-func (self *VboxConfig) CpuDialog() {
+// CPUDialog asks for VM CPUs number
+func (v *Config) CPUDialog() {
 
 	var inp string
 
-	fmt.Printf("[+] Your VB number of cpu set to \x1b[34m%d\x1b[0m: \n", int(self.Option.Cpu))
+	fmt.Printf("[+] Your VB number of cpu set to \x1b[34m%d\x1b[0m: \n", int(v.Option.CPU))
 	fmt.Print("[+] Would you like to change the number of virtual machine processor?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 
 Loop:
@@ -155,11 +159,10 @@ Loop:
 					continue
 				}
 
-				self.Option.Cpu = uint(a)
+				v.Option.CPU = uint(a)
 				break Loop
 			}
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
-			self.Option.Cpu = self.Option.Cpu
 			break
 		} else {
 			fmt.Print("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
@@ -167,11 +170,12 @@ Loop:
 	}
 }
 
-func (self *VboxConfig) UsbDialog() {
+// USBDialog asks for VM USB settings
+func (v *Config) USBDialog() {
 	var inp string
 
-	usb, ehci, xhci := self.GetUsbs()
-	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%s\x1b[0m | USB 2.0:\x1b[34m%s\x1b[0m | USB 3.0:\x1b[34m%s\x1b[0m } \n",
+	usb, ehci, xhci := v.GetUSBs()
+	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%v\x1b[0m | USB 2.0:\x1b[34m%v\x1b[0m | USB 3.0:\x1b[34m%v\x1b[0m } \n",
 		usb, ehci, xhci)
 
 	fmt.Print("[+] Would you like to change virtual machine usb type?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
@@ -179,20 +183,20 @@ func (self *VboxConfig) UsbDialog() {
 	for {
 		fmt.Scanln(&inp)
 		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
-			if self.Device == constants.DEVICE_TYPE_EDISON {
+			if v.Device == constants.DEVICE_TYPE_EDISON {
 				fmt.Println("[+] WARNING, if you set the USB type to \x1b[34m3.0\x1b[0m, it will be faster, but device init may fail.")
 			}
 			fmt.Println("[+] USB: ")
-			self.Option.Usb.Usb = onoff()
+			v.Option.USB.USB = onoff()
+
 			fmt.Println("[+] USB 2.0: ")
-			self.Option.Usb.UsbType.Ehci = onoff()
+			v.Option.USB.USBType.EHCI = onoff()
+
 			fmt.Println("[+] USB 3.0: ")
-			self.Option.Usb.UsbType.Xhci = onoff()
+			v.Option.USB.USBType.XHCI = onoff()
+
 			break
 		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
-			self.Option.Usb.Usb = self.Option.Usb.Usb
-			self.Option.Usb.UsbType.Ehci = self.Option.Usb.UsbType.Ehci
-			self.Option.Usb.UsbType.Xhci = self.Option.Usb.UsbType.Xhci
 			break
 		} else {
 			fmt.Print("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")

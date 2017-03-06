@@ -42,7 +42,7 @@ func initEdison() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		vm, _, _, _ := vboxDownloadImage(wg, lib.VBOX_TEMPLATE_EDISON, constants.DEVICE_TYPE_EDISON)
+		vm, _, _, _ := vboxDownloadImage(wg, lib.VBoxTemplateEdison, constants.DEVICE_TYPE_EDISON)
 
 		printWarnMessage()
 
@@ -53,12 +53,12 @@ func initEdison() error {
 		//@todo replce
 		for {
 			script := "flashall.sh"
-			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TEMPLATE_USER, lib.TEMPLATE_IP), "-p", lib.TEMPLATE_SSH_PORT, constants.TMP_DIR+script)
+			cmd := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP), "-p", lib.TemplateSSHPort, constants.TMP_DIR+script)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
 				fmt.Println("error running script, rerunning")
-				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TEMPLATE_USER, lib.TEMPLATE_IP), "-p", lib.TEMPLATE_SSH_PORT, "lsusb | grep Intel")
+				cmd2 := exec.Command("ssh", fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP), "-p", lib.TemplateSSHPort, "lsusb | grep Intel")
 				cmd2.Stderr = os.Stderr
 				out, err := cmd2.Output()
 				fmt.Println(string(out), err)
@@ -265,7 +265,7 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 						return err
 					}
 					// @todo replace with help
-					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolv_f))
+					cmd = exec.Command("ssh", "root@"+e.ip, "-t", fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF))
 					cmd.Stdout = os.Stdout
 					cmd.Stderr = os.Stderr
 					cmd.Stdin = os.Stdin

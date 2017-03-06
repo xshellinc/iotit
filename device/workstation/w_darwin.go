@@ -64,7 +64,7 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
 				log.Error(err)
-				return nil, err
+				break
 
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
@@ -135,10 +135,10 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 
 		d.workstation.writable = true
 		return progress, nil
-	} else {
-		d.workstation.writable = false
-		return progress, nil
 	}
+
+	d.workstation.writable = false
+	return progress, nil
 }
 
 // Lists available mounts

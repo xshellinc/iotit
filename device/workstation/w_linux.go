@@ -190,10 +190,10 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 
 		l.workstation.writable = true
 		return progress, nil
-	} else {
-		l.workstation.writable = false
-		return progress, nil
 	}
+
+	l.workstation.writable = false
+	return progress, nil
 }
 
 // Ejects the mounted disk
