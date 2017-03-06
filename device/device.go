@@ -211,8 +211,7 @@ func (d *device) SetLocale() error {
 	}
 
 	fmt.Println("[+] Writing default language")
-	err := help.WriteToFile(conf, tmpfile)
-	if err != nil {
+	if err := help.WriteToFile(conf, tmpfile); err != nil {
 		return err
 	}
 
@@ -284,7 +283,7 @@ func (d *device) SetInterfaces(i Interfaces) error {
 		// assign static ip
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-			string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
+			i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
 
 		if dialogs.YesNoDialog("Change values?") {
 			setInterfaces(&i)
