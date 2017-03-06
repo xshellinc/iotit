@@ -17,8 +17,8 @@ import (
 	virtualbox "github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/repo"
-	"github.com/xshellinc/isaax-cli/dialogs"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
 )
