@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -108,7 +107,7 @@ func (l *linux) ListRemovableDisk() error {
 func (l *linux) Unmount() error {
 	if l.workstation.writable != false {
 		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
-		stdout, err := help.ExecSudo(help.InputMaskedPassword, nil, l.unix.unmount, l.workstation.mount.deviceName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, l.unix.unmount, l.workstation.mount.deviceName)
 		if err != nil {
 			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.unix.folder, err.Error(), stdout)
 		}
@@ -121,7 +120,7 @@ const diskSelectionTries = 3
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
-		if attempt > 0 && !dialogs.YesNoDialog("[-] Continue?") {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
 		}
 
@@ -135,11 +134,11 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 		for i, e := range l.workstation.mounts {
 			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
 		}
-		num := dialogs.SelectOneDialog("[?] Select mount to format: ", rng)
+		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
 
 		dev := l.workstation.mounts[num]
-		var ok bool
-		if ok, err = help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
+
+		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
 				log.Error(err)
 				return nil, err
@@ -158,7 +157,7 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 		return nil, err
 	}
 
-	if dialogs.YesNoDialog("[?] Are you sure? ") {
+	if dialogs.YesNoDialog("Are you sure? ") {
 		fmt.Printf("[+] Writing %s to %s\n", img, l.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter user password")
 
@@ -175,7 +174,7 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 					"bs=4M",
 				}
 
-				if out, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
+				if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
 					help.LogCmdErrors(string(out), string(eut), err, args...)
 
 					progress <- false
@@ -201,15 +200,10 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 func (l *linux) Eject() error {
 	if l.workstation.writable != false {
 		fmt.Printf("[+] Eject your sd card :%s\n", l.workstation.mount.diskName)
-		eut, err := help.ExecSudo(help.InputMaskedPassword, nil, l.unix.eject, l.workstation.mount.diskName)
+		eut, err := help.ExecSudo(sudo.InputMaskedPassword, nil, l.unix.eject, l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: \n", l.workstation.mount.diskName, eut)
 		}
 	}
 	return nil
-}
-
-// Checks virtualbox Dependencies
-func (l *linux) Check(pkg string) error {
-	return vbox.CheckDeps(pkg)
 }

@@ -1,9 +1,9 @@
-package constant
+package lib
 
 // box images and credentials constants
 const (
-	VBoxTemplateSD     = "isaax-box-sd"
-	VBoxTemplateEdison = "isaax-box-edison"
+	VBoxTemplateSD     = "iotit-box-sd"
+	VBoxTemplateEdison = "iotit-box-edison"
 
 	TemplateIP       = "localhost"
 	TemplateUser     = "root"

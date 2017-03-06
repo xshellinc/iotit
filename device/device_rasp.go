@@ -8,7 +8,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
@@ -19,7 +19,7 @@ import (
 func initRasp() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, constant.VBoxTemplateSD, constants.DEVICE_TYPE_RASPBERRY)
+	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_RASPBERRY)
 
 	// background process
 	progress := make(chan bool)
@@ -89,21 +89,6 @@ func initRasp() error {
 
 	err = v.Download(img, wg)
 	time.Sleep(time.Second * 2)
-
-	//// 11. remove beaglebone img(in VM)
-	//fmt.Println("[+] Removing RaspberryPI image from virtual machine")
-	//log.Debug("removing image")
-	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-
-	//out, err = v.RunOverSSH(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
 
 	// 13. unmount SD card(in host)
 	err = local.Unmount()

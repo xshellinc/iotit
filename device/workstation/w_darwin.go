@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -43,7 +42,7 @@ const diskSelectionTries = 3
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
-		if attempt > 0 && !dialogs.YesNoDialog("[-] Continue?") {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
 		}
 
@@ -59,11 +58,10 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		for i, e := range d.workstation.mounts {
 			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
 		}
-		num := dialogs.SelectOneDialog("[?] Select mount to format: ", rng)
+		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
 		dev := d.workstation.mounts[num]
 
-		var ok bool
-		if ok, err = help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
+		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
 			if err != nil {
 				log.Error(err)
 				break
@@ -82,7 +80,7 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		return nil, err
 	}
 
-	if dialogs.YesNoDialog("[?] Are you sure? ") {
+	if dialogs.YesNoDialog("Are you sure? ") {
 		fmt.Printf("[+] Writing %s to %s\n", img, d.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter your OS X user password")
 
@@ -102,7 +100,7 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 					d.workstation.mount.diskName,
 				}
 
-				if _, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
+				if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
 
 					progress <- false
 					fmt.Println("\r[-] Can't unmount disk. Please make sure your password is correct and press Enter to retry")
@@ -121,7 +119,7 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 					fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
 					"bs=1048576",
 				}
-				if _, eut, err := sudo.Exec(help.InputMaskedPassword, progress, args...); err != nil {
+				if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
 
 					progress <- false
 					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct and press Enter to retry")
@@ -163,7 +161,7 @@ func (d *darwin) ListRemovableDisk() error {
 		diskMap := make(map[string]string)
 		removable := true
 
-		stdout, err := help.ExecCmd("diskutil", []string{"info", "/dev/" + devDisk})
+		stdout, err := help.ExecCmd(d.diskUtil, []string{"info", "/dev/" + devDisk})
 		if err != nil {
 			stdout = ""
 		}
@@ -217,7 +215,7 @@ func (d *darwin) ListRemovableDisk() error {
 func (d *darwin) Eject() error {
 	if d.workstation.writable {
 		fmt.Printf("[+] Eject your sd card :%s\n", d.workstation.mount.diskName)
-		stdout, err := help.ExecSudo(help.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
 
 		if err != nil {
 			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: %s\n", d.workstation.mount.diskName, stdout)
@@ -226,12 +224,6 @@ func (d *darwin) Eject() error {
 	return nil
 }
 
-// Checks virtualbox Dependencies
-func (d *darwin) Check(pkg string) error {
-	return vbox.CheckDeps(pkg)
-}
-
-//TODO : THIS WILL FAIL(REQUIRES SUDO USER)
 // Unmounts the mounted disk
 func (d *darwin) Unmount() error {
 	if d.workstation.writable {

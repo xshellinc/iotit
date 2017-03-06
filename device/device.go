@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"sync"
@@ -114,7 +113,6 @@ type SetDevice interface {
 	SetKeyborad() error
 	SetWifi() error
 	SetInterfaces(i Interfaces) error
-	SelectInterfaces() int
 	SetConfig() error
 	Upload(*vbox.Config) error
 }
@@ -141,7 +139,7 @@ func Init(typeFlag string) (err error) {
 	}
 
 	if deviceType == "" {
-		deviceType = devices[dialogs.SelectOneDialog("[?] Select device type: ", devices[:])]
+		deviceType = devices[dialogs.SelectOneDialog("Select device type: ", devices[:])]
 	}
 
 	fmt.Println("[+] flashing", deviceType)
@@ -187,243 +185,126 @@ func NewSetDevice(d string) SetDevice {
 
 // Notifies a user if he wants to change locale and provides with the list of locales
 func (d *device) SetLocale() error {
-	var (
-		prompt  = true
-		answer  string
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.localeF)
-	)
+	var conf string
+	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.localeF)
 
-	for prompt {
-		fmt.Println("[+] Default language: ", constants.DefaultLocale)
-		fmt.Print("[+] Change default language?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-		fmt.Scanln(&answer)
+	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			fmt.Print("[+] New locale: ")
-			fmt.Scanln(&answer)
+	if dialogs.YesNoDialog("Change default language?") {
+		inp := dialogs.GetSingleAnswer("New locale: ", []dialogs.ValidatorFn{
+			dialogs.EmptyStringValidator,
+			dialogs.CreateValidatorFn(constants.ValidateLocale)})
 
-			locale, err := selectLocale(constants.GetLocale(answer))
-			if err != nil {
-				fmt.Println("[-] Error:", err)
-				continue
-			}
+		arr, _ := constants.GetLocale(inp)
 
-			locale2 := selectLanguagePriority(locale)
-
-			conf := fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale2)
-			err = help.WriteToFile(conf, tmpfile)
-			if err != nil {
-				return err
-			}
-
-			d.files = append(d.files, tmpfile)
-			prompt = false
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			fmt.Println("[+] Writing default language")
-			conf := fmt.Sprintf(d.deviceFiles.locale, constants.DefaultLocale, constants.DefaultLocale, constants.DefaultLocale)
-			err := help.WriteToFile(conf, tmpfile)
-			if err != nil {
-				return err
-			}
-
-			d.files = append(d.files, tmpfile)
-			prompt = false
+		var locale string
+		if len(arr) == 1 {
+			locale = arr[0]
 		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+			locale = arr[dialogs.SelectOneDialog("Please select a locale from a list", arr)]
 		}
+
+		conf = fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale)
+
+	} else {
+		conf = fmt.Sprintf(d.deviceFiles.locale, constants.DefaultLocale, constants.DefaultLocale, constants.DefaultLocale)
 	}
+
+	fmt.Println("[+] Writing default language")
+	if err := help.WriteToFile(conf, tmpfile); err != nil {
+		return err
+	}
+
+	d.files = append(d.files, tmpfile)
+
 	return nil
 }
 
 // Notifies a user if he wants to change a keyboard layout, user types a layout name
 func (d *device) SetKeyborad() error {
-	var (
-		prompt  = true
-		answer  string
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.keyboardF)
-	)
+	var conf string
+	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.keyboardF)
 
-	for prompt {
-		fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
-		fmt.Print("[+] Change default keyboard?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-		fmt.Scanln(&answer)
+	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
 
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			fmt.Print("[+] New keyboard: ")
-			fmt.Scanln(&answer)
-			conf := fmt.Sprintf(d.deviceFiles.keyboard, &answer)
-			err := help.WriteToFile(conf, tmpfile)
-			if err != nil {
-				return err
-			}
-
-			d.files = append(d.files, tmpfile)
-			prompt = false
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			fmt.Println("[+] Writing default keyboard")
-			conf := fmt.Sprintf(d.deviceFiles.keyboard, constants.DefaultKeymap)
-			err := help.WriteToFile(conf, tmpfile)
-			if err != nil {
-				return err
-			}
-
-			d.files = append(d.files, tmpfile)
-			prompt = false
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-		}
+	if dialogs.YesNoDialog("Change default language?") {
+		fmt.Print("[+] New keyboard: ")
+		var inp string
+		fmt.Scanln(&inp)
+		conf = fmt.Sprintf(d.deviceFiles.keyboard, &inp)
+	} else {
+		conf = fmt.Sprintf(d.deviceFiles.keyboard, constants.DefaultKeymap)
 	}
+
+	fmt.Println("[+] Writing default keyboard")
+	if err := help.WriteToFile(conf, tmpfile); err != nil {
+		return err
+	}
+
+	d.files = append(d.files, tmpfile)
+
 	return nil
 }
 
 // Notifies a user, if he wants to set up wifi credentials, user types SSID and pass
 func (d *device) SetWifi() error {
-	var (
-		answer  string
-		w       wifi
-		prompt  = true
-		tmpfile = filepath.Join(constants.TMP_DIR, d.deviceFiles.wpaF)
-	)
+	var w wifi
+	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.wpaF)
 
-	for prompt {
-		fmt.Print("[+] Would you like to configure your WI-Fi?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			w.Name = strings.TrimSpace(dialogs.WiFiSSIDNameDialog())
-			w.Password = []byte(strings.TrimSpace(dialogs.WiFiPassword()))
-			prompt = false
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			prompt = false
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-		}
-	}
+	if dialogs.YesNoDialog("Would you like to configure your WI-Fi?") {
+		w.Name = dialogs.GetSingleAnswer("[+] WIFI SSID name: ", []dialogs.ValidatorFn{dialogs.EmptyStringValidator})
+		w.Password = []byte(dialogs.WiFiPassword())
 
-	if w.Name != "" {
 		conf := fmt.Sprintf(d.deviceFiles.wpa, w.Name, w.Password)
-		err := help.WriteToFile(conf, tmpfile)
-		if err != nil {
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err
 		}
 		fmt.Printf("[+] Writing to %s:\n", tmpfile)
 		d.files = append(d.files, tmpfile)
 	}
-	return nil
-}
 
-// Notifies a user, if he wants to set a static ip interfaces
-func (d *device) SelectInterfaces() int {
-	var (
-		answer string
-		num    = 0
-		device = []string{"eth0", "wlan0"}
-		prompt = true
-	)
-	// select network interface
-	for prompt {
-		fmt.Println("[+] Available network interface: ")
-		for i, e := range device {
-			fmt.Printf("\t[\x1b[34m%d\x1b[0m] - [\x1b[34m%s\x1b[0m] \n", i, e)
-		}
-		fmt.Print("[+] Please select a network interface: ")
-		fmt.Scanln(&answer)
-		n, err := strconv.Atoi(answer)
-		if err != nil {
-			fmt.Println("[-] Invalid user input")
-		} else {
-			fmt.Println("[+] Selected:", n)
-			//check if outside of range
-			if num < 0 || num > len(device)-1 {
-				fmt.Printf("[-] Device unavailable with option:%d\n", n)
-			} else {
-				num = n
-				prompt = false
-			}
-		}
-	}
-	return num
+	return nil
 }
 
 // Users selects either eth0 or wlan0 interface and then he types manually ip addresses for all Interface values
 func (d *device) SetInterfaces(i Interfaces) error {
-	var (
-		answer string
-		num    = 0
-		s      = 0
-		device = []string{"eth0", "wlan0"}
-	)
+	var conf string
+	device := []string{"eth0", "wlan0"}
 
 	interfaces := filepath.Join(constants.TMP_DIR, d.deviceFiles.interfacesF)
 	resolv := filepath.Join(constants.TMP_DIR, d.deviceFiles.resolvF)
 
-	fmt.Print("[+] Would you like to assign static IP address for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-	for {
-		// select network interface
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			num = d.SelectInterfaces()
+	if dialogs.YesNoDialog("Would you like to assign static IP address for your device?") {
+		fmt.Println("[+] Available network interface: ")
+		num := dialogs.SelectOneDialog("Please select a network interface:", device)
 
-			// assign static ip
-			prompt := true
-			fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
-			for prompt {
-				fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] Dns:%s\n",
-					string(i.Address), string(i.Network), string(i.Gateway), string(i.Netmask), string(i.DNS))
-				fmt.Print("[+] Change values?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-				answer = ""
-				fmt.Scanln(&answer)
-				if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-					setInterfaces(&i)
+		// assign static ip
+		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
+		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+			i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
 
-					switch device[num] {
-					case "eth0":
-						conf := fmt.Sprintf(d.deviceFiles.interfacesEth, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
-						err := help.WriteToFile(conf, interfaces)
-						if err != nil {
-							return err
-						}
-						d.files = append(d.files, interfaces)
+		if dialogs.YesNoDialog("Change values?") {
+			setInterfaces(&i)
 
-						conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
-						err = help.WriteToFile(conf, resolv)
-						if err != nil {
-							return err
-						}
-						d.files = append(d.files, resolv)
-
-						fmt.Println("[+]  Ethernet interface configuration was updated")
-						s++
-					case "wlan0":
-						conf := fmt.Sprintf(d.deviceFiles.interfacesWLAN, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
-						err := help.WriteToFile(conf, interfaces)
-						if err != nil {
-							return err
-						}
-						d.files = append(d.files, interfaces)
-
-						conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
-						err = help.WriteToFile(conf, resolv)
-						if err != nil {
-							return err
-						}
-						d.files = append(d.files, resolv)
-
-						fmt.Println("[+]  wifi interface configuration was updated")
-						s++
-					}
-				} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-					return nil
-				} else {
-					fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-				}
+			switch device[num] {
+			case "eth0":
+				conf = fmt.Sprintf(d.deviceFiles.interfacesEth, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
+				fmt.Println("[+]  Ethernet interface configuration was updated")
+			case "wlan0":
+				conf = fmt.Sprintf(d.deviceFiles.interfacesWLAN, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
+				fmt.Println("[+]  wifi interface configuration was updated")
 			}
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			if s > 0 {
-				return nil
+
+			if err := help.WriteToFile(conf, interfaces); err != nil {
+				return err
 			}
-			return nil
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+			d.files = append(d.files, interfaces)
+
+			conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
+			if err := help.WriteToFile(conf, resolv); err != nil {
+				return err
+			}
+			d.files = append(d.files, resolv)
 		}
 	}
 
@@ -433,10 +314,9 @@ func (d *device) SetInterfaces(i Interfaces) error {
 // @todo make installation from the isaax repo, copy deb packages and install on the first startup
 // Notifies user if he wants to install default software package
 func (d *device) InitPrograms() error {
+	tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
 
-	var inp string
-
-	softwareList := [...]string{
+	softwareList := []string{
 		"curl",
 		"bluez",
 		"iptables",
@@ -453,26 +333,15 @@ func (d *device) InitPrograms() error {
 		"git",
 	}
 
-	fmt.Print("[+] Would you like to install basic software for your device?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-	for {
-		tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
+	fmt.Print("  [+]")
+	fmt.Print(strings.Join(softwareList, "\n  [+]"))
 
-		fmt.Scan(&inp)
-		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
-			conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
-			err := help.WriteToFile(conf, tmpfile)
-			if err != nil {
-				return err
-			}
-			d.files = append(d.files, tmpfile)
-
-			return nil
-
-		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
-			return nil
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
+		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
+			return err
 		}
+		d.files = append(d.files, tmpfile)
 	}
 
 	return nil
@@ -480,51 +349,38 @@ func (d *device) InitPrograms() error {
 
 // Setup board notification which then triggers setLocale, setWifi, setKeyBoard, InitPrograms, SetInterface methods
 func (d *device) SetConfig() error {
-	var (
-		answer string
-		prompt = true
-	)
 
-	for prompt {
-		fmt.Print("[+] Would you like to config your board?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-		fmt.Scanln(&answer)
-		if strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes") {
-			// set locale (host to VM)
-			err := d.SetLocale()
-			if err != nil {
-				return err
-			}
+	if dialogs.YesNoDialog("Would you like to config your board?") {
+		// set locale (host to VM)
+		err := d.SetLocale()
+		if err != nil {
+			return err
+		}
 
-			// set keyboard (host to VM)
-			err = d.SetKeyborad()
-			if err != nil {
-				return err
-			}
+		// set keyboard (host to VM)
+		err = d.SetKeyborad()
+		if err != nil {
+			return err
+		}
 
-			// wifi config (host to VM)
-			err = d.SetWifi()
-			if err != nil {
-				return err
-			}
+		// wifi config (host to VM)
+		err = d.SetWifi()
+		if err != nil {
+			return err
+		}
 
-			// static ip config (host to VM)
-			err = d.SetInterfaces(*ifaces)
-			if err != nil {
-				return err
-			}
+		// static ip config (host to VM)
+		err = d.SetInterfaces(*ifaces)
+		if err != nil {
+			return err
+		}
 
-			err = d.InitPrograms()
-			if err != nil {
-				return err
-			}
-
-			return nil
-		} else if strings.EqualFold(answer, "n") || strings.EqualFold(answer, "no") {
-			return nil
-		} else {
-			fmt.Println("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
+		err = d.InitPrograms()
+		if err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -580,8 +436,8 @@ func deleteHost(fileName, host string) error {
 		}
 	}
 	output := strings.Join(result, "\n")
-	err = ioutil.WriteFile(fileName, []byte(output), 0644)
-	if err != nil {
+
+	if err = ioutil.WriteFile(fileName, []byte(output), 0644); err != nil {
 		return err
 	}
 	return nil
@@ -631,43 +487,31 @@ func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine
 // Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
 // the name of vbox doesn't change
 func selectVboxInit(conf string, v []vbox.Config) int {
-	opts := make(map[int]vBoxType)
-	n := 0
-
-	opts[n] = vBoxType{"Use default", VBoxTypeDefault}
-	n++
-	opts[n] = vBoxType{"Create new virtual machine", VBoxTypeNew}
-	n++
-	opts[n] = vBoxType{"Use your virtual machine", VBoxTypeUser}
+	opts := []string{
+		"Use default",
+		"Create new virtual machine",
+		"Use your virtual machine",
+	}
+	optTypes := []int{
+		VBoxTypeDefault,
+		VBoxTypeNew,
+		VBoxTypeUser,
+	}
+	n := len(opts)
 
 	if _, err := os.Stat(conf); os.IsNotExist(err) || v == nil {
 		n--
 	}
 
-	for {
-		for i := 0; i <= n; i++ {
-			fmt.Printf("\t[\x1b[34m%d\x1b[0m] - \x1b[34m%s\x1b[0m \n", i, opts[i].name)
-		}
-
-		fmt.Print("[+] Please select a number: ")
-		var inp int
-		_, err := fmt.Scanf("%d", &inp)
-
-		if err != nil || inp < 0 || inp > n {
-			fmt.Println("[-] Invalid user input")
-			continue
-		}
-
-		return opts[inp].vType
-	}
+	return optTypes[dialogs.SelectOneDialog("Please select an option:", opts[:n])]
 }
 
 // Starts a vbox, inits repository, downloads the image into repository, then uploads and unpacks it into the vbox
 func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.Config, string) {
 	w := workstation.NewWorkStation()
-	help.ExitOnError(w.Check("VBoxManage"))
+	help.ExitOnError(vbox.CheckDeps("VBoxManage"))
 
-	conf := filepath.Join(help.UserHomeDir(), ".isaax", "virtualbox", "isaax-vbox.json")
+	conf := filepath.Join(help.UserHomeDir(), ".iotit", "virtualbox", "iotit-vbox.json")
 	v := vbox.NewConfig(vBoxTemplate, deviceType)
 	vm, name, description, err := setVbox(v, conf, vBoxTemplate, deviceType)
 	help.ExitOnError(err)
@@ -683,7 +527,7 @@ func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*vi
 
 			err := vm.Start()
 			help.ExitOnError(err)
-			time.Sleep(20 * time.Second) // @todo why sleeping here, check workaround
+			time.Sleep(20 * time.Second)
 		}(progress)
 
 		help.WaitAndSpin("starting", progress)

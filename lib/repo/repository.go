@@ -10,7 +10,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
@@ -19,7 +19,7 @@ import (
 // S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
 
-var baseDir = filepath.Join(help.UserHomeDir(), ".isaax")
+var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
 var imageDir = filepath.Join(baseDir, "images")
 var vboxDir = filepath.Join(baseDir, "virtualbox")
 
@@ -315,7 +315,7 @@ func NewRepository(deviceType string) (Repository, error) {
 		url    = S3Bucket
 		repo   S3Repository
 	)
-	//@todo checking via timeout
+	//@todo re-try if timeout
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Error("Could not make GET request to url:", url, " error msg:", err.Error())
@@ -365,9 +365,9 @@ func NewRepositoryVM(vmType string) (Repository, error) {
 		return nil, err
 	}
 	switch vmType {
-	case constant.VBoxTemplateSD:
+	case lib.VBoxTemplateSD:
 		return repo.SD, nil
-	case constant.VBoxTemplateEdison:
+	case lib.VBoxTemplateEdison:
 		return repo.Edison, nil
 	default:
 		return nil, errors.New("unknown virtual machine type")
@@ -393,7 +393,7 @@ func NewGenericRepository(url, version string, dir string) Repository {
 
 // VirtualBoxRepository gets currents repo status for SD platforms
 func VirtualBoxRepository() Repository {
-	rp, err := NewRepositoryVM(constant.VBoxTemplateSD)
+	rp, err := NewRepositoryVM(lib.VBoxTemplateSD)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil
@@ -405,7 +405,7 @@ func VirtualBoxRepository() Repository {
 
 // VirtualBoxRepositoryEdison gets currents repo status for Edison
 func VirtualBoxRepositoryEdison() Repository {
-	rp, err := NewRepositoryVM(constant.VBoxTemplateEdison)
+	rp, err := NewRepositoryVM(lib.VBoxTemplateEdison)
 	if err != nil {
 		fmt.Println("[-] Could not fetch remote version")
 		return nil
