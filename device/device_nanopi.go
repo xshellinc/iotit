@@ -19,7 +19,7 @@ import (
 func initNanoPI() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_RASPBERRY)
+	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_NANOPI)
 
 	// background process
 	wg.Add(1)
