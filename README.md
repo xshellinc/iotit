@@ -1,6 +1,9 @@
+[![Code Climate](https://codeclimate.com/github/xshellinc/iotit/badges/gpa.svg)](https://codeclimate.com/github/xshellinc/iotit)
+[![Test Coverage](https://codeclimate.com/github/xshellinc/iotit/badges/coverage.svg)](https://codeclimate.com/github/xshellinc/iotit/coverage)
+
+
 IOTIT command line flashing utility
 ==========================
-
 
 
 **iotit** (written in Golang) is a command line utility for flashing Single Board Computers (SBCs, aka IoT devices).
