@@ -38,10 +38,10 @@ func setInterfaces(i *Interfaces) {
 		return
 	}
 
-	i.Network = dialogs.GetSingleAnswer("Please enter your network: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
-	i.Gateway = dialogs.GetSingleAnswer("Please enter your gateway: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
-	i.Netmask = dialogs.GetSingleAnswer("Please enter your netmask: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
-	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+	i.Network = dialogs.GetSingleAnswer("Please enter your network: ", dialogs.IpAddressValidator)
+	i.Gateway = dialogs.GetSingleAnswer("Please enter your gateway: ", dialogs.IpAddressValidator)
+	i.Netmask = dialogs.GetSingleAnswer("Please enter your netmask: ", dialogs.IpAddressValidator)
+	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", dialogs.IpAddressValidator)
 }
 
 func setIP(i *Interfaces) bool {
@@ -53,7 +53,7 @@ func setIP(i *Interfaces) bool {
 	var ip string
 
 	for retries > 0 && loop {
-		ip := dialogs.GetSingleAnswer("IP address of the device: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+		ip := dialogs.GetSingleAnswer("IP address of the device: ", dialogs.IpAddressValidator)
 
 		progress := make(chan bool)
 		wg.Add(1)

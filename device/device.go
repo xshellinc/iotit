@@ -191,9 +191,7 @@ func (d *device) SetLocale() error {
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ", []dialogs.ValidatorFn{
-			dialogs.EmptyStringValidator,
-			dialogs.CreateValidatorFn(constants.ValidateLocale)})
+		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
 
 		arr, _ := constants.GetLocale(inp)
 
@@ -252,7 +250,7 @@ func (d *device) SetWifi() error {
 	tmpfile := filepath.Join(constants.TMP_DIR, d.deviceFiles.wpaF)
 
 	if dialogs.YesNoDialog("Would you like to configure your WI-Fi?") {
-		w.Name = dialogs.GetSingleAnswer("[+] WIFI SSID name: ", []dialogs.ValidatorFn{dialogs.EmptyStringValidator})
+		w.Name = dialogs.GetSingleAnswer("[+] WIFI SSID name: ", dialogs.EmptyStringValidator)
 		w.Password = []byte(dialogs.WiFiPassword())
 
 		conf := fmt.Sprintf(d.deviceFiles.wpa, w.Name, w.Password)
