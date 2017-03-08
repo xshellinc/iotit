@@ -38,9 +38,10 @@ func newWorkstation() WorkStation {
 }
 
 const diskSelectionTries = 3
+const writeAttempts = 3
 
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
-func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
+func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
@@ -84,61 +85,76 @@ func (d *darwin) WriteToDisk(img string) (progress chan bool, err error) {
 		fmt.Printf("[+] Writing %s to %s\n", img, d.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter your OS X user password")
 
-		//if err = d.Unmount(); err != nil {
-		//	//TODO handle error gracefully
-		//	log.Error(err.Error())
-		//}
-		progress = make(chan bool)
+		job = help.NewBackgroundJob()
 
-		go func(progress chan bool) {
-			defer close(progress)
+		go func() {
+			defer job.Close()
 
-			for {
-				args := []string{
-					d.diskUtil,
-					d.unMount,
-					d.workstation.mount.diskName,
+			args := []string{
+				d.diskUtil,
+				d.unMount,
+				d.workstation.mount.diskName,
+			}
+
+			var err error
+			for attempt := 0; attempt < writeAttempts; attempt++ {
+				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+					break
 				}
+				job.Active(true)
 
-				if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
+				var eut []byte
+				if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
 
-					progress <- false
+					job.Active(false)
 					fmt.Println("\r[-] Can't unmount disk. Please make sure your password is correct and press Enter to retry")
 					fmt.Print("\r[-] ", string(eut))
-					fmt.Scanln()
-					progress <- true
 				} else {
 					break
 				}
 			}
 
-			for {
-				args := []string{
-					d.unix.dd,
-					fmt.Sprintf("if=%s", img),
-					fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
-					"bs=1048576",
-				}
-				if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
+			if err != nil {
+				job.Error(err)
+				return
+			}
 
-					progress <- false
-					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct and press Enter to retry")
+			args = []string{
+				d.unix.dd,
+				fmt.Sprintf("if=%s", img),
+				fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
+				"bs=1048576",
+			}
+
+			for attempt := 0; attempt < writeAttempts; attempt++ {
+				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+					break
+				}
+				job.Active(true)
+
+				var eut []byte
+				if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+					job.Active(false)
+					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct")
 					fmt.Println("\r[-] ", string(eut))
-					fmt.Scanln()
-					progress <- true
 				} else {
-					fmt.Printf("[+] Done writing %s to %s \n", img, d.workstation.mount.diskName)
+					job.Active(false)
+					fmt.Printf("\r[+] Done writing %s to %s \n", img, d.workstation.mount.diskName)
 					break
 				}
 			}
-		}(progress)
+
+			if err != nil {
+				job.Error(err)
+			}
+		}()
 
 		d.workstation.writable = true
-		return progress, nil
+		return job, nil
 	}
 
 	d.workstation.writable = false
-	return progress, nil
+	return nil, nil
 }
 
 // Lists available mounts

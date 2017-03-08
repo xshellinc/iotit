@@ -22,10 +22,11 @@ func initNanoPI() error {
 	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_NANOPI)
 
 	// background process
+	job := help.NewBackgroundJob()
 	wg.Add(1)
-	progress := make(chan bool)
-	go func(progress chan bool) {
-		defer close(progress)
+
+	go func() {
+		defer job.Close()
 		defer wg.Done()
 
 		// 5. attach nanopi img(in VM)
@@ -33,7 +34,8 @@ func initNanoPI() error {
 		out, err := v.RunOverSSH(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
@@ -42,7 +44,8 @@ func initNanoPI() error {
 		out, err = v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
@@ -50,10 +53,11 @@ func initNanoPI() error {
 		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p2 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
-	}(progress)
+	}()
 
 	// 7. setup keyboard, locale, etc...
 	config := NewSetDevice(constants.DEVICE_TYPE_NANOPI)
@@ -61,7 +65,7 @@ func initNanoPI() error {
 	help.ExitOnError(err)
 
 	// wait background process
-	help.WaitAndSpin("waiting", progress)
+	help.ExitOnError(help.WaitJobAndSpin("waiting", job))
 	wg.Wait()
 
 	// 8. uploading config
@@ -86,9 +90,11 @@ func initNanoPI() error {
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
 
-	progress, err = local.WriteToDisk(osImg)
+	job, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
-	help.WaitAndSpin("flashing", progress)
+	if job != nil {
+		help.ExitOnError(help.WaitJobAndSpin("flashing", job))
+	}
 
 	err = os.Remove(osImg)
 	if err != nil {
