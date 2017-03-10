@@ -9,22 +9,30 @@ import (
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/sudo"
 )
 
 const progName = "iotit"
+const installPath = "/usr/local/bin/"
 
 const helpInfo = `
 NAME:
    iotit - Flashing Tool for iot devices used by Isaax Cloud
 
 USAGE:
-   iotit [global options]
+   iotit [global options] [commands]
+
+   options and commands are not mandatory
+
+COMMANDS:
+   gl, global         install to global app environment
+   un, uninstall      uninstall this app
+   update             update binary and vbox images
+   v, version         display current version
+   h, help            display help
 
 GLOBAL OPTIONS:
-   -update <sd|edison> update vbox and dependencies
    -dev [device-type]  executes iotit with specified deviceType
-   --help, -h           show help
-   --version, -v        print the version
 `
 
 // Version string came from linker
@@ -32,6 +40,8 @@ var Version string
 
 // Env string came from linker
 var Env string
+
+var commands = make(map[string]func())
 
 func init() {
 	logrus.SetLevel(logrus.WarnLevel)
@@ -41,46 +51,97 @@ func init() {
 
 	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", progName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
-		logrus.Error("error opening file: %v", err)
+		logrus.Errorf("error opening file: %v", err)
 		return
 	}
 
 	logrus.SetOutput(f)
+
+	initCommands()
 }
 
 func main() {
 	deviceType := flag.String("dev", "", "")
-	h1 := flag.Bool("help", false, "")
-	h2 := flag.Bool("h", false, "")
-
-	v1 := flag.Bool("version", false, helpInfo)
-	v2 := flag.Bool("v", false, "")
-
-	u := flag.String("update", "", "")
 
 	flag.Parse()
 
-	if *h1 || *h2 {
-		fmt.Println(helpInfo)
-		return
-	}
+	commandsHandler(flag.Args())
+	device.Init(*deviceType)
+}
 
-	if *v1 || *v2 {
+func commandsHandler(args []string) {
+	for _, arg := range args {
+		if c, ok := commands[arg]; ok {
+			c()
+			os.Exit(0)
+		}
+	}
+}
+
+func initCommands() {
+	v := func() {
 		if Version == "" {
 			Version = "no version"
 		}
+
 		fmt.Println(progName, Version)
-		return
 	}
 
-	if *u != "" {
+	h := func() {
+		fmt.Println(helpInfo)
+	}
 
-		if name, bool := vbox.CheckUpdate(*u); bool {
-			if dialogs.YesNoDialog("Would you like to update?") {
+	i := func() {
+		logrus.Debug("Checking ", installPath, progName)
+		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+			p, err := os.Executable()
+			if err != nil {
+				logrus.Fatal("[-] ", err)
+			}
+
+			fmt.Println("[+] You may need to enter your user password")
+			fmt.Println("cp", p, installPath+progName)
+
+			sudo.Exec(sudo.InputMaskedPassword, nil, "cp", p, installPath+progName)
+			return
+		}
+
+		fmt.Println("[+] Software is already installed")
+	}
+
+	u := func() {
+		logrus.Debug("Checking ", installPath, progName)
+		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+			fmt.Println("[+] Software is not installed")
+			return
+		}
+
+		fmt.Println("[+] You may need to enter your user password")
+
+		sudo.Exec(sudo.InputMaskedPassword, nil, "rm", installPath+progName)
+	}
+
+	upd := func() {
+		if name, bool := vbox.CheckUpdate("sd"); bool {
+			if dialogs.YesNoDialog("Would you like to update sdVbox?") {
+				vbox.Update(name)
+			}
+		}
+
+		if name, bool := vbox.CheckUpdate("edison"); bool {
+			if dialogs.YesNoDialog("Would you like to update edisonVbox?") {
 				vbox.Update(name)
 			}
 		}
 	}
 
-	device.Init(*deviceType)
+	commands["version"] = v
+	commands["v"] = v
+	commands["help"] = h
+	commands["h"] = h
+	commands["global"] = i
+	commands["gl"] = i
+	commands["uninstall"] = u
+	commands["un"] = u
+	commands["update"] = upd
 }
