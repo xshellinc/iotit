@@ -116,9 +116,10 @@ func (l *linux) Unmount() error {
 }
 
 const diskSelectionTries = 3
+const writeAttempts = 3
 
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
-func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
+func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
@@ -161,39 +162,49 @@ func (l *linux) WriteToDisk(img string) (progress chan bool, err error) {
 		fmt.Printf("[+] Writing %s to %s\n", img, l.workstation.mount.diskName)
 		fmt.Println("[+] You may need to enter user password")
 
-		progress = make(chan bool)
+		job = help.NewBackgroundJob()
 
-		go func(progress chan bool) {
-			defer close(progress)
+		go func() {
+			defer job.Close()
 
-			for {
-				args := []string{
-					l.unix.dd,
-					fmt.Sprintf("if=%s", img),
-					fmt.Sprintf("of=%s", l.workstation.mount.diskName),
-					"bs=4M",
+			args := []string{
+				l.unix.dd,
+				fmt.Sprintf("if=%s", img),
+				fmt.Sprintf("of=%s", l.workstation.mount.diskName),
+				"bs=4M",
+			}
+
+			var err error
+			for attempt := 0; attempt < writeAttempts; attempt++ {
+				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+					break
 				}
+				job.Active(true)
 
-				if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, progress, args...); err != nil {
+				var out, eut []byte
+				if out, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
 					help.LogCmdErrors(string(out), string(eut), err, args...)
 
-					progress <- false
-					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct and press Enter to retry")
-					fmt.Scanln()
-					progress <- true
+					job.Active(false)
+					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct")
 				} else {
-					fmt.Printf("[+] Done writing %s to %s \n", img, l.workstation.mount.diskName)
+					job.Active(false)
+					fmt.Printf("\r[+] Done writing %s to %s \n", img, l.workstation.mount.diskName)
 					break
 				}
 			}
-		}(progress)
+
+			if err != nil {
+				job.Error(err)
+			}
+		}()
 
 		l.workstation.writable = true
-		return progress, nil
+		return job, nil
 	}
 
 	l.workstation.writable = false
-	return progress, nil
+	return nil, nil
 }
 
 // Ejects the mounted disk

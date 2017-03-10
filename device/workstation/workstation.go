@@ -1,12 +1,15 @@
 package workstation
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/xshellinc/tools/lib/help"
+)
 
 // WorkStation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
 	ListRemovableDisk() error
 	Unmount() error
-	WriteToDisk(img string) (done chan bool, err error)
+	WriteToDisk(img string) (job *help.BackgroundJob, err error)
 	Eject() error
 }
 
