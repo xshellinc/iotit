@@ -150,7 +150,7 @@ func (e *edison) SetConfig() error {
 
 	if i == 1 || fallback {
 		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
-		e.ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", []dialogs.ValidatorFn{dialogs.IpAddressValidator})
+		e.ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
 	}
 
 	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), e.ip); err != nil {

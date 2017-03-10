@@ -29,7 +29,7 @@ func (v *Config) NameDialog() {
 	}
 
 	if dialogs.YesNoDialog("Would you like to change virtual machine name?") {
-		v.Name = dialogs.GetSingleAnswer("Enter name: ", []dialogs.ValidatorFn{dialogs.EmptyStringValidator})
+		v.Name = dialogs.GetSingleAnswer("Enter name: ", dialogs.EmptyStringValidator)
 	}
 }
 

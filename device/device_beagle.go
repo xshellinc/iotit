@@ -23,9 +23,10 @@ func initBeagleBone() error {
 
 	// background process
 	wg.Add(1)
-	progress := make(chan bool)
-	go func(progress chan bool) {
-		defer close(progress)
+	job := help.NewBackgroundJob()
+
+	go func() {
+		defer job.Close()
 		defer wg.Done()
 
 		// 5. mount loopback device(nanopi img) (in VM)
@@ -33,7 +34,8 @@ func initBeagleBone() error {
 		out, err := v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
@@ -41,7 +43,8 @@ func initBeagleBone() error {
 		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p1 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
@@ -49,10 +52,11 @@ func initBeagleBone() error {
 		out, err = v.RunOverSSH(fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules"))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
-	}(progress)
+	}()
 
 	// 7. setup keyboard, locale, etc...
 	config := NewSetDevice(constants.DEVICE_TYPE_BEAGLEBONE)
@@ -60,7 +64,7 @@ func initBeagleBone() error {
 	help.ExitOnError(err)
 
 	// wait background process
-	help.WaitAndSpin("waiting", progress)
+	help.ExitOnError(help.WaitJobAndSpin("waiting", job))
 	wg.Wait()
 
 	// 8. uploading config
@@ -83,13 +87,13 @@ func initBeagleBone() error {
 	err = v.Download(img, wg)
 	time.Sleep(time.Second * 2)
 
-
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
-
-	progress, err = local.WriteToDisk(osImg)
+	job, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
-	help.WaitAndSpin("flashing", progress)
+	if job != nil {
+		help.ExitOnError(help.WaitJobAndSpin("flashing", job))
+	}
 
 	err = os.Remove(osImg)
 	if err != nil {
