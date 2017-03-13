@@ -110,36 +110,29 @@ func (e *edison) SetConfig() error {
 	fallback := false
 
 	if i == 0 {
-		out, err := help.ExecCmd("sh", []string{"-c", "ifconfig | expand | cut -c1-8 | sort | uniq -u | awk -F: '{print $1;}'"})
+		ifaces, err := help.LocalIfaces()
 
-		if err != nil {
+		if err != nil || len(ifaces) == 0 {
 			log.Error(err)
 			fmt.Println("[-] ", err.Error())
 			fallback = true
 		}
 
 		if !fallback {
-			arr := strings.Split(out, "\n")
-
-			tmp := -1
-			for idx, v := range arr {
-				if strings.Contains(v, "usb") || strings.Contains(v, "en") {
-					tmp = idx
+			arr := make([]string, len(ifaces))
+			arrSel := make([]string, len(ifaces))
+			for i, iface := range ifaces {
+				arr[i] = iface.Name
+				arrSel[i] = iface.Name
+				if iface.Ipv4[:4] == "169." {
+					arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
+					fmt.Println("[+] The highlighted interface is our heuristic guess")
 				}
-			}
-
-			arrSel := make([]string, len(arr)-1)
-			copy(arrSel, arr)
-
-			if tmp < 0 {
-				arr = append(arr, "\x1b[34musb0\x1b[0m")
-			} else {
-				arrSel[tmp] = "\x1b[34m" + arr[tmp] + "\x1b[0m"
 			}
 
 			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
 
-			if out, err = help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+			if out, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
 				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
 				fallback = true
 			}
