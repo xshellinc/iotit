@@ -11,6 +11,32 @@ if [ ! -z "$BUILDKITE_TAG" ]; then
     aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
     aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
     aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
+
+    curl http://iotit.s3-website-us-west-2.amazonaws.com/version.json | jq \
+    --arg md5_linux_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_386.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_linux_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_amd64.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_linux_arm "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_arm.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_macos_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_darwin_386.zip | cut -d ' ' -f1)" \
+    --arg md5_macos_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_darwin_amd64.zip | cut -d ' ' -f1)" \
+    --arg md5_windows_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_windows_386.zip | cut -d ' ' -f1)" \
+    --arg md5_windows_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_windows_amd64.zip | cut -d ' ' -f1)" \
+    --arg sha1_linux_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_386.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_linux_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_amd64.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_linux_arm "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_arm.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_macos_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_darwin_386.zip | cut -d ' ' -f1)" \
+    --arg sha1_macos_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_darwin_amd64.zip | cut -d ' ' -f1)" \
+    --arg sha1_windows_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_windows_386.zip | cut -d ' ' -f1)" \
+    --arg sha1_windows_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_windows_amd64.zip | cut -d ' ' -f1)" \
+    --arg version_stable "$VERSION" \
+    '.stable.md5sums.linux.x86 = $md5_linux_x86 | .stable.md5sums.linux.amd64 = $md5_linux_amd64 | .stable.md5sums.linux.arm = $md5_linux_arm | 
+    .stable.md5sums.macos.x86 = $md5_macos_x86 | .stable.md5sums.macos.amd64 = $md5_macos_amd64 |
+    .stable.md5sums.windows.x86 = $md5_windows_x86 | .stable.md5sums.windows.amd64 = $md5_windows_amd64 | 
+    .stable.sha1sums.linux.x86 = $sha1_linux_x86 | .stable.sha1sums.linux.amd64 = $sha1_linux_amd64 | .stable.sha1sums.linux.arm = $sha1_linux_arm | 
+    .stable.sha1sums.macos.x86 = $sha1_macos_x86 | .stable.sha1sums.macos.amd64 = $sha1_macos_amd64 |
+    .stable.sha1sums.windows.x86 = $sha1_windows_x86 | .stable.sha1sums.windows.amd64 = $sha1_windows_amd64 |
+    .stable.version = $version_stable' \
+    > version.json
+    aws s3 cp version.json s3://iotit/version.json
 elif [ "$BUILDKITE_BRANCH" == "develop" ]; then
 
 	VERSION=$(git describe --tags)
@@ -21,6 +47,32 @@ elif [ "$BUILDKITE_BRANCH" == "develop" ]; then
     aws s3 cp build/${VERSION}/. s3://iotit/latest/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
     aws s3 cp build/${VERSION}/. s3://iotit/latest/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
     aws s3 cp build/${VERSION}/. s3://iotit/latest/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
+
+    curl http://iotit.s3-website-us-west-2.amazonaws.com/version.json | jq \
+    --arg md5_linux_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_386.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_linux_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_amd64.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_linux_arm "$(md5sum build/${VERSION}/iotit_${VERSION}_linux_arm.tar.gz | cut -d ' ' -f1)" \
+    --arg md5_macos_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_darwin_386.zip | cut -d ' ' -f1)" \
+    --arg md5_macos_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_darwin_amd64.zip | cut -d ' ' -f1)" \
+    --arg md5_windows_x86 "$(md5sum build/${VERSION}/iotit_${VERSION}_windows_386.zip | cut -d ' ' -f1)" \
+    --arg md5_windows_amd64 "$(md5sum build/${VERSION}/iotit_${VERSION}_windows_amd64.zip | cut -d ' ' -f1)" \
+    --arg sha1_linux_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_386.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_linux_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_amd64.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_linux_arm "$(sha1sum build/${VERSION}/iotit_${VERSION}_linux_arm.tar.gz | cut -d ' ' -f1)" \
+    --arg sha1_macos_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_darwin_386.zip | cut -d ' ' -f1)" \
+    --arg sha1_macos_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_darwin_amd64.zip | cut -d ' ' -f1)" \
+    --arg sha1_windows_x86 "$(sha1sum build/${VERSION}/iotit_${VERSION}_windows_386.zip | cut -d ' ' -f1)" \
+    --arg sha1_windows_amd64 "$(sha1sum build/${VERSION}/iotit_${VERSION}_windows_amd64.zip | cut -d ' ' -f1)" \
+    --arg version_latest "$VERSION" \
+    '.latest.md5sums.linux.x86 = $md5_linux_x86 | .latest.md5sums.linux.amd64 = $md5_linux_amd64 | .latest.md5sums.linux.arm = $md5_linux_arm | 
+    .latest.md5sums.macos.x86 = $md5_macos_x86 | .latest.md5sums.macos.amd64 = $md5_macos_amd64 |
+    .latest.md5sums.windows.x86 = $md5_windows_x86 | .latest.md5sums.windows.amd64 = $md5_windows_amd64 | 
+    .latest.sha1sums.linux.x86 = $sha1_linux_x86 | .latest.sha1sums.linux.amd64 = $sha1_linux_amd64 | .latest.sha1sums.linux.arm = $sha1_linux_arm | 
+    .latest.sha1sums.macos.x86 = $sha1_macos_x86 | .latest.sha1sums.macos.amd64 = $sha1_macos_amd64 |
+    .latest.sha1sums.windows.x86 = $sha1_windows_x86 | .latest.sha1sums.windows.amd64 = $sha1_windows_amd64 |
+    .latest.version = $version_latest' \
+    > version.json
+    aws s3 cp version.json s3://iotit/version.json
 else
 	echo 'Release was not tagged, artifact upload cancelled'
 fi
