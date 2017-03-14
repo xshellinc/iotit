@@ -18,6 +18,7 @@ import (
 
 // S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
+const IoTItRepo = "https://cdn.isaax.io/iotit/version.json"
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
 var imageDir = filepath.Join(baseDir, "images")
@@ -412,4 +413,41 @@ func VirtualBoxRepositoryEdison() Repository {
 	}
 	//return NewGenericRepository("https://s3-ap-northeast-1.amazonaws.com/isaax-distro/vm/sd/0.1.0/isaax-box-sd.zip", "0.0.1", "virtualbox/sd/")
 	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
+}
+
+func CheckIoTItMD5(oss, arch string) (string, error) {
+	var s string
+	var release = "stable"
+	var checkMeth = "md5sums"
+
+	// @todo resolve on the cloud
+	if oss == "darwin" {
+		oss = "macos"
+	}
+
+	var client http.Client
+	resp, err := client.Get(IoTItRepo)
+	if err != nil {
+		return s, err
+	}
+	defer resp.Body.Close()
+
+	r := make(map[string]*json.RawMessage)
+	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+		return s, err
+	}
+	if err := json.Unmarshal(*r[release], &r); err != nil {
+		return s, err
+	}
+	if err := json.Unmarshal(*r[checkMeth], &r); err != nil {
+		return s, err
+	}
+	if err := json.Unmarshal(*r[oss], &r); err != nil {
+		return s, err
+	}
+	if err := json.Unmarshal(*r[arch], &s); err != nil {
+		return s, err
+	}
+
+	return s, nil
 }

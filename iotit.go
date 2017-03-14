@@ -5,10 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"runtime"
+
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
+	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
@@ -122,13 +128,39 @@ func initCommands() {
 	}
 
 	upd := func() {
-		if name, bool := vbox.CheckUpdate("sd"); bool {
+		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+			fmt.Println("[+] Software is not installed, please install it globally first: `" + progName + " gl`")
+			return
+		}
+
+		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
+		h1, err := repo.CheckIoTItMD5(runtime.GOOS, runtime.GOARCH)
+		if err != nil {
+			fmt.Println("[-] ", err)
+			return
+		}
+
+		h2, err := help.HashFileMD5(installPath + progName)
+		if err != nil {
+			fmt.Println("[-] ", err)
+			return
+		}
+
+		if !strings.EqualFold(h1, h2) {
+			// @todo download process
+		}
+
+		fmt.Println("[+] You may need to enter your user password")
+
+		sudo.Exec(sudo.InputMaskedPassword, nil, "md5sum", installPath+progName)
+
+		if name, b := vbox.CheckUpdate("sd"); b {
 			if dialogs.YesNoDialog("Would you like to update sdVbox?") {
 				vbox.Update(name)
 			}
 		}
 
-		if name, bool := vbox.CheckUpdate("edison"); bool {
+		if name, b := vbox.CheckUpdate("edison"); b {
 			if dialogs.YesNoDialog("Would you like to update edisonVbox?") {
 				vbox.Update(name)
 			}
