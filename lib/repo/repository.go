@@ -415,7 +415,7 @@ func VirtualBoxRepositoryEdison() Repository {
 	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
 }
 
-func CheckIoTItMD5(oss, arch, hash, release string) (string, error) {
+func CheckIoTItMD5(oss, arch, release string) (string, error) {
 	var h1, v string
 	var checkMeth = "md5sums"
 	var version = "version"
@@ -445,10 +445,6 @@ func CheckIoTItMD5(oss, arch, hash, release string) (string, error) {
 	}
 	if err := json.Unmarshal(*r[version], &v); err != nil {
 		return h1, err
-	}
-
-	if strings.EqualFold(hash, h1) {
-		return "", nil
 	}
 
 	return v, nil

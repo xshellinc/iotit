@@ -75,17 +75,21 @@ func main() {
 
 	flag.Parse()
 
-	commandsHandler(flag.Args())
+	if commandsHandler(flag.Args()) {
+		return
+	}
 	device.Init(*deviceType)
 }
 
-func commandsHandler(args []string) {
+func commandsHandler(args []string) bool {
 	for _, arg := range args {
 		if c, ok := commands[arg]; ok {
 			c()
-			os.Exit(0)
+			return true
 		}
 	}
+
+	return false
 }
 
 func initCommands() {
@@ -137,26 +141,20 @@ func initCommands() {
 			return
 		}
 
-		hash, err := help.HashFileMD5(installPath + progName)
-		if err != nil {
-			fmt.Println("[-] err", err)
-		}
-
-		v := "latest"
+		versionLiteral := "latest"
 		match, _ := regexp.Compile(`^[\d|_]+\.[\d|_]+\.[\d|_]+$`)
 		if match.MatchString(Version) {
-			v = "stable"
+			versionLiteral = "stable"
+		}
+
+		zipMethod := "zip"
+		if runtime.GOOS == "linux" {
+			zipMethod = "tar.gz"
 		}
 
 		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
 
-		oss := runtime.GOOS
-
-		if oss == "darwin" {
-			oss = "macos"
-		}
-
-		version, err := repo.CheckIoTItMD5(oss, runtime.GOARCH, hash, v)
+		version, err := repo.CheckIoTItMD5(runtime.GOOS, runtime.GOARCH, versionLiteral)
 		if err != nil {
 			fmt.Println("[-] ", err)
 			return
@@ -165,8 +163,9 @@ func initCommands() {
 		if version == "" {
 			fmt.Println("[+] ", progName, " is up to date")
 		} else {
-			url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s_%s_%s_%s.tar.gz",
-				progName, version, oss, progName, version, runtime.GOOS, runtime.GOARCH)
+			fileName := fmt.Sprintf("%s_%s_%s_%s.%s", progName, version, runtime.GOOS, runtime.GOARCH, zipMethod)
+
+			url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s", progName, versionLiteral, runtime.GOOS, fileName)
 
 			wg := &sync.WaitGroup{}
 			imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, "/tmp/", 5, wg)
@@ -179,16 +178,27 @@ func initCommands() {
 			wg.Wait()
 			bar.Finish()
 
-			if err := exec.Command("tar", "xvf", fmt.Sprintf("%s_%s_%s_%s.tar.gz",
-				progName, version, runtime.GOOS, runtime.GOARCH)).Run(); err != nil {
-				fmt.Println("[-] ", err)
-				return
+			fmt.Println("[+] Extracting into /tmp/")
+			if runtime.GOOS == "linux" {
+				if err := exec.Command("tar", "xvf", "/tmp/"+fileName, "-C", "/tmp/").Run(); err != nil {
+					fmt.Println("[-] ", err)
+					return
+				}
+			} else {
+				if err := exec.Command("unzip", "-o", "/tmp/"+fileName, "-d", "/tmp/").Run(); err != nil {
+					fmt.Println("[-] ", err)
+					return
+				}
 			}
 
 			fmt.Println("[+] You may need to enter your user password")
 
-			sudo.Exec(sudo.InputMaskedPassword, nil, "mv", "/tmp/"+progName, installPath+progName)
-			fmt.Println("[+] ", progName, " is updated")
+			dirName := fmt.Sprintf("/tmp/%s_%s_%s_%s", progName, version, runtime.GOOS, runtime.GOARCH)
+			if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dirName, installPath+progName); err != nil {
+				fmt.Println("[-] Error:", eut)
+				return
+			}
+			fmt.Println("[+]", progName, " is updated")
 		}
 
 		if name, b := vbox.CheckUpdate("sd"); b {
