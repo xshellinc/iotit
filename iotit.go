@@ -7,7 +7,11 @@ import (
 
 	"runtime"
 
-	"strings"
+	"regexp"
+
+	"sync"
+
+	"os/exec"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
@@ -129,30 +133,63 @@ func initCommands() {
 
 	upd := func() {
 		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-			fmt.Println("[+] Software is not installed, please install it globally first: `" + progName + " gl`")
+			fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
 			return
+		}
+
+		hash, err := help.HashFileMD5(installPath + progName)
+		if err != nil {
+			fmt.Println("[-] err", err)
+		}
+
+		v := "latest"
+		match, _ := regexp.Compile(`^[\d|_]+\.[\d|_]+\.[\d|_]+$`)
+		if match.MatchString(Version) {
+			v = "stable"
 		}
 
 		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
-		h1, err := repo.CheckIoTItMD5(runtime.GOOS, runtime.GOARCH)
+
+		oss := runtime.GOOS
+
+		if oss == "darwin" {
+			oss = "macos"
+		}
+
+		version, err := repo.CheckIoTItMD5(oss, runtime.GOARCH, hash, v)
 		if err != nil {
 			fmt.Println("[-] ", err)
 			return
 		}
 
-		h2, err := help.HashFileMD5(installPath + progName)
-		if err != nil {
-			fmt.Println("[-] ", err)
-			return
+		if version == "" {
+			fmt.Println("[+] ", progName, " is up to date")
+		} else {
+			url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s_%s_%s_%s.tar.gz",
+				progName, version, oss, progName, version, runtime.GOOS, runtime.GOARCH)
+
+			wg := &sync.WaitGroup{}
+			imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, "/tmp/", 5, wg)
+			if err != nil {
+				fmt.Println("[-] ", err)
+				return
+			}
+			bar.Prefix(fmt.Sprintf("[+] Download %-15s", imgName))
+			bar.Start()
+			wg.Wait()
+			bar.Finish()
+
+			if err := exec.Command("tar", "xvf", fmt.Sprintf("%s_%s_%s_%s.tar.gz",
+				progName, version, runtime.GOOS, runtime.GOARCH)).Run(); err != nil {
+				fmt.Println("[-] ", err)
+				return
+			}
+
+			fmt.Println("[+] You may need to enter your user password")
+
+			sudo.Exec(sudo.InputMaskedPassword, nil, "mv", "/tmp/"+progName, installPath+progName)
+			fmt.Println("[+] ", progName, " is updated")
 		}
-
-		if !strings.EqualFold(h1, h2) {
-			// @todo download process
-		}
-
-		fmt.Println("[+] You may need to enter your user password")
-
-		sudo.Exec(sudo.InputMaskedPassword, nil, "md5sum", installPath+progName)
 
 		if name, b := vbox.CheckUpdate("sd"); b {
 			if dialogs.YesNoDialog("Would you like to update sdVbox?") {

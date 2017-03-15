@@ -415,39 +415,41 @@ func VirtualBoxRepositoryEdison() Repository {
 	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
 }
 
-func CheckIoTItMD5(oss, arch string) (string, error) {
-	var s string
-	var release = "stable"
+func CheckIoTItMD5(oss, arch, hash, release string) (string, error) {
+	var h1, v string
 	var checkMeth = "md5sums"
-
-	// @todo resolve on the cloud
-	if oss == "darwin" {
-		oss = "macos"
-	}
+	var version = "version"
 
 	var client http.Client
 	resp, err := client.Get(IoTItRepo)
 	if err != nil {
-		return s, err
+		return h1, err
 	}
 	defer resp.Body.Close()
 
 	r := make(map[string]*json.RawMessage)
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return s, err
+		return h1, err
 	}
 	if err := json.Unmarshal(*r[release], &r); err != nil {
-		return s, err
+		return h1, err
 	}
 	if err := json.Unmarshal(*r[checkMeth], &r); err != nil {
-		return s, err
+		return h1, err
 	}
 	if err := json.Unmarshal(*r[oss], &r); err != nil {
-		return s, err
+		return h1, err
 	}
-	if err := json.Unmarshal(*r[arch], &s); err != nil {
-		return s, err
+	if err := json.Unmarshal(*r[arch], &h1); err != nil {
+		return h1, err
+	}
+	if err := json.Unmarshal(*r[version], &v); err != nil {
+		return h1, err
 	}
 
-	return s, nil
+	if strings.EqualFold(hash, h1) {
+		return "", nil
+	}
+
+	return v, nil
 }
