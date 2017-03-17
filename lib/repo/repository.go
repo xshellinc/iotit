@@ -27,6 +27,8 @@ import (
 
 // S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
+
+// IoTIt default repo path
 const IoTItRepo = "https://cdn.isaax.io/iotit/version.json"
 
 // Releases
@@ -504,6 +506,7 @@ func GetVersionLexem(token string, seps ...string) []string {
 	return lexs
 }
 
+// IsVersionUpToDate checks if version is up to date
 func IsVersionUpToDate(v1, v2 string) (bool, error) {
 	vlex1 := GetVersionLexem(v1, ".", "_", "-")
 	vlex2 := GetVersionLexem(v2, ".", "_", "-")
@@ -530,6 +533,7 @@ func IsVersionUpToDate(v1, v2 string) (bool, error) {
 	return false, nil
 }
 
+// GetIoTItVersionMD5 gets the latest version from the repo and checks if the new version is available
 func GetIoTItVersionMD5(oss, arch, version string) (hash string, repoVersion string, err error) {
 	var checkMethKey = "md5sums"
 	var versionKey = "version"
