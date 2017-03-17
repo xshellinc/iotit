@@ -1,0 +1,104 @@
+body{
+    background: white;
+    color: black;
+    text-align: ;
+    font-family: "Noto Sans Japanese", sans-serif;
+    line-height: 1.6em;
+    font-weight: 300;
+}
+
+h1{
+    letter-spacing: 0.03rem;
+    font-size: 220%;
+    font-weight: 600;
+}
+h2{
+    letter-spacing: 0.02rem;
+    font-size: 160%;
+    font-weight: 600;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #b3b3b3;
+}
+h3{
+    letter-spacing: 0.02rem;
+    font-size: 120%;
+    font-weight: 500;
+}
+p{
+    text-align: justify;
+}
+a{
+    -webkit-transition: all .2s;
+    transition: all .2s;
+}
+a:link, a:visited {
+    color: black;
+}
+a:hover {
+    color: gray;
+}
+img {
+   vertical-align: bottom;
+}
+
+button{
+    font-size: 120%;
+    font-weight: 600;
+    background: white;
+    color: #292A2D;
+    border: 2px solid white;
+    border-radius: 4px;
+    -webkit-transition: all .2s;
+    transition: all .2s;
+    text-transform: none;
+}
+button:hover{
+background: none;
+color: white;
+border: 2px solid white;
+}
+code{
+    font-family: "Inconsolata", monospace;
+}
+
+.container{
+    padding: 3.5rem 0rem 1.5rem 0rem;
+}
+
+.header{
+    color: white;
+    background: #1e5799;
+    background: linear-gradient(20deg, #40577F,#292A2D);
+}
+
+.header h2{
+    font-size: 100%;
+    font-weight: 300;
+    border:none;
+}
+
+.header a:link, .header a:visited {
+    color: white;
+}
+.header a:hover {
+    color: lightgray;
+}
+
+.overview{
+    background: #D8D8D8;
+}
+.footer{
+    background: #D8D8D8;
+    text-align: right;
+}
+.footer p{
+    display: inline-block;
+    margin-right: 1.5rem;
+}
+.logodata{
+    max-height: 80px;
+    margin-bottom: 20px;
+}
+.small{
+    font-size: 90%;
+}
