@@ -8,6 +8,15 @@ import (
 	"strings"
 	"sync"
 
+	"regexp"
+
+	"os/exec"
+	"runtime"
+
+	"time"
+
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/lib"
@@ -19,6 +28,12 @@ import (
 // S3Bucket keeps default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
 const IoTItRepo = "https://cdn.isaax.io/iotit/version.json"
+
+// Releases
+const (
+	Latest = "latest"
+	Stable = "stable"
+)
 
 var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
 var imageDir = filepath.Join(baseDir, "images")
@@ -415,37 +430,141 @@ func VirtualBoxRepositoryEdison() Repository {
 	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
 }
 
-func CheckIoTItMD5(oss, arch, release string) (string, error) {
-	var h1, v string
-	var checkMeth = "md5sums"
-	var version = "version"
+// DownloadNewVersion downloads the latest version based on the current release and skips this step if up to date
+func DownloadNewVersion(name, version, dst string) (string, error) {
+	zipMethod := "zip"
+	if runtime.GOOS == "linux" {
+		zipMethod = "tar.gz"
+	}
+
+	fileName := fmt.Sprintf("%s_%s_%s_%s", name, version, runtime.GOOS, runtime.GOARCH)
+
+	_, version, err := GetIoTItVersionMD5(runtime.GOOS, runtime.GOARCH, version)
+	if err != nil || version == "" {
+		return "", err
+	}
+
+	url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s.%s", name, CurrentRelease(version), runtime.GOOS, fileName, zipMethod)
+
+	wg := &sync.WaitGroup{}
+	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
+	if err != nil {
+		return fileName, err
+	}
+	bar.Prefix(fmt.Sprintf("[+] Download %-15s", imgName))
+	bar.Start()
+	wg.Wait()
+	bar.Finish()
+	time.Sleep(time.Second)
+
+	fmt.Println("[+] Extracting into ", dst)
+	if runtime.GOOS == "linux" {
+		if err := exec.Command("tar", "xvf", dst+help.Separator()+fileName, "-C", dst).Run(); err != nil {
+			fmt.Println("[-] ", err)
+			return fileName, err
+		}
+	}
+
+	if err := exec.Command("unzip", "-o", dst+help.Separator()+fileName, "-d", dst).Run(); err != nil {
+		fmt.Println("[-] ", err)
+		return fileName, err
+	}
+
+	return fileName, nil
+}
+
+// CurrentRelease detects whether release is stable or latest
+func CurrentRelease(version string) (release string) {
+	r := Latest
+	match, _ := regexp.Compile(`^[\d|_]+\.[\d|_]+\.[\d|_]+$`)
+	if match.MatchString(version) {
+		r = Stable
+	}
+
+	return r
+}
+
+// GetVersionLexem parses string lexems into comparable parts
+func GetVersionLexem(token string, seps ...string) []string {
+	var lexs []string
+	for i, sep := range seps {
+		if i == 0 {
+			lexs = strings.Split(token, sep)
+			continue
+		}
+
+		var tmp []string
+		for _, lex := range lexs {
+			tmp = append(tmp, strings.Split(lex, sep)...)
+		}
+
+		lexs = tmp
+	}
+
+	return lexs
+}
+
+func IsVersionUpToDate(v1, v2 string) (bool, error) {
+	vlex1 := GetVersionLexem(v1, ".", "_", "-")
+	vlex2 := GetVersionLexem(v2, ".", "_", "-")
+
+	for i := 0; i < len(vlex1) && i < len(vlex2); i++ {
+		n1, err := strconv.Atoi(vlex1[i])
+		if err != nil {
+			return false, err
+		}
+
+		n2, err := strconv.Atoi(vlex2[i])
+		if err != nil {
+			return false, err
+		}
+
+		if n1 == n2 {
+			continue
+		}
+
+		return n1 > n2, nil
+	}
+
+	// not reachable
+	return false, nil
+}
+
+func GetIoTItVersionMD5(oss, arch, version string) (hash string, repoVersion string, err error) {
+	var checkMethKey = "md5sums"
+	var versionKey = "version"
 
 	var client http.Client
 	resp, err := client.Get(IoTItRepo)
 	if err != nil {
-		return h1, err
+		return
 	}
 	defer resp.Body.Close()
 
 	r := make(map[string]*json.RawMessage)
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return h1, err
+	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
+		return
 	}
-	if err := json.Unmarshal(*r[release], &r); err != nil {
-		return h1, err
+	if err = json.Unmarshal(*r[CurrentRelease(version)], &r); err != nil {
+		return
 	}
-	if err := json.Unmarshal(*r[checkMeth], &r); err != nil {
-		return h1, err
+	if err = json.Unmarshal(*r[checkMethKey], &r); err != nil {
+		return
 	}
-	if err := json.Unmarshal(*r[oss], &r); err != nil {
-		return h1, err
+	if err = json.Unmarshal(*r[oss], &r); err != nil {
+		return
 	}
-	if err := json.Unmarshal(*r[arch], &h1); err != nil {
-		return h1, err
+	if err = json.Unmarshal(*r[arch], &hash); err != nil {
+		return
 	}
-	if err := json.Unmarshal(*r[version], &v); err != nil {
-		return h1, err
+	if err = json.Unmarshal(*r[versionKey], &repoVersion); err != nil {
+		return
+	}
+	var bl bool
+	if bl, err = IsVersionUpToDate(version, repoVersion); bl {
+		repoVersion = ""
+		return
 	}
 
-	return v, nil
+	return
 }

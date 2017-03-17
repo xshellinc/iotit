@@ -7,18 +7,11 @@ import (
 
 	"runtime"
 
-	"regexp"
-
-	"sync"
-
-	"os/exec"
-
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
-	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
@@ -114,9 +107,15 @@ func initCommands() {
 			}
 
 			fmt.Println("[+] You may need to enter your user password")
-			fmt.Println("cp", p, installPath+progName)
+			_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "cp", p, installPath+progName)
+			fmt.Println("[+] Copying", p, installPath+progName)
+			if err != nil {
+				fmt.Println("[-] Error: ", string(eut))
+				return
+			}
 
-			sudo.Exec(sudo.InputMaskedPassword, nil, "cp", p, installPath+progName)
+			fmt.Println("[+] Done")
+
 			return
 		}
 
@@ -131,8 +130,14 @@ func initCommands() {
 		}
 
 		fmt.Println("[+] You may need to enter your user password")
+		_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "rm", installPath+progName)
+		fmt.Println("[+] Removing", installPath+progName)
+		if err != nil {
+			fmt.Println("[-] Error: ", string(eut))
+			return
+		}
 
-		sudo.Exec(sudo.InputMaskedPassword, nil, "rm", installPath+progName)
+		fmt.Println("[+] Done")
 	}
 
 	upd := func() {
@@ -141,60 +146,22 @@ func initCommands() {
 			return
 		}
 
-		versionLiteral := "latest"
-		match, _ := regexp.Compile(`^[\d|_]+\.[\d|_]+\.[\d|_]+$`)
-		if match.MatchString(Version) {
-			versionLiteral = "stable"
-		}
-
-		zipMethod := "zip"
-		if runtime.GOOS == "linux" {
-			zipMethod = "tar.gz"
-		}
-
 		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
 
-		version, err := repo.CheckIoTItMD5(runtime.GOOS, runtime.GOARCH, versionLiteral)
+		dir, err := repo.DownloadNewVersion(progName, Version, "/tmp")
+
 		if err != nil {
-			fmt.Println("[-] ", err)
+			fmt.Println("[-] Error:", err)
 			return
 		}
 
-		if version == "" {
+		if dir == "" {
 			fmt.Println("[+] ", progName, " is up to date")
 		} else {
-			fileName := fmt.Sprintf("%s_%s_%s_%s.%s", progName, version, runtime.GOOS, runtime.GOARCH, zipMethod)
-
-			url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s", progName, versionLiteral, runtime.GOOS, fileName)
-
-			wg := &sync.WaitGroup{}
-			imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, "/tmp/", 5, wg)
-			if err != nil {
-				fmt.Println("[-] ", err)
-				return
-			}
-			bar.Prefix(fmt.Sprintf("[+] Download %-15s", imgName))
-			bar.Start()
-			wg.Wait()
-			bar.Finish()
-
-			fmt.Println("[+] Extracting into /tmp/")
-			if runtime.GOOS == "linux" {
-				if err := exec.Command("tar", "xvf", "/tmp/"+fileName, "-C", "/tmp/").Run(); err != nil {
-					fmt.Println("[-] ", err)
-					return
-				}
-			} else {
-				if err := exec.Command("unzip", "-o", "/tmp/"+fileName, "-d", "/tmp/").Run(); err != nil {
-					fmt.Println("[-] ", err)
-					return
-				}
-			}
 
 			fmt.Println("[+] You may need to enter your user password")
 
-			dirName := fmt.Sprintf("/tmp/%s_%s_%s_%s", progName, version, runtime.GOOS, runtime.GOARCH)
-			if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dirName, installPath+progName); err != nil {
+			if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
 				fmt.Println("[-] Error:", eut)
 				return
 			}
