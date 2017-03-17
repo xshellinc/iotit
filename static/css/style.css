@@ -39,6 +39,7 @@ a:hover {
 }
 img {
    vertical-align: bottom;
+   transition: all .2s;
 }
 
 button{
@@ -83,7 +84,9 @@ code{
 .header a:hover {
     color: lightgray;
 }
-
+a:hover img {
+    opacity: 0.6;
+}
 .overview{
     background: #D8D8D8;
 }
