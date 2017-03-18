@@ -53,7 +53,7 @@ func setIP(i *Interfaces) bool {
 	var ip string
 
 	for retries > 0 && loop {
-		ip := dialogs.GetSingleAnswer("IP address of the device: ", dialogs.IpAddressValidator)
+		ip = dialogs.GetSingleAnswer("IP address of the device: ", dialogs.IpAddressValidator)
 
 		progress := make(chan bool)
 		wg.Add(1)
