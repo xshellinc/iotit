@@ -6,9 +6,9 @@ body {
     font-weight: 400;
 }
 /* –––––––––––––––––––––––––––––––––––––––––––––––––– */
-h1, h2, h3 { line-height: 1.4em; letter-spacing: 0.05rem; font-weight: 600; }
+h1, h2, h3 { line-height: 1.4em; letter-spacing: 0.0rem; font-weight: 600; }
 h1{
-    font-size: 4.0rem;
+    font-size: 3.8rem;
 }
 h2 {
     font-size: 2.8rem;
