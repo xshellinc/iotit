@@ -191,9 +191,7 @@ func (d *device) SetLocale() error {
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ",
-			dialogs.EmptyStringValidator,
-			dialogs.CreateValidatorFn(constants.ValidateLocale))
+		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
 
 		arr, _ := constants.GetLocale(inp)
 
@@ -336,7 +334,7 @@ func (d *device) InitPrograms() error {
 	fmt.Print("  [+]")
 	fmt.Print(strings.Join(softwareList, "\n  [+]"))
 
-	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
+	if dialogs.YesNoDialog("\nWould you like to install basic software for your device?") {
 		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
 		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err
@@ -503,7 +501,7 @@ func selectVboxInit(conf string, v []vbox.Config) int {
 		n--
 	}
 
-	return optTypes[dialogs.SelectOneDialog("Please select an option:", opts[:n])]
+	return optTypes[dialogs.SelectOneDialog("Please select an option: ", opts[:n])]
 }
 
 // Starts a vbox, inits repository, downloads the image into repository, then uploads and unpacks it into the vbox

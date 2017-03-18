@@ -1,15 +1,12 @@
 #!/bin/bash
 
-vFile=".version"
 cd "$(dirname "$0")"
 
-if test -r "$vFile"; then
-    v=$(head -n 1 "$vFile")
-fi
+gitRepo=$(git branch | grep \* | cut -d ' ' -f2-)
+v=$(git describe)
 
-if [ -z $v ]; then
-    echo "Cannot read version from '.version' file"
-    exit 2
+if [ $gitRepo != "master" ]; then
+    v=$v"_"$gitRepo
 fi
 
 go build -ldflags "-X main.Version=$v -X main.Env=dev" iotit.go
