@@ -1,34 +1,27 @@
-body{
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+body {
     background: white;
     color: black;
-    text-align: ;
-    font-family: "Noto Sans Japanese", sans-serif;
-    line-height: 1.6em;
-    font-weight: 300;
+    font-family: "Noto Sans Japanese", "Noto Sans", sans-serif;
+    font-weight: 400;
 }
-
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+h1, h2, h3 { line-height: 1.4em; letter-spacing: 0.05rem; font-weight: 600; }
 h1{
-    letter-spacing: 0.03rem;
-    font-size: 220%;
-    font-weight: 600;
+    font-size: 4.0rem;
 }
-h2{
-    letter-spacing: 0.02rem;
-    font-size: 160%;
-    font-weight: 600;
-    padding-bottom: 0.4rem;
+h2 {
+    font-size: 2.8rem;
+    padding-bottom: 0.2rem;
     border-bottom: 1px solid #b3b3b3;
 }
-h3{
-    letter-spacing: 0.02rem;
-    font-size: 120%;
-    font-weight: 500;
+h3 {
+    font-size: 1.8rem;
 }
-p{
+p {
     text-align: justify;
 }
-a{
-    -webkit-transition: all .2s;
+a {
     transition: all .2s;
 }
 a:link, a:visited {
@@ -37,55 +30,51 @@ a:link, a:visited {
 a:hover {
     color: gray;
 }
-img {
-   vertical-align: bottom;
-   transition: all .2s;
-}
-
-button{
-    font-size: 120%;
+button {
+    height: 4.5rem;
+    text-transform: none;
+    margin: 1rem 0 1.5rem 0;
+    font-size: 1.8rem;
     font-weight: 600;
     background: white;
     color: #292A2D;
     border: 2px solid white;
     border-radius: 4px;
-    -webkit-transition: all .2s;
     transition: all .2s;
-    text-transform: none;
 }
-button:hover{
-background: none;
-color: white;
-border: 2px solid white;
+button:hover {
+    background: none;
+    color: white;
+    border-color: white;
 }
 code{
     font-family: "Inconsolata", monospace;
 }
-
-.container{
-    padding: 3.5rem 0rem 1.5rem 0rem;
+img {
+    vertical-align: bottom;
+    transition: all .2s;
 }
-
-.header{
+a:hover img {
+    opacity: 0.6;
+}
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.container {
+    padding: 3.0rem 0rem 1.5rem 0rem;
+}
+.header {
     color: white;
-    background: #1e5799;
     background: linear-gradient(20deg, #40577F,#292A2D);
 }
-
 .header h2{
-    font-size: 100%;
-    font-weight: 300;
     border:none;
+    font-size: 1.6rem;
+    font-weight: 400;
 }
-
 .header a:link, .header a:visited {
     color: white;
 }
 .header a:hover {
     color: lightgray;
-}
-a:hover img {
-    opacity: 0.6;
 }
 .overview{
     background: #D8D8D8;
@@ -99,9 +88,10 @@ a:hover img {
     margin-right: 1.5rem;
 }
 .logodata{
-    max-height: 80px;
-    margin-bottom: 20px;
+    max-height: 90px;
+    margin-bottom: 10px;
 }
 .small{
     font-size: 90%;
+    font-weight: 300;
 }
