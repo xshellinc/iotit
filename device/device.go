@@ -278,31 +278,36 @@ func (d *device) SetInterfaces(i Interfaces) error {
 
 		// assign static ip
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
-		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-			i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
 
-		if dialogs.YesNoDialog("Change values?") {
-			setInterfaces(&i)
+		for {
+			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Network:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+				i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
 
-			switch device[num] {
-			case "eth0":
-				conf = fmt.Sprintf(d.deviceFiles.interfacesEth, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
-				fmt.Println("[+]  Ethernet interface configuration was updated")
-			case "wlan0":
-				conf = fmt.Sprintf(d.deviceFiles.interfacesWLAN, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
-				fmt.Println("[+]  wifi interface configuration was updated")
+			if dialogs.YesNoDialog("Change values?") {
+				setInterfaces(&i)
+
+				switch device[num] {
+				case "eth0":
+					conf = fmt.Sprintf(d.deviceFiles.interfacesEth, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
+					fmt.Println("[+]  Ethernet interface configuration was updated")
+				case "wlan0":
+					conf = fmt.Sprintf(d.deviceFiles.interfacesWLAN, i.Address, i.Netmask, i.Network, i.Gateway, i.DNS)
+					fmt.Println("[+]  wifi interface configuration was updated")
+				}
+
+				if err := help.WriteToFile(conf, interfaces); err != nil {
+					return err
+				}
+				d.files = append(d.files, interfaces)
+
+				conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
+				if err := help.WriteToFile(conf, resolv); err != nil {
+					return err
+				}
+				d.files = append(d.files, resolv)
+			} else {
+				break
 			}
-
-			if err := help.WriteToFile(conf, interfaces); err != nil {
-				return err
-			}
-			d.files = append(d.files, interfaces)
-
-			conf = fmt.Sprintf(d.deviceFiles.resolv, i.DNS)
-			if err := help.WriteToFile(conf, resolv); err != nil {
-				return err
-			}
-			d.files = append(d.files, resolv)
 		}
 	}
 
