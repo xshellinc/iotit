@@ -117,7 +117,7 @@ func initBeagleBone() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("UBUNTU", "ubuntu", "temppwd")
+	printDoneMessageSd("UBUNTU", constants.DEFAULT_BEAGLEBONE_USERNAME, constants.DEFAULT_BEAGLEBONE_PASSWORD)
 
 	return nil
 }

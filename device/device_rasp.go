@@ -126,7 +126,7 @@ func initRasp() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("RASPBERRY PI", "pi", "raspberry")
+	printDoneMessageSd("RASPBERRY PI", constants.DEFAULT_RASPBERRY_USERNAME, constants.DEFAULT_RASPBERRY_PASSWORD)
 
 	return nil
 }

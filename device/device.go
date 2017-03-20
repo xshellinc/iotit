@@ -338,8 +338,8 @@ func (d *device) InitPrograms() error {
 
 	fmt.Print("  [+]")
 	fmt.Print(strings.Join(softwareList, "\n  [+]"))
-
-	if dialogs.YesNoDialog("\nWould you like to install basic software for your device?") {
+	fmt.Println()
+	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
 		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
 		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err

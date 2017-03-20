@@ -118,7 +118,7 @@ func initNanoPI() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("NANO PI", "root", "fa")
+	printDoneMessageSd("NANO PI", constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
 
 	return nil
 }
