@@ -7,10 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -68,6 +71,12 @@ func initNanoPI() error {
 	help.ExitOnError(help.WaitJobAndSpin("waiting", job))
 	wg.Wait()
 
+	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
+		if _, err := v.RunOverSSH(fmt.Sprintf(AddGoogleNameServerCmd, constants.GENERAL_MOUNT_FOLDER+"etc/dhcp/dhclient.conf")); err != nil {
+			return err
+		}
+	}
+
 	// 8. uploading config
 	err = config.Upload(v)
 	help.ExitOnError(err)
@@ -118,7 +127,7 @@ func initNanoPI() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("NANO PI", constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
+	printDoneMessageSd(strings.ToUpper(constants.DEVICE_TYPE_NANOPI), constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
 
 	return nil
 }
