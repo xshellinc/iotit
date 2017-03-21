@@ -4,18 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
-
-	"regexp"
-
-	"os/exec"
-	"runtime"
-
 	"time"
-
-	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
@@ -25,10 +21,10 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-// S3Bucket keeps default S3 bucket path
+// S3Bucket stores default S3 bucket path
 const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
 
-// IoTIt default repo path
+// IoTItRepo stores default iotit repo path
 const IoTItRepo = "https://cdn.isaax.io/iotit/version.json"
 
 // Releases

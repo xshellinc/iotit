@@ -35,6 +35,9 @@ const (
 	VBoxTypeUser
 )
 
+// AddGoogleNameServerCmd contains script to append dns-nameserver 8.8.8.8 8.8.4.4
+const AddGoogleNameServerCmd = `echo "append domain-name-servers 8.8.8.8, 8.8.4.4;" >> %s`
+
 type (
 	// Interfaces represents network interfaces used to setup devices
 	Interfaces struct {
@@ -204,16 +207,13 @@ func (d *device) SetLocale() error {
 
 		conf = fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale)
 
-	} else {
-		conf = fmt.Sprintf(d.deviceFiles.locale, constants.DefaultLocale, constants.DefaultLocale, constants.DefaultLocale)
-	}
+		fmt.Println("[+] Writing language")
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
+			return err
+		}
 
-	fmt.Println("[+] Writing default language")
-	if err := help.WriteToFile(conf, tmpfile); err != nil {
-		return err
+		d.files = append(d.files, tmpfile)
 	}
-
-	d.files = append(d.files, tmpfile)
 
 	return nil
 }
@@ -230,16 +230,14 @@ func (d *device) SetKeyborad() error {
 		var inp string
 		fmt.Scanln(&inp)
 		conf = fmt.Sprintf(d.deviceFiles.keyboard, &inp)
-	} else {
-		conf = fmt.Sprintf(d.deviceFiles.keyboard, constants.DefaultKeymap)
-	}
 
-	fmt.Println("[+] Writing default keyboard")
-	if err := help.WriteToFile(conf, tmpfile); err != nil {
-		return err
-	}
+		fmt.Println("[+] Writing keyboard")
+		if err := help.WriteToFile(conf, tmpfile); err != nil {
+			return err
+		}
 
-	d.files = append(d.files, tmpfile)
+		d.files = append(d.files, tmpfile)
+	}
 
 	return nil
 }
@@ -338,8 +336,9 @@ func (d *device) InitPrograms() error {
 
 	fmt.Print("  [+]")
 	fmt.Print(strings.Join(softwareList, "\n  [+]"))
+	fmt.Println()
 
-	if dialogs.YesNoDialog("\nWould you like to install basic software for your device?") {
+	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
 		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
 		if err := help.WriteToFile(conf, tmpfile); err != nil {
 			return err
@@ -355,31 +354,26 @@ func (d *device) SetConfig() error {
 
 	if dialogs.YesNoDialog("Would you like to config your board?") {
 		// set locale (host to VM)
-		err := d.SetLocale()
-		if err != nil {
+		if err := d.SetLocale(); err != nil {
 			return err
 		}
 
 		// set keyboard (host to VM)
-		err = d.SetKeyborad()
-		if err != nil {
+		if err := d.SetKeyborad(); err != nil {
 			return err
 		}
 
 		// wifi config (host to VM)
-		err = d.SetWifi()
-		if err != nil {
+		if err := d.SetWifi(); err != nil {
 			return err
 		}
 
 		// static ip config (host to VM)
-		err = d.SetInterfaces(*ifaces)
-		if err != nil {
+		if err := d.SetInterfaces(*ifaces); err != nil {
 			return err
 		}
 
-		err = d.InitPrograms()
-		if err != nil {
+		if err := d.InitPrograms(); err != nil {
 			return err
 		}
 	}

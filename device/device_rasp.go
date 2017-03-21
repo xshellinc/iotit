@@ -11,6 +11,7 @@ import (
 	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -69,6 +70,12 @@ func initRasp() error {
 	help.ExitOnError(help.WaitJobAndSpin("waiting", job))
 	wg.Wait()
 
+	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
+		if _, err := v.RunOverSSH(fmt.Sprintf(AddGoogleNameServerCmd, constants.GENERAL_MOUNT_FOLDER+"etc/dhcp/dhclient.conf")); err != nil {
+			return err
+		}
+	}
+
 	// 8. uploading config
 	err = config.Upload(v)
 	help.ExitOnError(err)
@@ -126,7 +133,7 @@ func initRasp() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("RASPBERRY PI", "pi", "raspberry")
+	printDoneMessageSd("RASPBERRY PI", constants.DEFAULT_RASPBERRY_USERNAME, constants.DEFAULT_RASPBERRY_PASSWORD)
 
 	return nil
 }
