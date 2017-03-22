@@ -32,9 +32,18 @@ func initBeagleBone() error {
 		defer job.Close()
 		defer wg.Done()
 
+		log.Debug("Attaching an image")
+		out, err := v.RunOverSSH(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
+		if err != nil {
+			log.Error("[-] Error when execute remote command: " + err.Error())
+			job.Error(err)
+			return
+		}
+		log.Debug(out)
+
 		// 5. mount loopback device(nanopi img) (in VM)
 		log.Debug("Creating tmp folder")
-		out, err := v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
 			job.Error(err)

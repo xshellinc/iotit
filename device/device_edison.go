@@ -202,40 +202,44 @@ func (e *edison) SetInterfaces(i Interfaces) error {
 		// assign static ip
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
-		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-			i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
+		for {
+			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+				i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
 
-		if dialogs.YesNoDialog("Change values?") {
-			setInterfaces(&i)
+			if dialogs.YesNoDialog("Change values?") {
+				setInterfaces(&i)
 
-			args1 := []string{
-				"root@" + e.ip,
-				"-t",
-				fmt.Sprintf("sed -i.bak -e '53 s/.*/ifconfig $IFNAME %s netmask %s/g' /etc/wpa_supplicant/wpa_cli-actions.sh",
-					i.Address, i.Netmask),
-			}
-			args2 := []string{
-				"root@" + e.ip,
-				"-t",
-				fmt.Sprintf("sed -i -e '54i route add default gw %s' /etc/wpa_supplicant/wpa_cli-actions.sh",
-					i.Gateway),
-			}
-			args3 := []string{
-				"root@" + e.ip,
-				"-t",
-				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF),
-			}
+				args1 := []string{
+					"root@" + e.ip,
+					"-t",
+					fmt.Sprintf("sed -i.bak -e '53 s/.*/ifconfig $IFNAME %s netmask %s/g' /etc/wpa_supplicant/wpa_cli-actions.sh",
+						i.Address, i.Netmask),
+				}
+				args2 := []string{
+					"root@" + e.ip,
+					"-t",
+					fmt.Sprintf("sed -i -e '54i route add default gw %s' /etc/wpa_supplicant/wpa_cli-actions.sh",
+						i.Gateway),
+				}
+				args3 := []string{
+					"root@" + e.ip,
+					"-t",
+					fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, e.resolvF),
+				}
 
-			if err := help.ExecStandardStd("ssh", args1...); err != nil {
-				return err
-			}
+				if err := help.ExecStandardStd("ssh", args1...); err != nil {
+					return err
+				}
 
-			if err := help.ExecStandardStd("ssh", args2...); err != nil {
-				return err
-			}
+				if err := help.ExecStandardStd("ssh", args2...); err != nil {
+					return err
+				}
 
-			if err := help.ExecStandardStd("ssh", args3...); err != nil {
-				return err
+				if err := help.ExecStandardStd("ssh", args3...); err != nil {
+					return err
+				}
+			} else {
+				break
 			}
 		}
 	}
