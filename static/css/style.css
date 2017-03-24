@@ -1,0 +1,97 @@
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+body {
+    background: white;
+    color: black;
+    font-family: "Noto Sans Japanese", "Noto Sans", sans-serif;
+    font-weight: 400;
+}
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+h1, h2, h3 { line-height: 1.4em; letter-spacing: 0.0rem; font-weight: 600; }
+h1{
+    font-size: 3.8rem;
+}
+h2 {
+    font-size: 2.8rem;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid #b3b3b3;
+}
+h3 {
+    font-size: 1.8rem;
+}
+p {
+    text-align: justify;
+}
+a {
+    transition: all .2s;
+}
+a:link, a:visited {
+    color: black;
+}
+a:hover {
+    color: gray;
+}
+button {
+    height: 4.5rem;
+    text-transform: none;
+    margin: 1rem 0 1.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+    background: white;
+    color: #292A2D;
+    border: 2px solid white;
+    border-radius: 4px;
+    transition: all .2s;
+}
+button:hover {
+    background: none;
+    color: white;
+    border-color: white;
+}
+code{
+    font-family: "Inconsolata", monospace;
+}
+img {
+    vertical-align: bottom;
+    transition: all .2s;
+}
+a:hover img {
+    opacity: 0.6;
+}
+/* –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.container {
+    padding: 3.0rem 0rem 1.5rem 0rem;
+}
+.header {
+    color: white;
+    background: linear-gradient(20deg, #40577F,#292A2D);
+}
+.header h2{
+    border:none;
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+.header a:link, .header a:visited {
+    color: white;
+}
+.header a:hover {
+    color: lightgray;
+}
+.overview{
+    background: #D8D8D8;
+}
+.footer{
+    background: #D8D8D8;
+    text-align: right;
+}
+.footer p{
+    display: inline-block;
+    margin-right: 1.5rem;
+}
+.logodata{
+    max-height: 90px;
+    margin-bottom: 10px;
+}
+.small{
+    font-size: 90%;
+    font-weight: 300;
+}
