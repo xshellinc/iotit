@@ -11,7 +11,7 @@
 - Add global binary installation and un-installation
 - Add Codeclimate badges
 - Add dialog to append 8.8.8.8 as a secondary dns
-- Add store current configuration name in vbox description #3
+- Add Current configuration name in vbox description
 
 - Change repo address to cdn
 - Code refactoring

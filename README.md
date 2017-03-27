@@ -71,6 +71,17 @@ GLOBAL OPTIONS:
    -version, -v        print the version
 ```
 
+VIRTUALBOX
+--------
+Virtualbox uses 2 images
+ - iotit-box-sd - used during flashing nano-pi, raspberry-pi and beaglebone boards
+ - iotit-box-edison - used during flashing Edison board
+ 
+During installation user can chose `default` virtualbox specs
+
+Alternatively user can create it's own vbox spec by choosing `Create new virtual machine`. 
+This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
+which is applied to `iotit-box-sd` or `iotit-box-edison` 
 
 IoTit flashing tool
 ==========================
