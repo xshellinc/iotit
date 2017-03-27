@@ -1,6 +1,0 @@
-{
-    "dist": {
-        "repo": "git@github.com:xshellinc/iotit.git#gh-pages",
-        "beforeStageCommand": "cat front.yml ../README.md > index.md"
-    }
-}
