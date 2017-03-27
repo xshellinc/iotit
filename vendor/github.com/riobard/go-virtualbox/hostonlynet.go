@@ -15,10 +15,11 @@ var (
 )
 
 var (
+	// ErrHostonlyInterfaceCreation returned when hostonly interface creation has been failed
 	ErrHostonlyInterfaceCreation = errors.New("failed to create hostonly interface")
 )
 
-// Host-only network.
+// HostonlyNet represents Host-only network.
 type HostonlyNet struct {
 	Name        string
 	GUID        string

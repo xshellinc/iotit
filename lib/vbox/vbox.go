@@ -9,115 +9,126 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
 type (
-	// Vbox parameters with ssh and http configurations
-	VboxConfig struct {
+	// Config represents Vbox parameters with ssh and http configurations
+	Config struct {
 		Name        string     `json:"name"`
-		Uuid        string     `json:"uuid"`
+		UUID        string     `json:"uuid"`
 		Template    string     `json:"template"`
 		Device      string     `json:"device"`
 		Description string     `json:"description"`
 		Option      ArchConfig `json:"option"`
-		Ssh         SshConfig  `json:"ssh"`
-		Http        HttpConfig `json:"http"`
+		SSH         SSHConfig  `json:"ssh"`
+		HTTP        HTTPConfig `json:"http"`
 	}
 
+	// ArchConfig represents basic VM settings
 	ArchConfig struct {
-		Cpu    uint          `json:"cpu"`
+		CPU    uint          `json:"cpu"`
 		Memory uint          `json:"memory"`
-		Usb    UsbController `json:"usb"`
+		USB    USBController `json:"usb"`
 	}
 
-	UsbController struct {
-		Usb     string            `json:"self"`
-		UsbType UsbTypeController `json:"type"`
+	// USBController represents USB settings
+	USBController struct {
+		USB     OnOff             `json:"vc"`
+		USBType USBTypeController `json:"type"`
 	}
 
-	UsbTypeController struct {
-		Ehci string `json:"2.0"`
-		Xhci string `json:"3.0"`
+	// USBTypeController represents USB type settings
+	USBTypeController struct {
+		EHCI OnOff `json:"2.0"`
+		XHCI OnOff `json:"3.0"`
 	}
 
-	SshConfig struct {
-		Ip       string `json:"ip"`
+	// SSHConfig represents SSH forwarding settings
+	SSHConfig struct {
+		IP       string `json:"ip"`
 		User     string `json:"user"`
 		Password string `json:"password"`
 		Port     string `json:"port"`
 	}
-	HttpConfig struct {
-		Url  string `json:"url"`
+
+	// HTTPConfig represents HTTP forwarding settings
+	HTTPConfig struct {
+		URL  string `json:"url"`
 		Port string `json:"url"`
 	}
+
+	// OnOff is just a bool with Stringer interface
+	OnOff bool
 )
 
-// @todo replace with Help
-func exit(err error) {
-	if err != nil {
-		log.Error("erro msg:", err.Error())
-		fmt.Println("[-] Error: ", err.Error())
-		fmt.Println("[-] Exiting with exit status 1 ...")
-		os.Exit(1)
+// String returns "on" or "off"
+func (o OnOff) String() string {
+	if o {
+		return "on"
 	}
+	return "off"
 }
 
-// Virtualbox wrapper, containing helper functions to copy into vbox and dowload from it
+// NewConfig returns new VirtualBox wrapper, containing helper functions to copy into vbox and dowload from it
 // Run commands over ssh and get Virtual box configuration files
-func NewVboxConfig(template, device string) *VboxConfig {
+func NewConfig(template, device string) *Config {
 	err := CheckMachine(template, device)
-	exit(err)
+	help.ExitOnError(err)
 	m, err := virtualbox.GetMachine(template)
-	exit(err)
+	help.ExitOnError(err)
 
-	return &VboxConfig{
+	return &Config{
 		Name:        "",
-		Uuid:        m.UUID,
+		UUID:        m.UUID,
 		Template:    m.Name,
 		Device:      device,
 		Description: "",
 		Option: ArchConfig{
-			Cpu:    m.CPUs,
+			CPU:    m.CPUs,
 			Memory: m.Memory,
-			Usb: UsbController{
-				Usb: m.Usb.Usb,
-				UsbType: UsbTypeController{
-					Ehci: m.Usb.UsbType.Ehci,
-					Xhci: m.Usb.UsbType.Xhci,
+			USB: USBController{
+				USB: m.Flag&virtualbox.FlagUSB != 0,
+				USBType: USBTypeController{
+					EHCI: m.Flag&virtualbox.FlagUSBEHCI != 0,
+					XHCI: m.Flag&virtualbox.FlagUSBXHCI != 0,
 				},
 			},
 		},
-		Ssh: SshConfig{
-			Ip:       constant.TEMPLATE_IP,
-			User:     constant.TEMPLATE_USER,
-			Password: constant.TEMPLATE_PASSWORD,
-			Port:     constant.TEMPLATE_SSH_PORT,
+		SSH: SSHConfig{
+			IP:       lib.TemplateIP,
+			User:     lib.TemplateUser,
+			Password: lib.TemplatePassword,
+			Port:     lib.TemplateSSHPort,
 		},
-		Http: HttpConfig{
-			Url:  constant.TEMPLATE_URL,
-			Port: constant.TEMPLATE_HTTP_PORT,
+		HTTP: HTTPConfig{
+			URL:  lib.TemplateURL,
+			Port: lib.TemplateHTTPPort,
 		},
 	}
 }
 
-func (self *VboxConfig) RunOverSsh(command string) (string, error) {
-	return self.runOverSshWithTimeout(command, help.SshCommandTimeout)
+// RunOverSSH runs command over SSH
+func (vc *Config) RunOverSSH(command string) (string, error) {
+	return vc.runOverSSHWithTimeout(command, help.SshCommandTimeout)
 }
 
-func (self *VboxConfig) RunOverSshExtendedPeriod(command string) (string, error) {
-	return self.runOverSshWithTimeout(command, help.SshExtendedCommandTimeout)
+// RunOverSSHExtendedPeriod runs command over SSH
+func (vc *Config) RunOverSSHExtendedPeriod(command string) (string, error) {
+	return vc.runOverSSHWithTimeout(command, help.SshExtendedCommandTimeout)
 }
 
-func (self *VboxConfig) runOverSshWithTimeout(command string, timeout int) (string, error) {
-	return help.GenericRunOverSsh(command, self.Ssh.Ip, self.Ssh.User, self.Ssh.Password, self.Ssh.Port,
+func (vc *Config) runOverSSHWithTimeout(command string, timeout int) (string, error) {
+	return help.GenericRunOverSsh(command, vc.SSH.IP, vc.SSH.User, vc.SSH.Password, vc.SSH.Port,
 		true, false, timeout)
 }
 
-func (self *VboxConfig) RunOverSshStream(command string) (output chan string, done chan bool, err error) {
-	out, eut, done, err := help.StreamEasySsh(self.Ssh.Ip, self.Ssh.User, self.Ssh.Password, self.Ssh.Port, "~/.ssh/id_rsa.pub", command, help.SshExtendedCommandTimeout)
+// RunOverSSHStream runs command over SSH with stdout redirection
+func (vc *Config) RunOverSSHStream(command string) (output chan string, done chan bool, err error) {
+	out, eut, done, err := help.StreamEasySsh(vc.SSH.IP, vc.SSH.User, vc.SSH.Password, vc.SSH.Port, "~/.ssh/id_rsa.pub", command, help.SshExtendedCommandTimeout)
 	if err != nil {
 		log.Error("[-] Error running command: ", eut, ",", err.Error())
 		return out, done, err
@@ -126,13 +137,15 @@ func (self *VboxConfig) RunOverSshStream(command string) (output chan string, do
 	return out, done, nil
 }
 
-func (self *VboxConfig) Scp(src, dst string) error {
-	return help.ScpWPort(src, dst, self.Ssh.Ip, self.Ssh.Port, self.Ssh.User, self.Ssh.Password)
+// SCP performs secure copy operation
+func (vc *Config) SCP(src, dst string) error {
+	return help.ScpWPort(src, dst, vc.SSH.IP, vc.SSH.Port, vc.SSH.User, vc.SSH.Password)
 }
 
-func (self *VboxConfig) Download(img string, wg *sync.WaitGroup) error {
-	local_url := self.Http.Url + ":" + self.Http.Port + "/" + img
-	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(local_url, constants.TMP_DIR, constants.NUMBER_OF_RETRIES, wg)
+// Download resulting image from VirtualBox
+func (vc *Config) Download(img string, wg *sync.WaitGroup) error {
+	localURL := vc.HTTP.URL + ":" + vc.HTTP.Port + "/" + img
+	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(localURL, constants.TMP_DIR, constants.NUMBER_OF_RETRIES, wg)
 	if err != nil {
 		return err
 	}
@@ -143,8 +156,9 @@ func (self *VboxConfig) Download(img string, wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (self *VboxConfig) ToJson() string {
-	obj, err := json.Marshal(self)
+// ToJSON returns JSON representation
+func (vc *Config) ToJSON() string {
+	obj, err := json.Marshal(vc)
 	if err != nil {
 		fmt.Println(err.Error())
 		return ""
@@ -152,7 +166,8 @@ func (self *VboxConfig) ToJson() string {
 	return string(obj)
 }
 
-func (self *VboxConfig) WriteToFile(dst string) {
+// WriteToFile writes JSON to file
+func (vc *Config) WriteToFile(dst string) {
 	if virtualbox.Exists(dst) {
 		fileHandle, err := os.OpenFile(dst, os.O_APPEND|os.O_RDWR, 0666)
 		if err != nil {
@@ -161,7 +176,7 @@ func (self *VboxConfig) WriteToFile(dst string) {
 		}
 		writer := bufio.NewWriter(fileHandle)
 		defer fileHandle.Close()
-		fmt.Fprintln(writer, self.ToJson())
+		fmt.Fprintln(writer, vc.ToJSON())
 		writer.Flush()
 	} else {
 		fileHandle, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
@@ -171,39 +186,59 @@ func (self *VboxConfig) WriteToFile(dst string) {
 		}
 		writer := bufio.NewWriter(fileHandle)
 		defer fileHandle.Close()
-		fmt.Fprintln(writer, self.ToJson())
+		fmt.Fprintln(writer, vc.ToJSON())
 		writer.Flush()
 	}
 }
 
-func (self VboxConfig) FromJson(dst string) []VboxConfig {
-	var vbox []VboxConfig
+// FromJSON reads JSON from file
+func (vc Config) FromJSON(dst string) []Config {
+	var vbox []Config
 	f, _ := os.Open(dst)
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		json.Unmarshal(scanner.Bytes(), &self)
-		vbox = append(vbox, self)
+		json.Unmarshal(scanner.Bytes(), &vc)
+		vbox = append(vbox, vc)
 	}
 	return vbox
 }
 
-func (self *VboxConfig) Modify() error {
-	m, err := virtualbox.GetMachine(self.Template)
+// Modify applies VM settings
+func (vc *Config) Modify() error {
+	m, err := virtualbox.GetMachine(vc.Template)
 	if err != nil {
 		return err
 	}
-	usb, ehci, xhci := self.GetUsbs()
-	m.CPUs = self.Option.Cpu
-	m.Memory = self.Option.Memory
-	m.Usb.Usb = usb
-	m.Usb.UsbType.Ehci = ehci
-	m.Usb.UsbType.Xhci = xhci
+	usb, ehci, xhci := vc.GetUSBs()
+	m.CPUs = vc.Option.CPU
+	m.Memory = vc.Option.Memory
+	if usb {
+		m.Flag |= virtualbox.FlagUSB
+	} else {
+		m.Flag &^= virtualbox.FlagUSB
+	}
+
+	if ehci {
+		m.Flag |= virtualbox.FlagUSBEHCI
+	} else {
+		m.Flag &^= virtualbox.FlagUSBEHCI
+	}
+
+	if xhci {
+		m.Flag |= virtualbox.FlagUSBXHCI
+	} else {
+		m.Flag &^= virtualbox.FlagUSBXHCI
+	}
+
 	if m.State != virtualbox.Poweroff {
 		err := m.Poweroff()
 		if err != nil {
 			return err
 		}
 	}
+
+	m.Description = vc.Name
+
 	err = m.ModifySimple()
 	if err != nil {
 		return err
@@ -211,36 +246,29 @@ func (self *VboxConfig) Modify() error {
 	return m.Refresh()
 }
 
-func (self *VboxConfig) Machine() (*virtualbox.Machine, error) {
-	m, err := virtualbox.GetMachine(self.Template)
+// Machine wraps virtualbox.GetMachine
+func (vc *Config) Machine() (*virtualbox.Machine, error) {
+	m, err := virtualbox.GetMachine(vc.Template)
 	return m, err
 }
 
-func Select(vboxs []VboxConfig) VboxConfig {
+// Select displays VM selection dialog
+func Select(vboxs []Config) Config {
 
-	for {
-		fmt.Println("[+] Available virtual machine: ")
-		for i, v := range vboxs {
-			fmt.Printf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
-		}
-
-		fmt.Print("[+] Please select a virtual machine: ")
-		var inp int
-		_, err := fmt.Scanf("%d", &inp)
-
-		if err != nil || inp < 0 || inp >= len(vboxs) {
-			fmt.Println("[-] Invalid user input")
-			continue
-		}
-
-		return vboxs[inp]
+	opts := make([]string, len(vboxs))
+	for i, v := range vboxs {
+		opts[i] = fmt.Sprintf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
 	}
+
+	fmt.Println("[+] Available virtual machine: ")
+	return vboxs[dialogs.SelectOneDialog("Please select a virtual machine: ", opts)]
 }
 
-func (self VboxConfig) Enable(dst, template, device string) []VboxConfig {
+// Enable picks allowed VMs
+func (vc Config) Enable(dst, template, device string) []Config {
 	var (
-		vboxList   = self.FromJson(dst)
-		enableVbox []VboxConfig
+		vboxList   = vc.FromJSON(dst)
+		enableVbox []Config
 	)
 	for _, v := range vboxList {
 		if v.Template == template && v.Device == device {
@@ -250,22 +278,27 @@ func (self VboxConfig) Enable(dst, template, device string) []VboxConfig {
 	return enableVbox
 }
 
-func (self *VboxConfig) GetName() string {
-	return self.Name
+// GetName returns name of the VM
+func (vc *Config) GetName() string {
+	return vc.Name
 }
 
-func (self *VboxConfig) GetDescription() string {
-	return self.Description
+// GetDescription returns description of the VM
+func (vc *Config) GetDescription() string {
+	return vc.Description
 }
 
-func (self *VboxConfig) GetMemory() int {
-	return int(self.Option.Memory)
+// GetMemory returns memory size of the VM
+func (vc *Config) GetMemory() int {
+	return int(vc.Option.Memory)
 }
 
-func (self *VboxConfig) GetCpu() int {
-	return int(self.Option.Cpu)
+// GetCPU returns VM CPUs number
+func (vc *Config) GetCPU() int {
+	return int(vc.Option.CPU)
 }
 
-func (self *VboxConfig) GetUsbs() (string, string, string) {
-	return self.Option.Usb.Usb, self.Option.Usb.UsbType.Ehci, self.Option.Usb.UsbType.Xhci
+// GetUSBs returns USB settings
+func (vc *Config) GetUSBs() (usb, ehci, xhci OnOff) {
+	return vc.Option.USB.USB, vc.Option.USB.USBType.EHCI, vc.Option.USB.USBType.XHCI
 }

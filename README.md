@@ -15,6 +15,9 @@ SUPPORTED DEVICES
 * [BeagleBone](http://beagleboard.org/bone)
 
 
+REQUIREMENTS
+------------
+golang >= 1.8
 
 INSTALLATION
 ------------
@@ -51,16 +54,34 @@ NAME:
    iotit - Flashing Tool for iot devices used by Isaax Cloud
 
 USAGE:
-   iotit [global options]
+   iotit [global options] [commands]
+
+   options and commands are not mandatory
+
+COMMANDS:
+   gl, global         install to global app environment
+   un, uninstall      uninstall this app
+   update             update binary and vbox images
+   v, version         display current version
+   h, help            display help
 
 GLOBAL OPTIONS:
-   -update <sd|edison> update vbox and dependencies
-   -update <sd|edison> update vbox and dependencies
    -dev [device-type]  executes iotit with specified deviceType
    -help, -h           show help
    -version, -v        print the version
 ```
 
+VIRTUALBOX
+--------
+Virtualbox uses 2 images
+ - iotit-box-sd - used during flashing nano-pi, raspberry-pi and beaglebone boards
+ - iotit-box-edison - used during flashing Edison board
+ 
+During installation user can chose `default` virtualbox specs
+
+Alternatively user can create it's own vbox spec by choosing `Create new virtual machine`. 
+This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
+which is applied to `iotit-box-sd` or `iotit-box-edison` 
 
 IoTit flashing tool
 ==========================

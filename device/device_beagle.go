@@ -7,10 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/constant"
+	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -19,40 +22,53 @@ import (
 func initBeagleBone() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, constant.VBOX_TEMPLATE_SD, constants.DEVICE_TYPE_BEAGLEBONE)
+	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_BEAGLEBONE)
 
 	// background process
 	wg.Add(1)
-	progress := make(chan bool)
-	go func(progress chan bool) {
-		defer close(progress)
+	job := help.NewBackgroundJob()
+
+	go func() {
+		defer job.Close()
 		defer wg.Done()
+
+		log.Debug("Attaching an image")
+		out, err := v.RunOverSSH(fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, img)))
+		if err != nil {
+			log.Error("[-] Error when execute remote command: " + err.Error())
+			job.Error(err)
+			return
+		}
+		log.Debug(out)
 
 		// 5. mount loopback device(nanopi img) (in VM)
 		log.Debug("Creating tmp folder")
-		out, err := v.RunOverSsh(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
 		log.Debug("mounting tmp folder")
-		out, err = v.RunOverSsh(fmt.Sprintf("%s -o rw /dev/loop0p1 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
+		out, err = v.RunOverSSH(fmt.Sprintf("%s -o rw /dev/loop0p1 %s", constants.LINUX_MOUNT, constants.GENERAL_MOUNT_FOLDER))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
 
 		// 6. disable rename interface name
-		out, err = v.RunOverSsh(fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules"))
+		out, err = v.RunOverSSH(fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules"))
 		if err != nil {
 			log.Error("[-] Error when execute remote command: " + err.Error())
-			help.ExitOnError(err)
+			job.Error(err)
+			return
 		}
 		log.Debug(out)
-	}(progress)
+	}()
 
 	// 7. setup keyboard, locale, etc...
 	config := NewSetDevice(constants.DEVICE_TYPE_BEAGLEBONE)
@@ -60,19 +76,25 @@ func initBeagleBone() error {
 	help.ExitOnError(err)
 
 	// wait background process
-	help.WaitAndSpin("waiting", progress)
+	help.ExitOnError(help.WaitJobAndSpin("waiting", job))
 	wg.Wait()
+
+	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
+		if _, err := v.RunOverSSH(fmt.Sprintf(AddGoogleNameServerCmd, constants.GENERAL_MOUNT_FOLDER+"etc/dhcp/dhclient.conf")); err != nil {
+			return err
+		}
+	}
 
 	// 8. uploading config
 	err = config.Upload(v)
 	help.ExitOnError(err)
 
 	// 9. detatch beaglebone img(in VM)
-	_, err = v.RunOverSsh(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
+	_, err = v.RunOverSSH(fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER))
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
-	_, err = v.RunOverSsh("losetup -D")
+	_, err = v.RunOverSSH("losetup -D")
 	if err != nil {
 		log.Error("[-] Error when execute remote command: " + err.Error())
 	}
@@ -83,27 +105,13 @@ func initBeagleBone() error {
 	err = v.Download(img, wg)
 	time.Sleep(time.Second * 2)
 
-	// 11. remove beaglebone img(in VM)
-	//fmt.Println("[+] Removing BeagleBone image from virtual machine")
-	//log.Debug("removing image")
-	//out, err := v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, zipName)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-	//
-	//out, err = v.RunOverSsh(fmt.Sprintf("rm -f %s", filepath.Join(constants.TMP_DIR, img)))
-	//if err != nil {
-	//	log.Error("[-] Error when execute remote command: " + err.Error())
-	//}
-	//log.Debug(out)
-
 	// 12. prompt for disk format (in host)
 	osImg := filepath.Join(constants.TMP_DIR, img)
-
-	err, progress = local.WriteToDisk(osImg)
+	job, err = local.WriteToDisk(osImg)
 	help.ExitOnError(err)
-	help.WaitAndSpin("flashing", progress)
+	if job != nil {
+		help.ExitOnError(help.WaitJobAndSpin("flashing", job))
+	}
 
 	err = os.Remove(osImg)
 	if err != nil {
@@ -127,7 +135,7 @@ func initBeagleBone() error {
 	}
 
 	// 15. Info message
-	printDoneMessageSd("UBUNTU", "ubuntu", "temppwd")
+	printDoneMessageSd(strings.ToUpper(constants.DEVICE_TYPE_BEAGLEBONE), constants.DEFAULT_BEAGLEBONE_USERNAME, constants.DEFAULT_BEAGLEBONE_PASSWORD)
 
 	return nil
 }
