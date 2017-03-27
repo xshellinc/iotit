@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Basic Page Needs
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="UTF-8">
+    <title>IoTit | Flashing Tool for IoT devices</title>
+    <meta name="description" content="IoTit is a cross platform tool for flashing linux based SBC's safely and easily written in golang. It flashes via virtual machine to keep your machine safe and decluttered. It
+Currently supports Raspberry Pi, Intel Edison, Nano Pi and BeagleBone with more planned to come.">
+    <meta name="author" content="XSHELL inc.">
+    <!-- CSS
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link type="text/css" rel="stylesheet" href="static/css/normalize.css">
+    <link type="text/css" rel="stylesheet" href="static/css/skeleton.css">
+    <link type="text/css" rel="stylesheet" href="static/css/style.css">
+    <!-- FONT
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link href="http://fonts.googleapis.com/earlyaccess/notosansjapanese.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
+    <!-- Favicon
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="icon" href="static/img/favicon.png" type="img/png">
+</head>
+<body>
+    <div class="header">
+        <header class="container">
+            <div class="row">
+                <div class="two columns">
+                    <a href="https://isaax.io/"><img src="static/svg/isaax_logo_w.svg" class="logodata"></a>
+                </div>
+                <div class="six columns">
+                    <h1>IoTit flashing tool</h1>
+                    <h2>Flashing Tool for IoT devices used by Isaax Cloud</h2>
+                </div>
+                <div class="four columns">
+                    <button type="button" onclick="location.href='https://github.com/xshellinc/iotit'">View on GitHub</button>
+                    <p class="small"><a href="https://www.apache.org/licenses/LICENSE-2.0">license: Apache License Version 2.0</a></p>
+                </div>
+            </div>
+        </header>
+    </div>
+    <div>
+        <article>
+            <div class="overview">
+                <section class="container">
+                    <h2>Overview</h2>
+                    <div class="row">
+                        <div class="six columns"><p>IoTit is a cross platform tool for flashing linux based SBC's safely and easily written in golang. It flashes via virtual machine to keep your machine safe and decluttered. It
+currently supports Raspberry Pi, Intel Edison, Nano Pi and BeagleBone with more planned to come. It is open source and licensed under the Apache 2.0 license.</p></div>
+                        <div class="six columns"><p>IoTitフラッシュツールは VirtualBox を採用したコマンドラインユティリティです。IoTitを使うことによって、RaspberryPi、Intel Edison、Beaglebone、NanoPi のようなLinux系のシングルボードコンピュータを簡単に初期化することができます。</p></div>
+                    </div>
+                </section>
+            </div>
+            <section class="container">
+                <h2>Installation</h2>
+                <h3>Install all requirements</h3>
+                <pre><code>go get ./...</code></pre>
+                <h3>Development Enviroment</h3>
+                <p>To build and run with debug log use:</p>
+                <pre><code>./build.sh && ./iotit</code></pre>
+
+                <h2>Commands</h2>
+                <p>To see available commands launch <code>iotit -h</code></p>
+                <pre><code>NAME:
+   iotit - Flashing Tool for iot devices used by Isaax Cloud
+
+USAGE:
+   iotit [global options]
+
+GLOBAL OPTIONS:
+   -update <sd|edison> update vbox and dependencies
+   -update <sd|edison> update vbox and dependencies
+   -dev [device-type]  executes iotit with specified deviceType
+   -help, -h           show help
+   -version, -v        print the version</code></pre>
+            </section>
+        </article>
+        <div class="footer">
+            <footer class="container small">
+                <p><a href="https://github.com/xshellinc/iotit">View on GitHub</a></p>
+                <p><a href="https://www.apache.org/licenses/LICENSE-2.0">license: Apache License Version 2.0</a></p>
+                <p><a href="https://isaax.io/">Isaax</a></p>
+                <p><a href="https://xshell.io/">XSHELL inc.<a></p>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

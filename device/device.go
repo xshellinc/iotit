@@ -313,7 +313,7 @@ func (d *device) SetInterfaces(i Interfaces) error {
 }
 
 // @todo make installation from the isaax repo, copy deb packages and install on the first startup
-// Notifies user if he wants to install default software package
+// Notifies user if they wants to install default software package
 func (d *device) InitPrograms() error {
 	tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
 
