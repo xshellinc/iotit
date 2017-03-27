@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	VBM     string // Path to VBoxManage utility.
-	Verbose bool   // Verbose mode.
+	// VBM keeps path to VBoxManage utility.
+	VBM string
+	// Verbose mode
+	Verbose bool
 )
 
 func init() {
@@ -32,9 +34,12 @@ var (
 )
 
 var (
-	ErrMachineExist    = errors.New("machine already exists")
+	// ErrMachineExist returned when machine already exists
+	ErrMachineExist = errors.New("machine already exists")
+	// ErrMachineNotExist returned when machine does not exist
 	ErrMachineNotExist = errors.New("machine does not exist")
-	ErrVBMNotFound     = errors.New("VBoxManage not found")
+	// ErrVBMNotFound returned when VBoxManage tool is not found
+	ErrVBMNotFound = errors.New("VBoxManage not found")
 )
 
 func vbm(args ...string) error {

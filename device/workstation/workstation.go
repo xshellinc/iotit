@@ -1,13 +1,15 @@
 package workstation
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/xshellinc/tools/lib/help"
+)
 
-// Workstation is your computer's Operating System, which should perform specific actions
+// WorkStation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
-	Check(string) error
 	ListRemovableDisk() error
 	Unmount() error
-	WriteToDisk(img string) (err error, done chan bool)
+	WriteToDisk(img string) (job *help.BackgroundJob, err error)
 	Eject() error
 }
 
@@ -36,7 +38,7 @@ type MountInfo struct {
 	deviceSize  string
 }
 
-// Constructor which will return workstation depending on the OS
+// NewWorkStation returns workstation depending on the OS
 func NewWorkStation() WorkStation {
 
 	return newWorkstation()
