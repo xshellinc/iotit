@@ -83,16 +83,17 @@ Alternatively user can create it's own vbox spec by choosing `Create new virtual
 This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
 which is applied to `iotit-box-sd` or `iotit-box-edison` 
 
-IoTit flashing tool
-==========================
-
-IoTitはGolangで書かれたフラッシュツールでisaax cloudで使われていたシステムを分離独立させたものです。
 
 
 概要
 ----------------
+
+IoTitを使うことによって、RaspberryPi、Intel Edison、Beaglebone、NanoPi のようなL
+inux系のシングルボードコンピュータを簡単に初期化することができます。
+
 IoTitはOpen SourceのSingle Board Computer向けフラッシュツールです。
 これを使うことでより簡単にSingle Board Computerをセットアップできます。
+
 IoTitは内部でVirtual Boxを使っておりVBのAPIを使うことで、自分専用のカスタマイズも可能です。
 現在は"NanoPI Neo"や"Raspberry PI"、"Intel Edison" "BeagleBone"の4つに対応しています。
 インストールや使い方はシンプルなので上記の"INSTALLATION"を読んで使ってみてください。
