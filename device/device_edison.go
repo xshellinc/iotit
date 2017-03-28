@@ -47,7 +47,7 @@ func initEdison() error {
 		printWarnMessage()
 
 		for ack {
-			ack = !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ")
+			ack = !dialogs.YesNoDialog("Please unplug your edison board. Type 'y/yes' once unpluged. ")
 		}
 
 		for {
@@ -63,7 +63,7 @@ func initEdison() error {
 			if err := help.ExecStandardStd("ssh", args...); err != nil {
 				fmt.Println("[-] Cannot find mounted Intel edison device, please mount it manually")
 
-				if !dialogs.YesNoDialog("Press yes once mounted? ") {
+				if !dialogs.YesNoDialog("Type 'y/yes' once mounted. ") {
 					fmt.Println("Exiting with exit status 2 ...")
 					os.Exit(2)
 				}
@@ -106,7 +106,7 @@ func initEdison() error {
 func (e *edison) SetConfig() error {
 	// get IP
 
-	i := dialogs.SelectOneDialog("Chose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
+	i := dialogs.SelectOneDialog("Choose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
 	fallback := false
 
 	if i == 0 {
@@ -130,7 +130,7 @@ func (e *edison) SetConfig() error {
 				}
 			}
 
-			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
+			i = dialogs.SelectOneDialog("Please choose correct interface: ", arrSel)
 
 			if out, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
 				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
@@ -197,7 +197,7 @@ func (e *edison) SetConfig() error {
 // Set up Interface values
 func (e *edison) SetInterfaces(i Interfaces) error {
 
-	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
+	if dialogs.YesNoDialog("Would you like to assign a static IP wlan address for your device?") {
 
 		// assign static ip
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
