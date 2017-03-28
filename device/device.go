@@ -194,7 +194,7 @@ func (d *device) SetLocale() error {
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
+		inp := dialogs.GetSingleAnswer("New language: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
 
 		arr, _ := constants.GetLocale(inp)
 
@@ -202,7 +202,7 @@ func (d *device) SetLocale() error {
 		if len(arr) == 1 {
 			locale = arr[0]
 		} else {
-			locale = arr[dialogs.SelectOneDialog("Please select a locale from a list", arr)]
+			locale = arr[dialogs.SelectOneDialog("Please select a language from a list", arr)]
 		}
 
 		conf = fmt.Sprintf(d.deviceFiles.locale, locale, locale, locale)
@@ -225,7 +225,7 @@ func (d *device) SetKeyborad() error {
 
 	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
 
-	if dialogs.YesNoDialog("Change default language?") {
+	if dialogs.YesNoDialog("Change default keyboard?") {
 		fmt.Print("[+] New keyboard: ")
 		var inp string
 		fmt.Scanln(&inp)
@@ -270,8 +270,8 @@ func (d *device) SetInterfaces(i Interfaces) error {
 	interfaces := filepath.Join(constants.TMP_DIR, d.deviceFiles.interfacesF)
 	resolv := filepath.Join(constants.TMP_DIR, d.deviceFiles.resolvF)
 
-	if dialogs.YesNoDialog("Would you like to assign static IP address for your device?") {
-		fmt.Println("[+] Available network interface: ")
+	if dialogs.YesNoDialog("Would you like to assign a static IP address for your device?") {
+		fmt.Println("[+] Available network interfaces: ")
 		num := dialogs.SelectOneDialog("Please select a network interface:", device)
 
 		// assign static ip
@@ -352,7 +352,7 @@ func (d *device) InitPrograms() error {
 // Setup board notification which then triggers setLocale, setWifi, setKeyBoard, InitPrograms, SetInterface methods
 func (d *device) SetConfig() error {
 
-	if dialogs.YesNoDialog("Would you like to config your board?") {
+	if dialogs.YesNoDialog("Would you like to configure your board?") {
 		// set locale (host to VM)
 		if err := d.SetLocale(); err != nil {
 			return err
