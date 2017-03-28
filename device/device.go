@@ -225,7 +225,7 @@ func (d *device) SetKeyborad() error {
 
 	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
 
-	if dialogs.YesNoDialog("Change default language?") {
+	if dialogs.YesNoDialog("Change default keyboard?") {
 		fmt.Print("[+] New keyboard: ")
 		var inp string
 		fmt.Scanln(&inp)
