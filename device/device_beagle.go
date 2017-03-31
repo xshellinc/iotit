@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -22,7 +21,7 @@ import (
 func initBeagleBone() error {
 	wg := &sync.WaitGroup{}
 
-	vm, local, v, img := vboxDownloadImage(wg, lib.VBoxTemplateSD, constants.DEVICE_TYPE_BEAGLEBONE)
+	vm, local, v, img := vboxDownloadImage(wg, constants.DEVICE_TYPE_BEAGLEBONE)
 
 	// background process
 	wg.Add(1)

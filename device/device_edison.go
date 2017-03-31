@@ -11,7 +11,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -19,20 +18,20 @@ import (
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
-const (
-	baseConf  string = "base-feeds.conf"
-	iotdkConf string = "intel-iotdk.conf"
-
-	baseFeeds string = "src/gz all        http://repo.opkg.net/edison/repo/all\n" +
-		"src/gz edison     http://repo.opkg.net/edison/repo/edison\n" +
-		"src/gz core2-32   http://repo.opkg.net/edison/repo/core2-32\n"
-
-	intelIotdk string = "src intel-all     http://iotdk.intel.com/repos/1.1/iotdk/all\n" +
-		"src intel-iotdk   http://iotdk.intel.com/repos/1.1/intelgalactic\n" +
-		"src intel-quark   http://iotdk.intel.com/repos/1.1/iotdk/quark\n" +
-		"src intel-i586    http://iotdk.intel.com/repos/1.1/iotdk/i586\n" +
-		"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
-)
+//const (
+//	baseConf  string = "base-feeds.conf"
+//	iotdkConf string = "intel-iotdk.conf"
+//
+//	baseFeeds string = "src/gz all        http://repo.opkg.net/edison/repo/all\n" +
+//		"src/gz edison     http://repo.opkg.net/edison/repo/edison\n" +
+//		"src/gz core2-32   http://repo.opkg.net/edison/repo/core2-32\n"
+//
+//	intelIotdk string = "src intel-all     http://iotdk.intel.com/repos/1.1/iotdk/all\n" +
+//		"src intel-iotdk   http://iotdk.intel.com/repos/1.1/intelgalactic\n" +
+//		"src intel-quark   http://iotdk.intel.com/repos/1.1/iotdk/quark\n" +
+//		"src intel-i586    http://iotdk.intel.com/repos/1.1/iotdk/i586\n" +
+//		"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
+//)
 
 // Inits vbox, mounts image, copies config files into image, then closes image, copies image into /tmp
 // on the host machine, then flashes it onto mounted disk and eject it cleaning up temporary files
@@ -42,7 +41,7 @@ func initEdison() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		vm, _, _, _ := vboxDownloadImage(wg, lib.VBoxTemplateEdison, constants.DEVICE_TYPE_EDISON)
+		vm, _, _, _ := vboxDownloadImage(wg, constants.DEVICE_TYPE_EDISON)
 
 		printWarnMessage()
 
@@ -54,9 +53,9 @@ func initEdison() error {
 			script := "flashall.sh"
 
 			args := []string{
-				fmt.Sprintf("%s@%s", lib.TemplateUser, lib.TemplateIP),
+				fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
 				"-p",
-				lib.TemplateSSHPort,
+				vbox.VBoxSSHPort,
 				constants.TMP_DIR + script,
 			}
 
@@ -103,7 +102,7 @@ func initEdison() error {
 }
 
 // Uses ifconfig to setup edison interface to be accessable via 192.168.2.2 ip
-func (e *edison) SetConfig() error {
+func (e *edisonn) SetConfig() error {
 	// get IP
 
 	i := dialogs.SelectOneDialog("Chose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
@@ -195,7 +194,7 @@ func (e *edison) SetConfig() error {
 }
 
 // Set up Interface values
-func (e *edison) SetInterfaces(i Interfaces) error {
+func (e *edisonn) SetInterfaces(i Interfaces) error {
 
 	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
 

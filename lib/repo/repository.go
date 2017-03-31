@@ -15,7 +15,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
-	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
@@ -87,21 +86,6 @@ type (
 		URL       string
 		Directory string
 	}
-	// VMs represents virtual machines repos
-	VMs struct {
-		SD     *VMSD     `json:"vm-sd"`
-		Edison *VMEdison `json:"vm-edison"`
-	}
-	// VMSD represents VM image for SD-based platforms
-	VMSD struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// VMEdison represents VM image for Edison
-	VMEdison struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
 )
 
 // S3Repository is a configuration entry for all images
@@ -111,11 +95,6 @@ type S3Repository struct {
 	Beaglebone `json:"beaglebone"`
 	Nanopi     `json:"nanopi"`
 	Chirimen   `json:"chirimen"`
-}
-
-// S3RepositoryVM is a configuration entry for all VMs
-type S3RepositoryVM struct {
-	VMs `json:"vms"`
 }
 
 /*
@@ -278,50 +257,6 @@ func (g *GenericRepository) Name() string {
 	return tokens[len(tokens)-1]
 }
 
-// GetVersion of VM for SD-based platforms
-func (v *VMSD) GetVersion() string {
-	return v.Version
-}
-
-// GetURL of VM for SD-based platforms
-func (v *VMSD) GetURL() string {
-	return v.URL
-}
-
-// Dir of VM for SD-based platforms
-func (*VMSD) Dir() string {
-	sdRepo := filepath.Join(vboxDir, "sd")
-	return sdRepo
-}
-
-// Name of VM for SD-based platforms
-func (v *VMSD) Name() string {
-	tokens := strings.Split(v.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-// GetVersion of Edison VM
-func (v *VMEdison) GetVersion() string {
-	return v.Version
-}
-
-// GetURL of Edison VM
-func (v *VMEdison) GetURL() string {
-	return v.URL
-}
-
-// Dir of Edison VM
-func (*VMEdison) Dir() string {
-	edisonRepo := filepath.Join(vboxDir, "edison")
-	return edisonRepo
-}
-
-// Name of Edison VM
-func (v *VMEdison) Name() string {
-	tokens := strings.Split(v.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
 // NewRepository creates new repository for specified device type
 func NewRepository(deviceType string) (Repository, error) {
 	var (
@@ -329,7 +264,7 @@ func NewRepository(deviceType string) (Repository, error) {
 		url    = S3Bucket
 		repo   S3Repository
 	)
-	//@todo re-try if timeout
+
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Error("Could not make GET request to url:", url, " error msg:", err.Error())
@@ -358,35 +293,60 @@ func NewRepository(deviceType string) (Repository, error) {
 
 }
 
+// S3RepositoryVM is a configuration entry for all VMs
+type VMRepo struct {
+	Vms struct {
+		Vm struct{
+			Version string `json:"version"`
+			Url string `json:"url"`
+			MD5Sum string `json:"md5sum"`
+		} `json:"vm-iotit"`
+	} `json:"vms"`
+}
+
+// GetVersion of VM
+func (v VMRepo) GetVersion() string {
+	return v.Vms.Vm.Version
+}
+
+// GetURL of VM
+func (v VMRepo) GetURL() string {
+	return v.Vms.Vm.Url
+}
+
+// Dir of VM
+func (VMRepo) Dir() string {
+	return vboxDir
+}
+
+// Name of VM
+func (v VMRepo) Name() string {
+	tokens := strings.Split(v.Vms.Vm.Url, "/")
+	return tokens[len(tokens)-1]
+}
+
+
 // NewRepositoryVM creates new repository for specified VM type
-func NewRepositoryVM(vmType string) (Repository, error) {
+func NewRepositoryVM() (Repository, error) {
 	var (
 		client http.Client
-		url    = S3Bucket
-		repo   S3RepositoryVM
+		repo   VMRepo
 	)
-	resp, err := client.Get(url)
+	resp, err := client.Get(S3Bucket)
 	if err != nil {
-		log.Error("Could not make GET request to url:", url, " error msg:", err.Error())
+		log.Error("Could not make GET request to url:", S3Bucket, " error msg:", err.Error())
 		fmt.Println("[-] Could not connect to S3 bucket")
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&repo)
-	if err != nil {
+	if err = decoder.Decode(&repo); err != nil {
 		log.Error("Could not unmarshall json struct ", "error msg:", err.Error())
 		return nil, err
 	}
-	switch vmType {
-	case lib.VBoxTemplateSD:
-		return repo.SD, nil
-	case lib.VBoxTemplateEdison:
-		return repo.Edison, nil
-	default:
-		return nil, errors.New("unknown virtual machine type")
-	}
 
+	return repo, nil
 }
 
 // DownloadAsync starts async download
@@ -405,29 +365,6 @@ func NewGenericRepository(url, version string, dir string) Repository {
 	}
 }
 
-// VirtualBoxRepository gets currents repo status for SD platforms
-func VirtualBoxRepository() Repository {
-	rp, err := NewRepositoryVM(lib.VBoxTemplateSD)
-	if err != nil {
-		fmt.Println("[-] Could not fetch remote version")
-		return nil
-	}
-	//return NewGenericRepository("https://s3-ap-northeast-1.amazonaws.com/isaax-distro/vm/sd/0.1.0/isaax-box-sd.zip", "0.0.1", "virtualbox/sd/")
-	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
-
-}
-
-// VirtualBoxRepositoryEdison gets currents repo status for Edison
-func VirtualBoxRepositoryEdison() Repository {
-	rp, err := NewRepositoryVM(lib.VBoxTemplateEdison)
-	if err != nil {
-		fmt.Println("[-] Could not fetch remote version")
-		return nil
-	}
-	//return NewGenericRepository("https://s3-ap-northeast-1.amazonaws.com/isaax-distro/vm/sd/0.1.0/isaax-box-sd.zip", "0.0.1", "virtualbox/sd/")
-	return NewGenericRepository(rp.GetURL(), rp.GetVersion(), rp.Dir())
-}
-
 // DownloadNewVersion downloads the latest version based on the current release and skips this step if up to date
 func DownloadNewVersion(name, version, dst string) (string, error) {
 	zipMethod := "zip"
@@ -442,7 +379,7 @@ func DownloadNewVersion(name, version, dst string) (string, error) {
 		return "", err
 	}
 
-	url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s.%s", name, CurrentRelease(version), runtime.GOOS, fileName, zipMethod)
+	url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s.%s", name, currentRelease(version), runtime.GOOS, fileName, zipMethod)
 
 	wg := &sync.WaitGroup{}
 	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
@@ -471,8 +408,8 @@ func DownloadNewVersion(name, version, dst string) (string, error) {
 	return fileName, nil
 }
 
-// CurrentRelease detects whether release is stable or latest
-func CurrentRelease(version string) (release string) {
+// currentRelease detects whether release is stable or latest
+func currentRelease(version string) (release string) {
 	r := Latest
 	match, _ := regexp.Compile(`^[\d|_]+\.[\d|_]+\.[\d|_]+$`)
 	if match.MatchString(version) {
@@ -482,8 +419,8 @@ func CurrentRelease(version string) (release string) {
 	return r
 }
 
-// GetVersionLexem parses string lexems into comparable parts
-func GetVersionLexem(token string, seps ...string) []string {
+// getVersionLexem parses string lexems into comparable parts
+func getVersionLexem(token string, seps ...string) []string {
 	var lexs []string
 	for i, sep := range seps {
 		if i == 0 {
@@ -504,8 +441,8 @@ func GetVersionLexem(token string, seps ...string) []string {
 
 // IsVersionUpToDate checks if version is up to date
 func IsVersionUpToDate(v1, v2 string) (bool, error) {
-	vlex1 := GetVersionLexem(v1, ".", "_", "-")
-	vlex2 := GetVersionLexem(v2, ".", "_", "-")
+	vlex1 := getVersionLexem(v1, ".", "_", "-")
+	vlex2 := getVersionLexem(v2, ".", "_", "-")
 
 	for i := 0; i < len(vlex1) && i < len(vlex2); i++ {
 		n1, err := strconv.Atoi(vlex1[i])
@@ -545,7 +482,7 @@ func GetIoTItVersionMD5(oss, arch, version string) (hash string, repoVersion str
 	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
 		return
 	}
-	if err = json.Unmarshal(*r[CurrentRelease(version)], &r); err != nil {
+	if err = json.Unmarshal(*r[currentRelease(version)], &r); err != nil {
 		return
 	}
 	if err = json.Unmarshal(*r[checkMethKey], &r); err != nil {

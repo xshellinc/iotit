@@ -88,23 +88,23 @@ type (
 	}
 
 	// RaspberryPi mount type
-	raspberryPi struct {
+	raspberryPii struct {
 		*sd
 	}
 
 	// Mount type, contains ip address specific for edison
-	edison struct {
+	edisonn struct {
 		*usb
 		ip string
 	}
 
 	// NanoPi mount type
-	nanoPi struct {
+	nanoPii struct {
 		*sd
 	}
 
 	// BeagleBone mount type
-	beagleBone struct {
+	beagleBon struct {
 		*sd
 	}
 )
@@ -124,12 +124,6 @@ type SetDevice interface {
 func Init(typeFlag string) (err error) {
 	log.Info("DeviceInit")
 	log.Debug("Flag: ", typeFlag)
-
-	devices := [...]string{
-		constants.DEVICE_TYPE_RASPBERRY,
-		constants.DEVICE_TYPE_EDISON,
-		constants.DEVICE_TYPE_NANOPI,
-		constants.DEVICE_TYPE_BEAGLEBONE}
 
 	var deviceType string
 
@@ -174,13 +168,13 @@ func NewSetDevice(d string) SetDevice {
 
 	switch d {
 	case constants.DEVICE_TYPE_RASPBERRY:
-		return &raspberryPi{&sd{w}}
+		return &raspberryPii{&sd{w}}
 	case constants.DEVICE_TYPE_EDISON:
-		return &edison{&usb{w}, constants.DEFAULT_EDISON_IP}
+		return &edisonn{&usb{w}, constants.DEFAULT_EDISON_IP}
 	case constants.DEVICE_TYPE_NANOPI:
-		return &nanoPi{&sd{w}}
+		return &nanoPii{&sd{w}}
 	case constants.DEVICE_TYPE_BEAGLEBONE:
-		return &beagleBone{&sd{w}}
+		return &beagleBon{&sd{w}}
 	default:
 		return w
 	}
@@ -441,11 +435,11 @@ func deleteHost(fileName, host string) error {
 }
 
 // Creates custom virtualbox specs
-func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine, string, string, error) {
+func setVbox(v *vbox.Config, conf, device string) (*virtualbox.Machine, string, string, error) {
 	err := vbox.StopMachines()
 	help.ExitOnError(err)
 
-	vboxs := v.Enable(conf, template, device)
+	vboxs := v.Enable(conf, vbox.VBoxName, device)
 	n := selectVboxInit(conf, vboxs)
 
 	switch n {
@@ -462,7 +456,7 @@ func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine
 		fallthrough
 	case VBoxTypeUser:
 		// select virtual machine
-		vboxs := v.Enable(conf, template, device)
+		vboxs := v.Enable(conf, vbox.VBoxName, device)
 		result := vbox.Select(vboxs)
 
 		// modify virtual machine
@@ -476,7 +470,7 @@ func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine
 	default:
 		fallthrough
 	case VBoxTypeDefault:
-		m, err := virtualbox.GetMachine(template)
+		m, err := virtualbox.GetMachine(vbox.VBoxName)
 		return m, m.Name, "", err
 	}
 }
@@ -504,13 +498,13 @@ func selectVboxInit(conf string, v []vbox.Config) int {
 }
 
 // Starts a vbox, inits repository, downloads the image into repository, then uploads and unpacks it into the vbox
-func vboxDownloadImage(wg *sync.WaitGroup, vBoxTemplate, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.Config, string) {
+func vboxDownloadImage(wg *sync.WaitGroup, deviceType string) (*virtualbox.Machine, workstation.WorkStation, *vbox.Config, string) {
 	w := workstation.NewWorkStation()
 	help.ExitOnError(vbox.CheckDeps("VBoxManage"))
 
 	conf := filepath.Join(help.UserHomeDir(), ".iotit", "virtualbox", "iotit-vbox.json")
-	v := vbox.NewConfig(vBoxTemplate, deviceType)
-	vm, name, description, err := setVbox(v, conf, vBoxTemplate, deviceType)
+	v := vbox.NewConfig(deviceType)
+	vm, name, description, err := setVbox(v, conf, deviceType)
 	help.ExitOnError(err)
 
 	if vm.State != virtualbox.Running {

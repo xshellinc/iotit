@@ -9,11 +9,20 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
+
+const (
+	VBoxName     = "iotit-box"
+
+	VBoxIP           = "localhost"
+	VBoxUser         = "root"
+	VBoxPassword     = ""
+	VBoxSSHPort      = "2222"
+)
+
 
 type (
 	// Config represents Vbox parameters with ssh and http configurations
@@ -75,10 +84,10 @@ func (o OnOff) String() string {
 
 // NewConfig returns new VirtualBox wrapper, containing helper functions to copy into vbox and dowload from it
 // Run commands over ssh and get Virtual box configuration files
-func NewConfig(template, device string) *Config {
-	err := CheckMachine(template, device)
+func NewConfig(device string) *Config {
+	err := CheckMachine(VBoxName)
 	help.ExitOnError(err)
-	m, err := virtualbox.GetMachine(template)
+	m, err := virtualbox.GetMachine(VBoxName)
 	help.ExitOnError(err)
 
 	return &Config{
@@ -99,14 +108,10 @@ func NewConfig(template, device string) *Config {
 			},
 		},
 		SSH: SSHConfig{
-			IP:       lib.TemplateIP,
-			User:     lib.TemplateUser,
-			Password: lib.TemplatePassword,
-			Port:     lib.TemplateSSHPort,
-		},
-		HTTP: HTTPConfig{
-			URL:  lib.TemplateURL,
-			Port: lib.TemplateHTTPPort,
+			IP:       VBoxIP,
+			User:     VBoxUser,
+			Password: VBoxPassword,
+			Port:     VBoxSSHPort,
 		},
 	}
 }

@@ -168,15 +168,9 @@ func initCommands() {
 			fmt.Println("[+]", progName, " is updated")
 		}
 
-		if name, b := vbox.CheckUpdate("sd"); b {
-			if dialogs.YesNoDialog("Would you like to update sdVbox?") {
-				vbox.Update(name)
-			}
-		}
-
-		if name, b := vbox.CheckUpdate("edison"); b {
-			if dialogs.YesNoDialog("Would you like to update edisonVbox?") {
-				vbox.Update(name)
+		if vbox.CheckUpdate() {
+			if dialogs.YesNoDialog("Would you like to update vbox?") {
+				vbox.Update()
 			}
 		}
 	}
