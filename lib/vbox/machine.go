@@ -111,85 +111,8 @@ func CheckMachine(machine string) error {
 }
 
 // Update virtualbox image
-func Update() (err error) {
+func Update() error {
 	log.Debug("Virtual Machine Update func()")
-	update()
-	return nil
-}
-
-// CheckDeps checks for virtualbox dependencies
-func CheckDeps(pkg string) error {
-	err := exec.Command("which", pkg).Run()
-	if err != nil {
-		log.Error("Error while running `which` : ", err.Error())
-		return fmt.Errorf("[-] Could not find virtualbox, please install virtualbox")
-	}
-	out, _ := exec.Command("VBoxManage", "list", "extpacks").Output()
-
-	match, _ := regexp.MatchString(".*Oracle VM VirtualBox Extension Pack.*", string(out))
-	if !match {
-		return fmt.Errorf("[-] Could not find virtualbox extension pack, please install virtualbox extension pack, try")
-	}
-	return nil
-}
-
-// CheckUpdate checks for virtualbox image updates
-func CheckUpdate() bool {
-	log.Debug("Check Update func()")
-
-	err := CheckDeps("VBoxManage")
-	help.ExitOnError(err)
-
-	var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
-	var vboxDir = filepath.Join(baseDir, "virtualbox")
-	var repository repo.Repository
-	var currentVersion string
-	var comparison = func(s string, width int) (int64, error) {
-		strList := strings.Split(s, ".")
-		format := fmt.Sprintf("%%s%%0%ds", width)
-		v := ""
-		for _, value := range strList {
-			v = fmt.Sprintf(format, v, value)
-		}
-		var result int64
-		var err error
-		result, err = strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return result, nil
-	}
-
-	repository, err = repo.NewRepositoryVM()
-	help.ExitOnError(err)
-
-	if !fileExists(repository.Dir()) {
-		fmt.Println("[+] could not find the virtual machine, lease execute `iotit`")
-	}
-
-	newVersion := repository.GetVersion()
-
-	out, err := pipeline.Output(
-		[]string{"ls", filepath.Join(vboxDir, "edison")},
-		[]string{"sort", "-n"},
-		[]string{"tail", "-1"},
-	)
-	help.ExitOnError(err)
-	currentVersion = strings.Trim(string(out), "\n")
-
-	c, err := comparison(currentVersion, 3)
-	help.ExitOnError(err)
-	n, err := comparison(newVersion, 3)
-	help.ExitOnError(err)
-
-	if c < n {
-		return true
-	}
-
-	return false
-}
-
-func update() {
 	var wg sync.WaitGroup
 
 	bars := make([]*pb.ProgressBar, 0)
@@ -312,6 +235,79 @@ func update() {
 		conf := filepath.Join(help.UserHomeDir(), ".iotit", "virtualbox", "iotit-vbox.json")
 		os.Remove(conf)
 	}
+	return nil
+}
+
+// CheckDeps checks for virtualbox dependencies
+func CheckDeps(pkg string) error {
+	err := exec.Command("which", pkg).Run()
+	if err != nil {
+		log.Error("Error while running `which` : ", err.Error())
+		return fmt.Errorf("[-] Could not find virtualbox, please install virtualbox")
+	}
+	out, _ := exec.Command("VBoxManage", "list", "extpacks").Output()
+
+	match, _ := regexp.MatchString(".*Oracle VM VirtualBox Extension Pack.*", string(out))
+	if !match {
+		return fmt.Errorf("[-] Could not find virtualbox extension pack, please install virtualbox extension pack, try")
+	}
+	return nil
+}
+
+// CheckUpdate checks for virtualbox image updates
+func CheckUpdate() bool {
+	log.Debug("Check Update func()")
+
+	err := CheckDeps("VBoxManage")
+	help.ExitOnError(err)
+
+	var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
+	var vboxDir = filepath.Join(baseDir, "virtualbox")
+	var repository repo.Repository
+	var currentVersion string
+	var comparison = func(s string, width int) (int64, error) {
+		strList := strings.Split(s, ".")
+		format := fmt.Sprintf("%%s%%0%ds", width)
+		v := ""
+		for _, value := range strList {
+			v = fmt.Sprintf(format, v, value)
+		}
+		var result int64
+		var err error
+		result, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return result, nil
+	}
+
+	repository, err = repo.NewRepositoryVM()
+	help.ExitOnError(err)
+
+	if !fileExists(repository.Dir()) {
+		fmt.Println("[+] could not find the virtual machine, lease execute `iotit`")
+	}
+
+	newVersion := repository.GetVersion()
+
+	out, err := pipeline.Output(
+		[]string{"ls", filepath.Join(vboxDir, "edison")},
+		[]string{"sort", "-n"},
+		[]string{"tail", "-1"},
+	)
+	help.ExitOnError(err)
+	currentVersion = strings.Trim(string(out), "\n")
+
+	c, err := comparison(currentVersion, 3)
+	help.ExitOnError(err)
+	n, err := comparison(newVersion, 3)
+	help.ExitOnError(err)
+
+	if c < n {
+		return true
+	}
+
+	return false
 }
 
 // StopMachines stops running machines

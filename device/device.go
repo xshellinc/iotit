@@ -121,7 +121,7 @@ type SetDevice interface {
 }
 
 // Init starts init process, either by receiving `typeFlag` or providing a user to choose from a list
-func Init(typeFlag string) (err error) {
+func Init(typeFlag string) {
 	log.Info("DeviceInit")
 	log.Debug("Flag: ", typeFlag)
 
@@ -141,18 +141,19 @@ func Init(typeFlag string) (err error) {
 
 	fmt.Println("[+] flashing", deviceType)
 
-	switch deviceType {
-	case constants.DEVICE_TYPE_RASPBERRY:
-		return initRasp()
-	case constants.DEVICE_TYPE_EDISON:
-		return initEdison()
-	case constants.DEVICE_TYPE_NANOPI:
-		return initNanoPI()
-	case constants.DEVICE_TYPE_BEAGLEBONE:
-		return initBeagleBone()
+	df, err := New(deviceType)
+	if err != nil {
+		fmt.Println("[-] Error: ", err)
+		return
 	}
-
-	return nil
+	//if err := df.PrepareForFlashing(); err != nil {
+	//	fmt.Println("[-] Error: ", err)
+	//	return
+	//}
+	if err := df.Configure(); err != nil {
+		fmt.Println("[-] Error: ", err)
+		return
+	}
 }
 
 // NewSetDevice creates new device structure for particular device
@@ -306,43 +307,6 @@ func (d *device) SetInterfaces(i Interfaces) error {
 	return nil
 }
 
-// @todo make installation from the isaax repo, copy deb packages and install on the first startup
-// Notifies user if they wants to install default software package
-func (d *device) InitPrograms() error {
-	tmpfile := filepath.Join(constants.TMP_DIR, "rc.local.ext")
-
-	softwareList := []string{
-		"curl",
-		"bluez",
-		"iptables",
-		"openssh-server",
-		"openssh-client",
-		"locales",
-		"tzdata",
-		"sudo",
-		"bash",
-		"unzip",
-		"tar",
-		"find",
-		"nano",
-		"git",
-	}
-
-	fmt.Print("  [+]")
-	fmt.Print(strings.Join(softwareList, "\n  [+]"))
-	fmt.Println()
-
-	if dialogs.YesNoDialog("Would you like to install basic software for your device?") {
-		conf := "apt-get update && apt-get install -y " + strings.Join(softwareList[:], " ") + "\nexit 0"
-		if err := help.WriteToFile(conf, tmpfile); err != nil {
-			return err
-		}
-		d.files = append(d.files, tmpfile)
-	}
-
-	return nil
-}
-
 // Setup board notification which then triggers setLocale, setWifi, setKeyBoard, InitPrograms, SetInterface methods
 func (d *device) SetConfig() error {
 
@@ -366,10 +330,6 @@ func (d *device) SetConfig() error {
 		if err := d.SetInterfaces(*ifaces); err != nil {
 			return err
 		}
-
-		if err := d.InitPrograms(); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -383,19 +343,19 @@ func (d *device) Upload(vbox *vbox.Config) error {
 				fmt.Println("[+] Uploading file : ", file)
 				switch help.FileName(file) {
 				case "wpa_supplicant.conf":
-					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "wpa_supplicant"))
+					err := vbox.SSH.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "wpa_supplicant"))
 					os.Remove(file)
 					if err != nil {
 						return err
 					}
 				case "interfaces":
-					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "network"))
+					err := vbox.SSH.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "network"))
 					os.Remove(file)
 					if err != nil {
 						return err
 					}
 				default:
-					err := vbox.SCP(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc"))
+					err := vbox.SSH.Scp(file, filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc"))
 					os.Remove(file)
 					if err != nil {
 						return err
@@ -435,7 +395,8 @@ func deleteHost(fileName, host string) error {
 }
 
 // Creates custom virtualbox specs
-func setVbox(v *vbox.Config, conf, device string) (*virtualbox.Machine, string, string, error) {
+func setVbox(v *vbox.Config, device string) (*virtualbox.Machine, string, string, error) {
+	conf := filepath.Join(repo.VboxDir, vbox.VBoxConf)
 	err := vbox.StopMachines()
 	help.ExitOnError(err)
 
@@ -502,9 +463,8 @@ func vboxDownloadImage(wg *sync.WaitGroup, deviceType string) (*virtualbox.Machi
 	w := workstation.NewWorkStation()
 	help.ExitOnError(vbox.CheckDeps("VBoxManage"))
 
-	conf := filepath.Join(help.UserHomeDir(), ".iotit", "virtualbox", "iotit-vbox.json")
 	v := vbox.NewConfig(deviceType)
-	vm, name, description, err := setVbox(v, conf, deviceType)
+	vm, name, description, err := setVbox(v, deviceType)
 	help.ExitOnError(err)
 
 	if vm.State != virtualbox.Running {
@@ -525,37 +485,39 @@ func vboxDownloadImage(wg *sync.WaitGroup, deviceType string) (*virtualbox.Machi
 		wg.Wait()
 	}
 
-	repository, err := repo.NewRepository(deviceType)
-	help.ExitOnError(err)
-	dst := filepath.Join(repository.Dir(), repository.GetVersion())
+	//repository, err := repo.NewRepository(deviceType)
+	//help.ExitOnError(err)
+	//dst := filepath.Join(repository.Dir(), repository.GetVersion())
+	//
+	//fmt.Println("[+] Starting download ", deviceType)
+	//zipName, bar, err := repo.DownloadAsync(repository, wg)
+	//help.ExitOnError(err)
+	//
+	//bar.Prefix(fmt.Sprintf("[+] Download %-15s", zipName))
+	//bar.Start()
+	//wg.Wait()
+	//bar.Finish()
+	//time.Sleep(time.Second * 2)
+	//
+	//err = deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
+	//if err != nil {
+	//	log.Error(err)
+	//}
+	//
+	//// 4. upload edison img
+	//fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
+	//err = v.SCP(filepath.Join(dst, zipName), constants.TMP_DIR)
+	//help.ExitOnError(err)
+	//
+	//// 5. unzip edison img (in VM)
+	//fmt.Printf("[+] Extracting %s \n", zipName)
+	//log.Debug("Extracting an image")
+	//out, err := v.RunOverSSHExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
+	//help.ExitOnError(err)
+	//
+	//log.Debug(out)
 
-	fmt.Println("[+] Starting download ", deviceType)
-	zipName, bar, err := repo.DownloadAsync(repository, wg)
-	help.ExitOnError(err)
-
-	bar.Prefix(fmt.Sprintf("[+] Download %-15s", zipName))
-	bar.Start()
-	wg.Wait()
-	bar.Finish()
-	time.Sleep(time.Second * 2)
-
-	err = deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
-	if err != nil {
-		log.Error(err)
-	}
-
-	// 4. upload edison img
-	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	err = v.SCP(filepath.Join(dst, zipName), constants.TMP_DIR)
-	help.ExitOnError(err)
-
-	// 5. unzip edison img (in VM)
-	fmt.Printf("[+] Extracting %s \n", zipName)
-	log.Debug("Extracting an image")
-	out, err := v.RunOverSSHExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
-	help.ExitOnError(err)
-
-	log.Debug(out)
+	zipName := "eba.its.me"
 
 	str := strings.Split(zipName, ".")
 

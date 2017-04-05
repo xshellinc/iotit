@@ -2,11 +2,21 @@ package device
 
 import (
 	"fmt"
-	"github.com/xshellinc/tools/dialogs"
-	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/xshellinc/tools/lib/help"
 	"os"
+
+	"time"
+
+	"os/exec"
+	"path/filepath"
+
+	"strings"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
+	"github.com/xshellinc/tools/lib/sudo"
 )
 
 const (
@@ -28,18 +38,19 @@ type edison struct {
 	*deviceFlasher
 }
 
-func (d *edison) PrepareVbox() error {
+func (d *edison) PrepareForFlashing() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		return d.deviceFlasher.PrepareVbox()
+		return d.deviceFlasher.PrepareForFlashing()
 	}
 
 	return nil
 }
 
 func (d *edison) Configure() error {
-	for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {}
+	for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {
+	}
 
 	for {
 		script := "flashall.sh"
@@ -63,6 +74,172 @@ func (d *edison) Configure() error {
 		}
 
 		break
+	}
+
+	if err := vbox.Stop(d.vbox.UUID); err != nil {
+		logrus.Error(err)
+	}
+
+	progress := make(chan bool)
+	go func() {
+		defer close(progress)
+		time.Sleep(120 * time.Second)
+	}()
+
+	help.WaitAndSpin("Configuring edison", progress)
+	<-progress
+
+	setConfig()
+
+	fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("*\t\t WARNNING!!  \t\t\t\t\t\t\t\t\t   *")
+	fmt.Println("*\t\t IF YOUR EDISON BOARD IS CONNECTED TO YOUR MACHINE, PLEASE DISCONNECT IT!  \t   *")
+	fmt.Println("*\t\t PLEASE FOLLOW THE INSTRUCTIONS! \t\t\t\t\t\t   *")
+	fmt.Println(strings.Repeat("*", 100))
+
+	return nil
+}
+
+func setConfig() error {
+	// get IP
+	var ip string
+
+	i := dialogs.SelectOneDialog("Chose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
+	fallback := false
+
+	if i == 0 {
+		ifaces, err := help.LocalIfaces()
+
+		if err != nil || len(ifaces) == 0 {
+			logrus.Error(err)
+			fmt.Println("[-] ", err.Error())
+			fallback = true
+		}
+
+		if !fallback {
+			arr := make([]string, len(ifaces))
+			arrSel := make([]string, len(ifaces))
+			for i, iface := range ifaces {
+				arr[i] = iface.Name
+				arrSel[i] = iface.Name
+				if iface.Ipv4[:4] == "169." {
+					arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
+					fmt.Println("[+] The highlighted interface is our heuristic guess")
+				}
+			}
+
+			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
+
+			if out, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
+				fallback = true
+			}
+
+			ip = "192.168.2.15"
+		}
+	}
+
+	if i == 1 || fallback {
+		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
+		ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
+	}
+
+	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), ip); err != nil {
+		logrus.Error(err)
+	}
+
+	time.Sleep(time.Second * 4)
+
+	if err := setEdisonInterfaces(*ifaces, ip); err != nil {
+		return err
+	}
+
+	args := []string{
+		"root@" + ip,
+		"-t",
+		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
+	}
+
+	if err := help.ExecStandardStd("ssh", args...); err != nil {
+		return err
+	}
+
+	base := filepath.Join(constants.TMP_DIR, baseConf)
+	baseConf := baseFeeds
+	help.WriteToFile(baseConf, base)
+	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(base)
+
+	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
+	iotdkConf := intelIotdk
+	help.WriteToFile(iotdkConf, iotdk)
+	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(iotdk)
+
+	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
+		return err
+	}
+
+	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// Set up Interface values
+func setEdisonInterfaces(i Interfaces, ip string) error {
+
+	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
+
+		// assign static ip
+		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
+
+		for {
+			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+				i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
+
+			if dialogs.YesNoDialog("Change values?") {
+				setInterfaces(&i)
+
+				args1 := []string{
+					"root@" + ip,
+					"-t",
+					fmt.Sprintf("sed -i.bak -e '53 s/.*/ifconfig $IFNAME %s netmask %s/g' /etc/wpa_supplicant/wpa_cli-actions.sh",
+						i.Address, i.Netmask),
+				}
+				args2 := []string{
+					"root@" + ip,
+					"-t",
+					fmt.Sprintf("sed -i -e '54i route add default gw %s' /etc/wpa_supplicant/wpa_cli-actions.sh",
+						i.Gateway),
+				}
+				args3 := []string{
+					"root@" + ip,
+					"-t",
+					fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.RESOLV_CONF),
+				}
+
+				if err := help.ExecStandardStd("ssh", args1...); err != nil {
+					return err
+				}
+
+				if err := help.ExecStandardStd("ssh", args2...); err != nil {
+					return err
+				}
+
+				if err := help.ExecStandardStd("ssh", args3...); err != nil {
+					return err
+				}
+			} else {
+				break
+			}
+		}
 	}
 
 	return nil

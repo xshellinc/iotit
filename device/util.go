@@ -80,3 +80,28 @@ func setIP(i *Interfaces) bool {
 
 	return true
 }
+
+func getExtractCommand(file string) string {
+	if hasAnySuffixes(file, ".tar.gz", ".tgz", ".tar.bz2", ".tbz") {
+		return "tar xvf %s -C %s"
+	}
+	if strings.HasSuffix(file, ".xz") {
+		file = file[:len(file)-3]
+		return "xz -dc %s > %s" + file + " && echo " + file
+	}
+	if strings.HasSuffix(file, ".zip") {
+		return "unzip %s -d %s"
+	}
+
+	return ""
+}
+
+func hasAnySuffixes(file string, suffix ...string) bool {
+	for _, s := range suffix {
+		if strings.HasSuffix(file, s) {
+			return true
+		}
+	}
+
+	return false
+}

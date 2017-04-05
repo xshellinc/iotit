@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/pkg/errors"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
@@ -17,38 +18,34 @@ import (
 )
 
 type DeviceFlasher interface {
-	PrepareVbox() error
+	PrepareForFlashing() error
 	Configure() error
 }
 
 type deviceFlasher struct {
-	vbox     *virtualbox.Machine
-	conf     *vbox.Config
-	fileName string
-	device   string
+	vbox    *virtualbox.Machine
+	conf    *vbox.Config
+	devRepo *repo.DeviceMapping
+
+	img    string
+	device string
 }
 
-func (d *deviceFlasher) PrepareVbox() error {
-	var (
-		name, description string
-		err               error
-	)
+func (d *deviceFlasher) PrepareForFlashing() error {
+	var name, description string
+	var err error
+	wg := &sync.WaitGroup{}
 
 	if err = vbox.CheckDeps("VBoxManage"); err != nil {
 		return err
 	}
 
-	conf := filepath.Join(help.UserHomeDir(), ".iotit", "virtualbox", "iotit-vbox.json")
-
 	d.conf = vbox.NewConfig(d.device)
-
 	// @todo change name and description
-	d.vbox, name, description, err = setVbox(d.conf, conf, d.device)
+	d.vbox, name, description, err = setVbox(d.conf, d.device)
 	if err != nil {
 		return err
 	}
-
-	wg := &sync.WaitGroup{}
 
 	if d.vbox.State != virtualbox.Running {
 		fmt.Printf("[+] Selected virtual machine \n\t[\x1b[34mName\x1b[0m] - \x1b[34m%s\x1b[0m\n\t[\x1b[34mDescription\x1b[0m] - \x1b[34m%s\x1b[0m\n",
@@ -61,22 +58,17 @@ func (d *deviceFlasher) PrepareVbox() error {
 
 			err := d.vbox.Start()
 			help.ExitOnError(err)
-			time.Sleep(20 * time.Second)
+			time.Sleep(45 * time.Second)
 		}(progress)
 
+		// @todo replace wait and spin
 		help.WaitAndSpin("starting", progress)
 		wg.Wait()
 	}
 
-	repository, err := repo.NewRepository(d.device)
-	if err != nil {
-		return err
-	}
-
-	dst := filepath.Join(repository.Dir(), repository.GetVersion())
-
 	fmt.Println("[+] Starting download ", d.device)
-	zipName, bar, err := repo.DownloadAsync(repository, wg)
+
+	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Url, d.devRepo.Dir(), 3, wg)
 	if err != nil {
 		return err
 	}
@@ -92,30 +84,38 @@ func (d *deviceFlasher) PrepareVbox() error {
 		logrus.Error(err)
 	}
 
-	// 4. upload edison img
 	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	if err = d.conf.SCP(filepath.Join(dst, zipName), constants.TMP_DIR); err != nil {
+	if err = d.conf.SSH.Scp(filepath.Join(d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
 		return err
 	}
 
-	// 5. unzip edison img (in VM)
 	fmt.Printf("[+] Extracting %s \n", zipName)
 	logrus.Debug("Extracting an image")
-	out, err := d.conf.RunOverSSHExtendedPeriod(fmt.Sprintf("unzip %s -d %s", filepath.Join(constants.TMP_DIR, zipName), constants.TMP_DIR))
+	command := fmt.Sprintf(getExtractCommand(zipName), help.AddPathSuffix(constants.TMP_DIR, zipName, "unix"), constants.TMP_DIR)
+	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
+	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
+		fmt.Println("[-] ", eut)
 		return err
 	}
 
 	logrus.Debug(out)
 
-	// @todo add unzipped answer
-	str := strings.Split(zipName, ".")
-	d.fileName = strings.Join(str[:len(str)-1], ".") + ".img"
+	for _, raw := range strings.Split(out, " ") {
+		s := strings.TrimSpace(raw)
+		if s != "" && strings.HasSuffix(s, ".img") {
+			d.img = s
+		}
+	}
+
+	if d.img == "" {
+		return errors.New("Image not found, please check if the repo is valid")
+	}
 
 	return nil
 }
 
 func (d *deviceFlasher) Configure() error {
-	fmt.Println("standard")
+	fmt.Println("Mock, nothing to configure")
 	return nil
 }

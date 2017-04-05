@@ -14,8 +14,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
 )
@@ -32,14 +30,19 @@ const (
 	Stable = "stable"
 )
 
+// baseDir is a directory of iotit related files and configurations
 var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
-var imageDir = filepath.Join(baseDir, "images")
-var vboxDir = filepath.Join(baseDir, "virtualbox")
+
+// vboxDir is a directory of virtualboxes
+var VboxDir = filepath.Join(baseDir, "virtualbox")
+
+// ImageDir is a directory of the flashing images
+var ImageDir = filepath.Join(baseDir, "images")
 
 func init() {
 	help.CreateDir(baseDir)
-	help.CreateDir(imageDir)
-	help.CreateDir(vboxDir)
+	help.CreateDir(ImageDir)
+	help.CreateDir(VboxDir)
 }
 
 // Repository represents image repo
@@ -54,187 +57,12 @@ type Repository interface {
 	Dir() string
 }
 
-type (
-	// Raspberry image
-	Raspberry struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// Edison image
-	Edison struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// Beaglebone image
-	Beaglebone struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// Nanopi image
-	Nanopi struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// Chirimen image
-	Chirimen struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	}
-	// GenericRepository is so generic
-	GenericRepository struct {
-		Version   string
-		URL       string
-		Directory string
-	}
-)
-
-// S3Repository is a configuration entry for all images
-type S3Repository struct {
-	Raspberry  `json:"raspberry"`
-	Edison     `json:"edison"`
-	Beaglebone `json:"beaglebone"`
-	Nanopi     `json:"nanopi"`
-	Chirimen   `json:"chirimen"`
+// GenericRepository is so generic
+type GenericRepository struct {
+	Version   string
+	URL       string
+	Directory string
 }
-
-/*
-	Raspberry Repository
-*/
-
-// GetVersion of RaspberryPI image
-func (r *Raspberry) GetVersion() string {
-	return r.Version
-}
-
-// GetURL of RaspberryPI image
-func (r *Raspberry) GetURL() string {
-	return r.URL
-}
-
-// Name of RaspberryPI image
-func (r *Raspberry) Name() string {
-	tokens := strings.Split(r.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-// Dir of RaspberryPI image
-func (r *Raspberry) Dir() string {
-	raspRepo := filepath.Join(imageDir, "raspberry")
-	help.CreateDir(raspRepo)
-	return raspRepo
-}
-
-/*
-	Edison Repository
-*/
-
-// GetVersion of Edison image
-func (r *Edison) GetVersion() string {
-	return r.Version
-}
-
-// GetURL of Edison image
-func (r *Edison) GetURL() string {
-	return r.URL
-}
-
-// Name of Edison image
-func (r *Edison) Name() string {
-	tokens := strings.Split(r.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-// Dir of Edison image
-func (r *Edison) Dir() string {
-	edisonRepo := filepath.Join(imageDir, "edison")
-	help.CreateDir(edisonRepo)
-	return edisonRepo
-}
-
-/*
-	NanoPi Repository
-*/
-
-// GetVersion of NanoPI image
-func (n *Nanopi) GetVersion() string {
-	return n.Version
-}
-
-// GetURL of NanoPI image
-func (n *Nanopi) GetURL() string {
-	return n.URL
-}
-
-// Dir of NanoPI image
-func (n *Nanopi) Dir() string {
-	raspRepo := filepath.Join(imageDir, "nanopi")
-	help.CreateDir(raspRepo)
-	return raspRepo
-}
-
-// Name of NanoPI image
-func (n *Nanopi) Name() string {
-	tokens := strings.Split(n.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-/*
-	Beaglebone Repository
-*/
-
-// GetVersion of Beaglebone image
-func (n *Beaglebone) GetVersion() string {
-	return n.Version
-}
-
-// GetURL of Beaglebone image
-func (n *Beaglebone) GetURL() string {
-	return n.URL
-}
-
-// Dir of Beaglebone image
-func (n *Beaglebone) Dir() string {
-	beagleRepo := filepath.Join(imageDir, "beaglebone")
-	help.CreateDir(beagleRepo)
-	return beagleRepo
-}
-
-// Name of Beaglebone image
-func (n *Beaglebone) Name() string {
-	tokens := strings.Split(n.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-/*
-	Chirimen Repository
-*/
-
-// GetVersion of Chirimen image
-func (c *Chirimen) GetVersion() string {
-	return c.Version
-}
-
-// GetURL of Chirimen image
-func (c *Chirimen) GetURL() string {
-	return c.URL
-}
-
-// Dir of Chirimen image
-func (c *Chirimen) Dir() string {
-	nanoPiRepo := filepath.Join(imageDir, "chirimen")
-	help.CreateDir(nanoPiRepo)
-	return nanoPiRepo
-}
-
-// Name of Chirimen image
-func (c *Chirimen) Name() string {
-	tokens := strings.Split(c.URL, "/")
-	return tokens[len(tokens)-1]
-}
-
-/*
-	Generic Repository
-*/
 
 // GetVersion of generic repo
 func (g *GenericRepository) GetVersion() string {
@@ -257,49 +85,13 @@ func (g *GenericRepository) Name() string {
 	return tokens[len(tokens)-1]
 }
 
-// NewRepository creates new repository for specified device type
-func NewRepository(deviceType string) (Repository, error) {
-	var (
-		client http.Client
-		url    = S3Bucket
-		repo   S3Repository
-	)
-
-	resp, err := client.Get(url)
-	if err != nil {
-		log.Error("Could not make GET request to url:", url, " error msg:", err.Error())
-		fmt.Println("[-] Could not connect to S3 bucket")
-		return nil, err
-	}
-	defer resp.Body.Close()
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&repo)
-	if err != nil {
-		log.Error("Could not unmarshall json struct ", "error msg:", err.Error())
-		return nil, err
-	}
-	switch deviceType {
-	case constants.DEVICE_TYPE_RASPBERRY:
-		return &repo.Raspberry, nil
-	case constants.DEVICE_TYPE_EDISON:
-		return &repo.Edison, nil
-	case constants.DEVICE_TYPE_NANOPI:
-		return &repo.Nanopi, nil
-	case constants.DEVICE_TYPE_BEAGLEBONE:
-		return &repo.Beaglebone, nil
-	default:
-		return nil, errors.New("unknown device type")
-	}
-
-}
-
 // S3RepositoryVM is a configuration entry for all VMs
 type VMRepo struct {
 	Vms struct {
-		Vm struct{
+		Vm struct {
 			Version string `json:"version"`
-			Url string `json:"url"`
-			MD5Sum string `json:"md5sum"`
+			Url     string `json:"url"`
+			MD5Sum  string `json:"md5sum"`
 		} `json:"vm-iotit"`
 	} `json:"vms"`
 }
@@ -316,7 +108,7 @@ func (v VMRepo) GetURL() string {
 
 // Dir of VM
 func (VMRepo) Dir() string {
-	return vboxDir
+	return VboxDir
 }
 
 // Name of VM
@@ -324,7 +116,6 @@ func (v VMRepo) Name() string {
 	tokens := strings.Split(v.Vms.Vm.Url, "/")
 	return tokens[len(tokens)-1]
 }
-
 
 // NewRepositoryVM creates new repository for specified VM type
 func NewRepositoryVM() (Repository, error) {
@@ -398,9 +189,7 @@ func DownloadNewVersion(name, version, dst string) (string, error) {
 			fmt.Println("[-] ", err)
 			return fileName, err
 		}
-	}
-
-	if err := exec.Command("unzip", "-o", dst+help.Separator()+fileName, "-d", dst).Run(); err != nil {
+	} else if err := exec.Command("unzip", "-o", dst+help.Separator()+fileName, "-d", dst).Run(); err != nil {
 		fmt.Println("[-] ", err)
 		return fileName, err
 	}
