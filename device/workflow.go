@@ -7,8 +7,10 @@ import (
 	"github.com/xshellinc/tools/dialogs"
 )
 
+// BadRepoError is an error message
 const BadRepoError = "Bad repository "
 
+// devices is a list of currently supported devices
 var devices = [...]string{
 	constants.DEVICE_TYPE_RASPBERRY,
 	constants.DEVICE_TYPE_EDISON,
@@ -16,6 +18,7 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_BEAGLEBONE,
 }
 
+// New triggers select repository methods and initializes a new deviceFlasher
 func New(device string) (DeviceFlasher, error) {
 	r, err := repo.GetDeviceRepo(device)
 	if err != nil && !repo.IsMissingRepoError(err) {
@@ -54,6 +57,7 @@ func New(device string) (DeviceFlasher, error) {
 	}
 }
 
+// selectDevice is a dialog to select a device if more than one, recursive function
 func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	var selected *repo.DeviceMapping
 	if len(mapping.Sub) > 1 {
@@ -67,6 +71,7 @@ func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	return selectDevice(selected)
 }
 
+// selectImage is a dialog to select an image from the list if more than one, null is returned if nothing is to return
 func selectImage(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	selected := selectDevice(mapping)
 
@@ -79,7 +84,7 @@ func selectImage(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 		n = dialogs.SelectOneDialog("Please select an image: ", selected.GetImageTitles())
 	}
 
-	selected.Url = selected.Images[n].Url
+	selected.Url = selected.Images[n]
 
 	return selected
 }

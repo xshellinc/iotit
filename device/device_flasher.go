@@ -18,11 +18,13 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
+// DeviceFlasher is an entity for flashing different devices
 type DeviceFlasher interface {
 	PrepareForFlashing() error
 	Configure() error
 }
 
+// deviceFlasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
 type deviceFlasher struct {
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
@@ -32,6 +34,7 @@ type deviceFlasher struct {
 	device string
 }
 
+// PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
 func (d *deviceFlasher) PrepareForFlashing() error {
 	var name, description string
 	var err error
@@ -69,7 +72,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 
 	fmt.Println("[+] Starting download ", d.device)
 
-	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Url, d.devRepo.Dir(), 3, wg)
+	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Url.Url, d.devRepo.Dir(), 3, wg)
 	if err != nil {
 		return err
 	}
@@ -80,7 +83,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 	bar.Finish()
 	time.Sleep(time.Second * 2)
 
-	err = deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
+	err = help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -92,7 +95,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 
 	fmt.Printf("[+] Extracting %s \n", zipName)
 	logrus.Debug("Extracting an image")
-	command := fmt.Sprintf(getExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
+	command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil || len(strings.TrimSpace(eut)) > 0 {
@@ -116,6 +119,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 	return nil
 }
 
+// Configure is a generic mock method
 func (d *deviceFlasher) Configure() error {
 	fmt.Println("Mock, nothing to configure")
 	return nil

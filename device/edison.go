@@ -145,7 +145,7 @@ func setConfig() error {
 		ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
 	}
 
-	if err := deleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), ip); err != nil {
+	if err := help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), ip); err != nil {
 		logrus.Error(err)
 	}
 

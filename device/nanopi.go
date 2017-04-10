@@ -2,7 +2,6 @@ package device
 
 import (
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -10,10 +9,12 @@ const (
 	nanoMount = "p2"
 )
 
+// nanoPi device
 type nanoPi struct {
 	*sdFlasher
 }
 
+// Configure overrides sdFlasher Configure() method with custom config
 func (d *nanoPi) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
@@ -21,7 +22,7 @@ func (d *nanoPi) Configure() error {
 	go func() {
 		defer job.Close()
 
-		if err := d.MountImg("p2"); err != nil {
+		if err := d.MountImg(nanoMount); err != nil {
 			job.Error(err)
 		}
 	}()
@@ -48,10 +49,4 @@ func (d *nanoPi) Configure() error {
 	}
 
 	return d.Done()
-}
-
-func (d *nanoPi) Done() error {
-	printDoneMessageSd(d.device, constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
-
-	return nil
 }

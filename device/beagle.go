@@ -2,7 +2,6 @@ package device
 
 import (
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -10,10 +9,12 @@ const (
 	beagleMount = "p1"
 )
 
+// beagleBone device
 type beagleBone struct {
 	*sdFlasher
 }
 
+// Configure overrides sdFlasher Configure() method with custom config
 func (d *beagleBone) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
@@ -21,7 +22,7 @@ func (d *beagleBone) Configure() error {
 	go func() {
 		defer job.Close()
 
-		if err := d.MountImg("p1"); err != nil {
+		if err := d.MountImg(beagleMount); err != nil {
 			job.Error(err)
 		}
 	}()
@@ -48,10 +49,4 @@ func (d *beagleBone) Configure() error {
 	}
 
 	return d.Done()
-}
-
-func (d *beagleBone) Done() error {
-	printDoneMessageSd(d.device, constants.DEFAULT_BEAGLEBONE_USERNAME, constants.DEFAULT_BEAGLEBONE_PASSWORD)
-
-	return nil
 }

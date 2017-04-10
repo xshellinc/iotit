@@ -5,6 +5,10 @@ import (
 
 	"errors"
 
+	"net"
+
+	"strconv"
+
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -16,19 +20,22 @@ const (
 	raspMount = "p2"
 )
 
+// raspberryPi device
 type raspberryPi struct {
 	*sdFlasher
 }
 
+// Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
-	//c.GetConfigFn(config.Interface) =
+
+	*(c.GetConfigFn(config.Interface)) = *config.NewConfigCallbackFn(configInterface, saveInterface)
 
 	go func() {
 		defer job.Close()
 
-		if err := d.MountImg("p2"); err != nil {
+		if err := d.MountImg(raspMount); err != nil {
 			job.Error(err)
 		}
 	}()
@@ -57,21 +64,18 @@ func (d *raspberryPi) Configure() error {
 	return d.Done()
 }
 
-func (d *raspberryPi) Done() error {
-	printDoneMessageSd(d.device, constants.DEFAULT_RASPBERRY_USERNAME, constants.DEFAULT_RASPBERRY_PASSWORD)
-
-	return nil
-}
-
+// interfaceConfig is a value for raspberryPi for dhcpcd.conf
 var interfaceConfig = `
+
 interface %s
-noipv6rs
-static ip_address=%s
-static routers=%s
-static domain_name_servers=%s
+	noipv6rs
+	static ip_address=%s
+	static routers=%s
+	static domain_name_servers=%s
 `
 
-func ConfigInterface(storage map[string]interface{}) error {
+// configInterface is a custom configInterface method uses interfaceConfig var
+func configInterface(storage map[string]interface{}) error {
 	device := []string{"eth0", "wlan0"}
 	i := config.Interfaces{
 		Address: "192.168.0.254",
@@ -92,11 +96,16 @@ func ConfigInterface(storage map[string]interface{}) error {
 			if dialogs.YesNoDialog("Change values?") {
 				config.SetInterfaces(&i)
 
-				storage[config.GetConstLiteral(config.Interface)] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+i.Netmask, i.Gateway, i.DNS)
-				fmt.Println("[+]  Ethernet interface configuration was updated")
+				mask, _ := net.IPMask(net.ParseIP(i.Netmask).To4()).Size()
 
-				storage[config.GetConstLiteral(config.Interface)] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+i.Netmask, i.Gateway, i.DNS)
-				fmt.Println("[+]  wifi interface configuration was updated")
+				storage[config.GetConstLiteral(config.Interface)] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+strconv.Itoa(mask), i.Gateway, i.DNS)
+
+				switch device[num] {
+				case "eth0":
+					fmt.Println("[+]  Ethernet interface configuration was updated")
+				case "wlan0":
+					fmt.Println("[+]  wifi interface configuration was updated")
+				}
 			} else {
 				break
 			}
@@ -106,6 +115,7 @@ func ConfigInterface(storage map[string]interface{}) error {
 	return nil
 }
 
+// saveInterface is a custom method and it saves Interfaces value into /etc/dhcpcd.conf
 func saveInterface(storage map[string]interface{}) error {
 
 	if _, ok := storage[config.GetConstLiteral(config.Interface)]; !ok {

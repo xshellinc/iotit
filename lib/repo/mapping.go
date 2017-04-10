@@ -21,20 +21,25 @@ func init() {
 	path = filepath.Join(baseDir, file)
 }
 
+// DeviceImage contains url, title, username and password which are used after flashing
 type DeviceImage struct {
 	Url   string `json`
 	Title string `json`
+	User  string `json`
+	Pass  string `json`
 }
 
+// DeviceMapping is a collection of device, it sub-types and sets of images for these devices
 type DeviceMapping struct {
 	Name   string           `json`
 	Sub    []*DeviceMapping `json`
 	Images []DeviceImage    `json`
 
 	dir string
-	Url string
+	Url DeviceImage
 }
 
+// GetSubsNames returns array of Names within a `Sub`
 func (d *DeviceMapping) GetSubsNames() []string {
 	r := make([]string, len(d.Sub))
 	for i, o := range d.Sub {
@@ -44,6 +49,7 @@ func (d *DeviceMapping) GetSubsNames() []string {
 	return r
 }
 
+// GetImageTitles returns array of image titles
 func (d *DeviceMapping) GetImageTitles() []string {
 	r := make([]string, len(d.Images))
 	for i, o := range d.Images {
@@ -53,14 +59,17 @@ func (d *DeviceMapping) GetImageTitles() []string {
 	return r
 }
 
+// Dir returns directory of a local repo `.iotit/images/{name}`
 func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
+// deviceCollection is a starting point of the collection of images
 type deviceCollection struct {
 	Devices []*DeviceMapping `json`
 }
 
+// findDevice searches device in the repo
 func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	for _, obj := range d.Devices {
 		obj.dir = obj.Name
@@ -73,10 +82,12 @@ func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	return nil, errors.New(missingRepo)
 }
 
+// SetPath of the mapping.json file
 func SetPath(p string) {
 	path = p
 }
 
+// GetDeviceRepo returns a devices repo. It checks the existance of mapping.json first then proceeds to the default variable
 func GetDeviceRepo(device string) (*DeviceMapping, error) {
 	dm := deviceCollection{}
 
@@ -102,6 +113,7 @@ func GetDeviceRepo(device string) (*DeviceMapping, error) {
 	return dm.findDevice(device)
 }
 
+// GenMappingFile generates mapping.json file
 func GenMappingFile() error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -114,6 +126,7 @@ func GenMappingFile() error {
 	return nil
 }
 
+// IsMissingRepoError checks error if error is caused by missingRepo
 func IsMissingRepoError(err error) bool {
 	if err.Error() == missingRepo {
 		return true
@@ -122,6 +135,7 @@ func IsMissingRepoError(err error) bool {
 	return false
 }
 
+// fillEmptyImages updates substructures' empty image arrays with the parent one
 func fillEmptyImages(m *DeviceMapping) {
 	if len(m.Images) != 0 {
 		for _, dm := range m.Sub {

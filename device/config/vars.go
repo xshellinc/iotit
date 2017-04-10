@@ -49,9 +49,9 @@ type SetDevice interface {
 	SetKeyborad() error
 	SetWifi() error
 	SetInterfaces(i Interfaces) error
-	//Upload(*vbox.Config) error
 }
 
+// SetInterfaces is a set of dialog to set user `Interfaces`
 func SetInterfaces(i *Interfaces) {
 	if !setIP(i) {
 		if dialogs.YesNoDialog("Do you want to try again?") {
@@ -66,11 +66,12 @@ func SetInterfaces(i *Interfaces) {
 	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", dialogs.IpAddressValidator)
 }
 
+// setIP detects entered ip address is already leased, by pinging it
 func setIP(i *Interfaces) bool {
 	wg := &sync.WaitGroup{}
 
 	loop := true
-	retries := 3
+	retries := 5
 
 	var ip string
 

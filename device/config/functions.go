@@ -10,6 +10,7 @@ import (
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
 
+// ConfigLocale is a default method to with dialog to configure the locale
 func ConfigLocale(storage map[string]interface{}) error {
 
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
@@ -31,6 +32,7 @@ func ConfigLocale(storage map[string]interface{}) error {
 	return nil
 }
 
+// SaveLocale is a default method to save locale into the image
 func SaveLocale(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(Locale)]; !ok {
@@ -53,6 +55,7 @@ func SaveLocale(storage map[string]interface{}) error {
 	return nil
 }
 
+// ConfigLocale is a default method to with dialog to configure the keymap
 func ConfigKeyboard(storage map[string]interface{}) error {
 
 	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
@@ -64,6 +67,7 @@ func ConfigKeyboard(storage map[string]interface{}) error {
 	return nil
 }
 
+// SaveKeyboard is a default method to save KEYMAP into the image
 func SaveKeyboard(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(Keymap)]; !ok {
@@ -86,6 +90,7 @@ func SaveKeyboard(storage map[string]interface{}) error {
 	return nil
 }
 
+// ConfigWifi is a dialog asking to configure wpa supplicant
 func ConfigWifi(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Would you like to configure your WI-Fi?") {
 		storage[GetConstLiteral(Wifi)+"_name"] = dialogs.GetSingleAnswer("WIFI SSID name: ", dialogs.EmptyStringValidator)
@@ -95,6 +100,7 @@ func ConfigWifi(storage map[string]interface{}) error {
 	return nil
 }
 
+// SaveWifi is a default method to save wpa_supplicant for the wifi connection
 func SaveWifi(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(Wifi)+"_name"]; !ok {
@@ -117,6 +123,7 @@ func SaveWifi(storage map[string]interface{}) error {
 	return nil
 }
 
+// ConfigInterface is a dialog asking to setup user Interfaces for the static ip functionality
 func ConfigInterface(storage map[string]interface{}) error {
 	device := []string{"eth0", "wlan0"}
 	i := Interfaces{
@@ -155,6 +162,7 @@ func ConfigInterface(storage map[string]interface{}) error {
 	return nil
 }
 
+// SaveInterface is a default method to save user Interfaces into the image
 func SaveInterface(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(Interface)]; !ok {
@@ -176,6 +184,7 @@ func SaveInterface(storage map[string]interface{}) error {
 	return nil
 }
 
+// ConfigSecondaryDns is a dialog asking to set 8.8.8.8 DNS
 func ConfigSecondaryDns(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
 		storage[GetConstLiteral(Dns)] = true
@@ -185,6 +194,7 @@ func ConfigSecondaryDns(storage map[string]interface{}) error {
 	return nil
 }
 
+// SaveInterface is a default method to set 8.8.8.8 as a secondary DNS
 func SaveSecondaryDns(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(Dns)]; !ok {

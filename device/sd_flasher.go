@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
@@ -14,6 +16,7 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
+// SdFlasher interface defines all methods for sdFlasher
 type SdFlasher interface {
 	MountImg() error
 	UnmountImg() error
@@ -21,10 +24,12 @@ type SdFlasher interface {
 	Done() error
 }
 
+// sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
 	*deviceFlasher
 }
 
+// MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
 	if loopMount == "" {
 		return errors.New("Application error: Nothing to mount")
@@ -69,8 +74,9 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	return nil
 }
 
+// UnmountImg is a method to unlink image folder and detach image from the loop
 func (d *sdFlasher) UnmountImg() error {
-	logrus.Debug("Unlinking tmp folder")
+	logrus.Debug("Unlinking image folder")
 	command := fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER)
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
@@ -91,6 +97,7 @@ func (d *sdFlasher) UnmountImg() error {
 	return nil
 }
 
+// Flash method is used to flash image into the sdcard
 func (d *sdFlasher) Flash() error {
 	logrus.Debug("Downloading an image from vbox")
 
@@ -134,11 +141,7 @@ func (d *sdFlasher) Flash() error {
 	return nil
 }
 
-func (d *sdFlasher) Done() error {
-	fmt.Println("Fashing is completed")
-	return nil
-}
-
+// Configure method overrides generic deviceFlasher method and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
@@ -173,4 +176,17 @@ func (d *sdFlasher) Configure() error {
 	}
 
 	return d.Done()
+}
+
+// Done prints out final success message
+func (d *sdFlasher) Done() error {
+	fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("*\t\t SD CARD READY!  \t\t\t\t\t\t\t\t   *")
+	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s \t\t\t\t\t   *\n", d.device)
+	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET \t\t   *")
+	fmt.Printf("*\t\t SSH USERNAME:\x1b[31m%s\x1b[0m PASSWORD:\x1b[31m%s\x1b[0m \t\t\t\t\t\t\t   *\n",
+		d.devRepo.Url.User, d.devRepo.Url.Pass)
+	fmt.Println(strings.Repeat("*", 100))
+
+	return nil
 }
