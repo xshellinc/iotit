@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -150,7 +151,14 @@ func setConfig() error {
 
 	time.Sleep(time.Second * 4)
 
-	if err := setEdisonInterfaces(*ifaces, ip); err != nil {
+	var ifaces = config.Interfaces{
+		Address: "192.168.0.254",
+		Netmask: "255.255.255.0",
+		Gateway: "192.168.0.1",
+		DNS:     "192.168.0.1",
+	}
+
+	if err := setEdisonInterfaces(ifaces, ip); err != nil {
 		return err
 	}
 
@@ -193,7 +201,7 @@ func setConfig() error {
 }
 
 // Set up Interface values
-func setEdisonInterfaces(i Interfaces, ip string) error {
+func setEdisonInterfaces(i config.Interfaces, ip string) error {
 
 	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
 
@@ -201,11 +209,11 @@ func setEdisonInterfaces(i Interfaces, ip string) error {
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
 		for {
-			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t [+] Network:%s\n\t [+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-				i.Address, i.Network, i.Gateway, i.Netmask, i.DNS)
+			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+				i.Address, i.Gateway, i.Netmask, i.DNS)
 
 			if dialogs.YesNoDialog("Change values?") {
-				setInterfaces(&i)
+				config.SetInterfaces(&i)
 
 				args1 := []string{
 					"root@" + ip,

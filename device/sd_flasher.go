@@ -4,20 +4,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/pkg/errors"
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
 type SdFlasher interface {
 	MountImg() error
-	Config() error
 	UnmountImg() error
 	Flash() error
 	Done() error
@@ -28,6 +26,9 @@ type sdFlasher struct {
 }
 
 func (d *sdFlasher) MountImg(loopMount string) error {
+	if loopMount == "" {
+		return errors.New("Application error: Nothing to mount")
+	}
 
 	logrus.Debug("Attaching an image")
 	command := fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, d.img))
@@ -36,7 +37,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		logrus.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out)
+	logrus.Debug(out, eut)
 
 	logrus.Debug("Creating tmp folder")
 	command = fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER)
@@ -45,25 +46,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		logrus.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out)
-
-	if loopMount == "" {
-		out, eut, err = d.conf.SSH.Run("ls /dev/loop0*")
-		if err != nil {
-			logrus.Error("[-] Error when execute: ", command, eut)
-			return err
-		}
-		logrus.Debug(out)
-
-		opts := strings.Split(out, "\n")
-
-		n := 0
-		if len(opts) > 1 {
-			n = dialogs.SelectOneDialog("Select correct mount", opts)
-		}
-
-		loopMount = strings.TrimSpace(opts[n])
-	}
+	logrus.Debug(out, eut)
 
 	logrus.Debug("Mounting tmp folder")
 	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.LINUX_MOUNT, loopMount, constants.GENERAL_MOUNT_FOLDER)
@@ -72,7 +55,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		logrus.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out)
+	logrus.Debug(out, eut)
 
 	logrus.Debug("Linking tmp folder")
 	command = fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
@@ -81,7 +64,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		logrus.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out)
+	logrus.Debug(out, eut)
 
 	return nil
 }
@@ -111,17 +94,18 @@ func (d *sdFlasher) UnmountImg() error {
 func (d *sdFlasher) Flash() error {
 	logrus.Debug("Downloading an image from vbox")
 
-	d.conf = vbox.NewConfig(d.device)
-
-	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix(constants.TMP_DIR, d.img, "unix"), filepath.Join(constants.TMP_DIR, d.img))
+	logrus.Debug("Copying files from vbox")
+	fmt.Println("[+] Copying files...")
+	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img), filepath.Join(constants.TMP_DIR, d.img))
 	if err != nil {
 		return err
 	}
 
 	w := workstation.NewWorkStation()
+	img := filepath.Join(constants.TMP_DIR, d.img)
 
 	logrus.Debug("Writing the image into sd card")
-	job, err := w.WriteToDisk(d.img)
+	job, err := w.WriteToDisk(img)
 	if err != nil {
 		return err
 	}
@@ -132,16 +116,14 @@ func (d *sdFlasher) Flash() error {
 	}
 
 	logrus.Debug("Removing sd from dir")
-	if err = os.Remove(d.img); err != nil {
+	if err = os.Remove(img); err != nil {
 		logrus.Error("[-] Can not remove image: " + err.Error())
 	}
 
-	err = w.Unmount()
-	if err != nil {
+	if err = w.Unmount(); err != nil {
 		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
-	err = w.Eject()
-	if err != nil {
+	if err = w.Eject(); err != nil {
 		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 
@@ -157,30 +139,11 @@ func (d *sdFlasher) Done() error {
 	return nil
 }
 
-func (d *sdFlasher) Config() error {
-	config := NewSetDevice(d.device)
-	err := config.SetConfig()
-
-	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
-		if _, eut, err := d.conf.SSH.Run(fmt.Sprintf(AddGoogleNameServerCmd, constants.GENERAL_MOUNT_FOLDER+"etc/dhcp/dhclient.conf")); err != nil {
-			logrus.Error("Error adding google dns ", "error msg:", eut)
-			return err
-		}
-	}
-
-	err = config.Upload(d.conf)
-
-	return err
-}
-
 func (d *sdFlasher) Configure() error {
-	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
+	c := config.NewDefault(d.conf.SSH)
 
-	wg.Add(1)
 	go func() {
-		fmt.Println("Running command conf sdFlash")
-		defer wg.Wait()
 		defer job.Close()
 
 		if err := d.MountImg(""); err != nil {
@@ -188,14 +151,19 @@ func (d *sdFlasher) Configure() error {
 		}
 	}()
 
-	if err := d.Config(); err != nil {
+	// setup while background process mounting img
+	if err := c.Setup(); err != nil {
 		return err
 	}
 
 	if err := help.WaitJobAndSpin("waiting", job); err != nil {
 		return err
 	}
-	wg.Wait()
+
+	// write configs that were setup above
+	if err := c.Write(); err != nil {
+		return err
+	}
 
 	if err := d.UnmountImg(); err != nil {
 		return err

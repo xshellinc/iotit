@@ -54,7 +54,6 @@ type (
 		XHCI OnOff `json:"3.0"`
 	}
 
-
 	// OnOff is just a bool with Stringer interface
 	OnOff bool
 )

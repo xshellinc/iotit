@@ -1,8 +1,7 @@
 package device
 
 import (
-	"sync"
-
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -16,27 +15,30 @@ type nanoPi struct {
 }
 
 func (d *nanoPi) Configure() error {
-	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
+	c := config.NewDefault(d.conf.SSH)
 
 	go func() {
-		defer wg.Wait()
 		defer job.Close()
-		wg.Add(1)
 
-		if err := d.MountImg(nanoMount); err != nil {
+		if err := d.MountImg("p2"); err != nil {
 			job.Error(err)
 		}
 	}()
 
-	if err := d.Config(); err != nil {
+	// setup while background process mounting img
+	if err := c.Setup(); err != nil {
 		return err
 	}
 
 	if err := help.WaitJobAndSpin("waiting", job); err != nil {
 		return err
 	}
-	wg.Wait()
+
+	// write configs that were setup above
+	if err := c.Write(); err != nil {
+		return err
+	}
 
 	if err := d.UnmountImg(); err != nil {
 		return err
@@ -49,7 +51,7 @@ func (d *nanoPi) Configure() error {
 }
 
 func (d *nanoPi) Done() error {
-	printDoneMessageSd("Nano PI", constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
+	printDoneMessageSd(d.device, constants.DEFAULT_NANOPI_USERNAME, constants.DEFAULT_NANOPI_PASSWORD)
 
 	return nil
 }

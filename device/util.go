@@ -2,12 +2,8 @@ package device
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
-	"sync"
-
-	"github.com/xshellinc/tools/dialogs"
-	"github.com/xshellinc/tools/lib/help"
-	"github.com/xshellinc/tools/lib/ping"
 )
 
 // Prints sd card flashed message
@@ -21,76 +17,16 @@ func printDoneMessageSd(device, username, password string) {
 	fmt.Println(strings.Repeat("*", 100))
 }
 
-// Prints flashed message over usb
-func printDoneMessageUsb() {
-	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t ALL DONE!  \t\t\t\t\t\t\t\t\t   *")
-	fmt.Println(strings.Repeat("*", 100))
-}
-
-// set interfaces dialog
-func setInterfaces(i *Interfaces) {
-	if !setIP(i) {
-		if dialogs.YesNoDialog("Do you want to try again?") {
-			setInterfaces(i)
-		}
-
-		return
-	}
-
-	i.Network = dialogs.GetSingleAnswer("Please enter your network: ", dialogs.IpAddressValidator)
-	i.Gateway = dialogs.GetSingleAnswer("Please enter your gateway: ", dialogs.IpAddressValidator)
-	i.Netmask = dialogs.GetSingleAnswer("Please enter your netmask: ", dialogs.IpAddressValidator)
-	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", dialogs.IpAddressValidator)
-}
-
-func setIP(i *Interfaces) bool {
-	wg := &sync.WaitGroup{}
-
-	loop := true
-	retries := 3
-
-	var ip string
-
-	for retries > 0 && loop {
-		ip = dialogs.GetSingleAnswer("IP address of the device: ", dialogs.IpAddressValidator)
-
-		progress := make(chan bool)
-		wg.Add(1)
-		go func(progress chan bool) {
-			defer close(progress)
-			defer wg.Done()
-
-			loop = !ping.PingIp(ip)
-			if loop {
-				fmt.Printf("\n[-] Sorry, a device with %s was already registered", i.Address)
-			}
-
-			retries--
-		}(progress)
-		help.WaitAndSpin("validating", progress)
-		wg.Wait()
-	}
-
-	if retries == 0 {
-		return false
-	}
-
-	i.Address = ip
-
-	return true
-}
-
 func getExtractCommand(file string) string {
-	if hasAnySuffixes(file, ".tar.gz", ".tgz", ".tar.bz2", ".tbz") {
+	if hasAnySuffixes(file, ".tar.gz", ".tgz", ".tar.bz2", ".tbz", ".tar.xz") {
 		return "tar xvf %s -C %s"
 	}
-	if strings.HasSuffix(file, ".xz") {
+	if strings.HasSuffix(file, "img.xz") {
 		file = file[:len(file)-3]
 		return "xz -dc %s > %s" + file + " && echo " + file
 	}
 	if strings.HasSuffix(file, ".zip") {
-		return "unzip %s -d %s"
+		return "unzip -o %s -d %s"
 	}
 
 	return ""
@@ -104,4 +40,25 @@ func hasAnySuffixes(file string, suffix ...string) bool {
 	}
 
 	return false
+}
+
+// delete host from ssh file or any other provided
+func deleteHost(fileName, host string) error {
+	result := []string{}
+	input, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(input), "\n")
+	for _, line := range lines {
+		if !strings.Contains(line, host) {
+			result = append(result, line)
+		}
+	}
+	output := strings.Join(result, "\n")
+
+	if err = ioutil.WriteFile(fileName, []byte(output), 0644); err != nil {
+		return err
+	}
+	return nil
 }

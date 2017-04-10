@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/Sirupsen/logrus"
 )
 
 const missingRepo = "Device repo is missing"
@@ -15,12 +13,12 @@ const missingRepo = "Device repo is missing"
 var path string
 
 func init() {
-	p, err := os.Executable()
-	if err != nil {
-		logrus.Error(err)
-	}
+	//p, err := os.Executable()
+	//if err != nil {
+	//	logrus.Error(err)
+	//}
 
-	path = filepath.Join(p, file)
+	path = filepath.Join(baseDir, file)
 }
 
 type DeviceImage struct {

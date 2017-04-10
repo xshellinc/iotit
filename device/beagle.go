@@ -1,8 +1,7 @@
 package device
 
 import (
-	"sync"
-
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -16,27 +15,30 @@ type beagleBone struct {
 }
 
 func (d *beagleBone) Configure() error {
-	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
+	c := config.NewDefault(d.conf.SSH)
 
 	go func() {
-		defer wg.Wait()
 		defer job.Close()
-		wg.Add(1)
 
-		if err := d.MountImg(beagleMount); err != nil {
+		if err := d.MountImg("p1"); err != nil {
 			job.Error(err)
 		}
 	}()
 
-	if err := d.Config(); err != nil {
+	// setup while background process mounting img
+	if err := c.Setup(); err != nil {
 		return err
 	}
 
 	if err := help.WaitJobAndSpin("waiting", job); err != nil {
 		return err
 	}
-	wg.Wait()
+
+	// write configs that were setup above
+	if err := c.Write(); err != nil {
+		return err
+	}
 
 	if err := d.UnmountImg(); err != nil {
 		return err
@@ -49,7 +51,7 @@ func (d *beagleBone) Configure() error {
 }
 
 func (d *beagleBone) Done() error {
-	printDoneMessageSd("Nano PI", constants.DEFAULT_BEAGLEBONE_USERNAME, constants.DEFAULT_BEAGLEBONE_PASSWORD)
+	printDoneMessageSd(d.device, constants.DEFAULT_BEAGLEBONE_USERNAME, constants.DEFAULT_BEAGLEBONE_PASSWORD)
 
 	return nil
 }

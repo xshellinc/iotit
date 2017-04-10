@@ -173,10 +173,6 @@ const (
 	    ],
 	    "Images":[
 	      {
-	      	"Url":"https://rcn-ee.com/rootfs/2017-03-09/elinux/ubuntu-16.04.2-console-armhf-2017-03-09.tar.xz",
-	      	"Title":"Ubuntu minimal"
-	      },
-	      {
 		"Url":"https://debian.beagleboard.org/images/bone-debian-8.7-lxqt-4gb-armhf-2017-03-19-4gb.img.xz",
 		"Title":"Debian with desktop"
 	      }

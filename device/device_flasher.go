@@ -1,15 +1,16 @@
 package device
 
 import (
+	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
@@ -42,7 +43,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
-	d.vbox, name, description, err = setVbox(d.conf, d.device)
+	d.vbox, name, description, err = vbox.SetVbox(d.conf, d.device)
 	if err != nil {
 		return err
 	}
@@ -85,16 +86,16 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 	}
 
 	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	if err = d.conf.SSH.Scp(filepath.Join(d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
+	if err = d.conf.SSH.Scp(help.AddPathSuffix("unix", d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
 		return err
 	}
 
 	fmt.Printf("[+] Extracting %s \n", zipName)
 	logrus.Debug("Extracting an image")
-	command := fmt.Sprintf(getExtractCommand(zipName), help.AddPathSuffix(constants.TMP_DIR, zipName, "unix"), constants.TMP_DIR)
+	command := fmt.Sprintf(getExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil {
+	if err != nil || len(strings.TrimSpace(eut)) > 0 {
 		fmt.Println("[-] ", eut)
 		return err
 	}
