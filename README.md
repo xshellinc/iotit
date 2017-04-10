@@ -72,6 +72,14 @@ GLOBAL OPTIONS:
    -version, -v        print the version
 ```
 
+VIRTUALBOX
+----------------
+During installation user can choose `default` virtualbox specs
+
+Alternatively user can create their own vbox spec by choosing `Create new virtual machine`.
+This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
+which is applied to `iotit-box`
+
 
 INTERNALS
 ----------------
