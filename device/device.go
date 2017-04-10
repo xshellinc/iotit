@@ -485,9 +485,9 @@ func setVbox(v *vbox.Config, conf, template, device string) (*virtualbox.Machine
 // the name of vbox doesn't change
 func selectVboxInit(conf string, v []vbox.Config) int {
 	opts := []string{
-		"Use default",
-		"Create new virtual machine",
-		"Use your virtual machine",
+		"Use default vbox preset",
+		"Create a new vbox preset",
+		"Use saved vbox preset",
 	}
 	optTypes := []int{
 		VBoxTypeDefault,

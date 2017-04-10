@@ -74,11 +74,11 @@ func (v *Config) MemoryDialog() {
 	if dialogs.YesNoDialog("Would you like to change virtual machine memory?") {
 
 		if v.Device == constants.DEVICE_TYPE_EDISON {
-			fmt.Println("[+] WARNING, please increase memory size to \x1b[34m1024\x1b[0m MB or more!")
+			fmt.Println("[+] WARNING, memory size should be \x1b[34m1024\x1b[0m MB or more!")
 		}
-		fmt.Print("[+] Change memory. Enter number:")
+		fmt.Print("[+] Change memory.")
 
-		v.Option.Memory = uint(dialogs.GetSingleNumber("Change memory. Enter number:", dialogs.PositiveNumber))
+		v.Option.Memory = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
 	}
 }
 
@@ -88,7 +88,7 @@ func (v *Config) CPUDialog() {
 
 	if dialogs.YesNoDialog("Would you like to change the number of virtual machine processor?") {
 		fmt.Println("[+] Change number of processor.")
-		v.Option.CPU = uint(dialogs.GetSingleNumber("Enter number:", dialogs.PositiveNumber))
+		v.Option.CPU = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
 	}
 }
 
@@ -102,13 +102,13 @@ func (v *Config) USBDialog() {
 		if v.Device == constants.DEVICE_TYPE_EDISON {
 			fmt.Println("[+] WARNING, if you set the USB type to \x1b[34m3.0\x1b[0m, it will be faster, but device init may fail.")
 		}
-		fmt.Println("[+] USB: ")
+		fmt.Println("[+] ohci USB 1.0: ")
 		v.Option.USB.USB = onoff()
 
-		fmt.Println("[+] USB 2.0: ")
+		fmt.Println("[+] ehci USB 2.0: ")
 		v.Option.USB.USBType.EHCI = onoff()
 
-		fmt.Println("[+] USB 3.0: ")
+		fmt.Println("[+] xhci USB 3.0: ")
 		v.Option.USB.USBType.XHCI = onoff()
 	}
 }
