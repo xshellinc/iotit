@@ -128,7 +128,7 @@ func saveInterface(storage map[string]interface{}) error {
 	}
 
 	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
-	command := fmt.Sprintf(`echo "%s" > %s`, storage[config.GetConstLiteral(config.Interface)], fp)
+	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.GetConstLiteral(config.Interface)], fp)
 
 	_, eut, err := ssh.Run(command)
 	if err != nil {

@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 
+	"strings"
+
 	"github.com/pkg/errors"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -26,7 +28,7 @@ func ConfigLocale(storage map[string]interface{}) error {
 			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr)]
 		}
 
-		storage[GetConstLiteral(Locale)] = l
+		storage[GetConstLiteral(Locale)] = strings.Split(l, " ")[0]
 	}
 
 	return nil
@@ -48,6 +50,14 @@ func SaveLocale(storage map[string]interface{}) error {
 	data := fmt.Sprintf(constants.LANG+constants.LOCALE_LANG, storage[GetConstLiteral(Locale)], storage[GetConstLiteral(Locale)])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
+	if err != nil {
+		return errors.New(err.Error() + ":" + eut)
+	}
+
+	fp = help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "environment")
+	data = fmt.Sprintf(constants.LOCALE, storage[GetConstLiteral(Locale)])
+
+	_, eut, err = ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
 		return errors.New(err.Error() + ":" + eut)
 	}
