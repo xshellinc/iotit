@@ -127,7 +127,7 @@ func saveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
 	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.GetConstLiteral(config.Interface)], fp)
 
 	_, eut, err := ssh.Run(command)

@@ -3,13 +3,11 @@ package device
 import (
 	"errors"
 	"fmt"
-
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"

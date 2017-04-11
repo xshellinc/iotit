@@ -45,7 +45,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	logrus.Debug(out, eut)
 
 	logrus.Debug("Creating tmp folder")
-	command = fmt.Sprintf("mkdir -p %s", constants.GENERAL_MOUNT_FOLDER)
+	command = fmt.Sprintf("mkdir -p %s", constants.MountDir)
 	out, eut, err = d.conf.SSH.Run(command)
 	if err != nil {
 		logrus.Error("[-] Error when execute: ", command, eut)
@@ -54,16 +54,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	logrus.Debug(out, eut)
 
 	logrus.Debug("Mounting tmp folder")
-	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.LINUX_MOUNT, loopMount, constants.GENERAL_MOUNT_FOLDER)
-	out, eut, err = d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
-		return err
-	}
-	logrus.Debug(out, eut)
-
-	logrus.Debug("Linking tmp folder")
-	command = fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.GENERAL_MOUNT_FOLDER, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.Mount, loopMount, constants.MountDir)
 	out, eut, err = d.conf.SSH.Run(command)
 	if err != nil {
 		logrus.Error("[-] Error when execute: ", command, eut)
@@ -77,7 +68,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 // UnmountImg is a method to unlink image folder and detach image from the loop
 func (d *sdFlasher) UnmountImg() error {
 	logrus.Debug("Unlinking image folder")
-	command := fmt.Sprintf("umount %s", constants.GENERAL_MOUNT_FOLDER)
+	command := fmt.Sprintf("umount %s", constants.MountDir)
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
 		logrus.Error("[-] Error when execute: ", command, eut)

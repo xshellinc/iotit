@@ -28,13 +28,13 @@ func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
 	w := &workstation{runtime.GOOS, true, m, ms}
-	ux := &unix{constants.LINUX_DD, constants.GENERAL_MOUNT_FOLDER, constants.GENERAL_UNMOUNT, constants.GENERAL_EJECT}
+	ux := &unix{constants.UnixDD, constants.MountDir, constants.Umount, constants.Eject}
 
 	return &darwin{
 		workstation: w,
 		unix:        ux,
-		unMount:     constants.DARWIN_UNMOUNT_DISK,
-		diskUtil:    constants.DARWIN_DISKUTIL}
+		unMount:     constants.DarwinUmount,
+		diskUtil:    constants.DarwinDiskutil}
 }
 
 const diskSelectionTries = 3

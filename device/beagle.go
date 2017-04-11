@@ -1,7 +1,12 @@
 package device
 
 import (
+	"fmt"
+	"path/filepath"
+
+	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
+	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -35,6 +40,15 @@ func (d *beagleBone) Configure() error {
 	if err := help.WaitJobAndSpin("waiting", job); err != nil {
 		return err
 	}
+
+	logrus.Debug("Linking tmp folder")
+	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	out, eut, err := d.conf.SSH.Run(command)
+	if err != nil {
+		logrus.Error("[-] Error when execute: ", command, eut)
+		return err
+	}
+	logrus.Debug(out, eut)
 
 	// write configs that were setup above
 	if err := c.Write(); err != nil {

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-
 	"strings"
 
 	"github.com/pkg/errors"
@@ -46,16 +45,16 @@ func SaveLocale(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, constants.LOCALE_F)
-	data := fmt.Sprintf(constants.LANG+constants.LOCALE_LANG, storage[GetConstLiteral(Locale)], storage[GetConstLiteral(Locale)])
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, constants.LocaleF)
+	data := fmt.Sprintf(constants.Language+constants.LocaleLang, storage[GetConstLiteral(Locale)], storage[GetConstLiteral(Locale)])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
 		return errors.New(err.Error() + ":" + eut)
 	}
 
-	fp = help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "environment")
-	data = fmt.Sprintf(constants.LOCALE, storage[GetConstLiteral(Locale)])
+	fp = help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "environment")
+	data = fmt.Sprintf(constants.LocaleAll, storage[GetConstLiteral(Locale)])
 
 	_, eut, err = ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
@@ -71,7 +70,7 @@ func ConfigKeyboard(storage map[string]interface{}) error {
 	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
 	if dialogs.YesNoDialog("Change default keyboard?") {
 		l := dialogs.GetSingleAnswer("New keyboard: ", dialogs.EmptyStringValidator)
-		storage[GetConstLiteral(Keymap)] = fmt.Sprintf(constants.KEYMAP, l)
+		storage[GetConstLiteral(Keymap)] = fmt.Sprintf(constants.KeyMap, l)
 	}
 
 	return nil
@@ -89,7 +88,7 @@ func SaveKeyboard(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, constants.KEYBOAD_F)
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, constants.KeyboardF)
 	data := storage[GetConstLiteral(Keymap)]
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -122,8 +121,8 @@ func SaveWifi(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "wpa_supplicant", constants.WPA_SUPPLICANT)
-	data := fmt.Sprintf(constants.WPA_CONF, storage[GetConstLiteral(Wifi)+"_name"], storage[GetConstLiteral(Wifi)+"_pass"])
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "wpa_supplicant", constants.WPAsupplicant)
+	data := fmt.Sprintf(constants.WPAconf, storage[GetConstLiteral(Wifi)+"_name"], storage[GetConstLiteral(Wifi)+"_pass"])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
@@ -157,10 +156,10 @@ func ConfigInterface(storage map[string]interface{}) error {
 
 				switch device[num] {
 				case "eth0":
-					storage[GetConstLiteral(Interface)] = fmt.Sprintf(constants.INTERFACE_ETH, i.Address, i.Netmask, i.Gateway, i.DNS)
+					storage[GetConstLiteral(Interface)] = fmt.Sprintf(constants.InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
 					fmt.Println("[+]  Ethernet interface configuration was updated")
 				case "wlan0":
-					storage[GetConstLiteral(Interface)] = fmt.Sprintf(constants.INTERFACE_WLAN, i.Address, i.Netmask, i.Gateway, i.DNS)
+					storage[GetConstLiteral(Interface)] = fmt.Sprintf(constants.InterfaceWLAN, i.Address, i.Netmask, i.Gateway, i.DNS)
 					fmt.Println("[+]  wifi interface configuration was updated")
 				}
 			} else {
@@ -184,7 +183,7 @@ func SaveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "network", constants.INTERFACES_F)
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "network", constants.InterfacesF)
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, storage[GetConstLiteral(Interface)], fp))
 	if err != nil {
@@ -216,7 +215,7 @@ func SaveSecondaryDns(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.GENERAL_MOUNT_FOLDER, constants.ISAAX_CONF_DIR, "dhcp", "dhclient.conf")
+	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcp", "dhclient.conf")
 	command := "append domain-name-servers 8.8.8.8, 8.8.4.4;"
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" >> %s`, command, fp))

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
@@ -88,8 +86,6 @@ func (c *configurator) Setup() error {
 			if err := o.Config(c.storage); err != nil {
 				return err
 			}
-
-			fmt.Println(c.storage)
 		}
 	}
 

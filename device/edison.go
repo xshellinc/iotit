@@ -230,7 +230,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				args3 := []string{
 					"root@" + ip,
 					"-t",
-					fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.RESOLV_CONF),
+					fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.ResolveF),
 				}
 
 				if err := help.ExecStandardStd("ssh", args1...); err != nil {
