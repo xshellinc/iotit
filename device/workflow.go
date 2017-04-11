@@ -18,8 +18,8 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_BEAGLEBONE,
 }
 
-// New triggers select repository methods and initializes a new deviceFlasher
-func New(device string) (DeviceFlasher, error) {
+// New triggers select repository methods and initializes a new flasher
+func New(device string) (Flasher, error) {
 	r, err := repo.GetDeviceRepo(device)
 	if err != nil && !repo.IsMissingRepoError(err) {
 		return nil, err
@@ -31,27 +31,27 @@ func New(device string) (DeviceFlasher, error) {
 
 	switch device {
 	case constants.DEVICE_TYPE_NANOPI:
-		i := &nanoPi{&sdFlasher{deviceFlasher: &deviceFlasher{}}}
+		i := &nanoPi{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
 		return i, err
 	case constants.DEVICE_TYPE_RASPBERRY:
-		i := &raspberryPi{&sdFlasher{deviceFlasher: &deviceFlasher{}}}
+		i := &raspberryPi{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
 		return i, err
 	case constants.DEVICE_TYPE_BEAGLEBONE:
-		i := &beagleBone{&sdFlasher{deviceFlasher: &deviceFlasher{}}}
+		i := &beagleBone{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
 		return i, err
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{&deviceFlasher{}}
+		i := &edison{&flasher{}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	default:
-		i := &sdFlasher{deviceFlasher: &deviceFlasher{}}
+		i := &sdFlasher{flasher: &flasher{}}
 		i.device = device
 		return i, nil
 	}

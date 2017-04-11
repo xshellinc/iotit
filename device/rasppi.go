@@ -30,7 +30,7 @@ func (d *raspberryPi) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
-	*(c.GetConfigFn(config.Interface)) = *config.NewConfigCallbackFn(configInterface, saveInterface)
+	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
 
 	go func() {
 		defer job.Close()

@@ -26,7 +26,7 @@ type SdFlasher interface {
 
 // sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
-	*deviceFlasher
+	*flasher
 }
 
 // MountImg is a method to attach image to loop and mount it
@@ -132,7 +132,7 @@ func (d *sdFlasher) Flash() error {
 	return nil
 }
 
-// Configure method overrides generic deviceFlasher method and includes logic of mounting configuring and flashing the device into the sdCard
+// Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)

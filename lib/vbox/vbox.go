@@ -12,6 +12,7 @@ import (
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
 
+// VirtualBox location and connection details variables
 const (
 	VBoxName = "iotit-box"
 

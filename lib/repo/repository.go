@@ -33,7 +33,7 @@ const (
 // baseDir is a directory of iotit related files and configurations
 var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
 
-// vboxDir is a directory of virtualboxes
+// VboxDir is a directory of virtualboxes
 var VboxDir = filepath.Join(baseDir, "virtualbox")
 
 // ImageDir is a directory of the flashing images
@@ -85,12 +85,12 @@ func (g *GenericRepository) Name() string {
 	return tokens[len(tokens)-1]
 }
 
-// S3RepositoryVM is a configuration entry for all VMs
+// VMRepo is a configuration entry for VM
 type VMRepo struct {
-	Vms struct {
-		Vm struct {
+	VMs struct {
+		VM struct {
 			Version string `json:"version"`
-			Url     string `json:"url"`
+			URL     string `json:"url"`
 			MD5Sum  string `json:"md5sum"`
 		} `json:"vm-iotit"`
 	} `json:"vms"`
@@ -98,12 +98,12 @@ type VMRepo struct {
 
 // GetVersion of VM
 func (v VMRepo) GetVersion() string {
-	return v.Vms.Vm.Version
+	return v.VMs.VM.Version
 }
 
 // GetURL of VM
 func (v VMRepo) GetURL() string {
-	return v.Vms.Vm.Url
+	return v.VMs.VM.URL
 }
 
 // Dir of VM
@@ -113,7 +113,7 @@ func (VMRepo) Dir() string {
 
 // Name of VM
 func (v VMRepo) Name() string {
-	tokens := strings.Split(v.Vms.Vm.Url, "/")
+	tokens := strings.Split(v.VMs.VM.URL, "/")
 	return tokens[len(tokens)-1]
 }
 

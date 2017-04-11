@@ -43,16 +43,13 @@ func Stop(name string) error {
 func CheckMachine(machine string) error {
 	bars := make([]*pb.ProgressBar, 0)
 	var wg sync.WaitGroup
-	var repository repo.Repository
 	var path = getPath()
 	var machinePath = filepath.Join(path, machine, machine+".vbox")
 
 	fmt.Println("[+] Checking virtual machine")
 	// checking file location
 	if !fileExists(machinePath) {
-
-		var err error
-		repository, err = repo.NewRepositoryVM()
+		repository, err := repo.NewRepositoryVM()
 
 		// checking local repository
 		if repository.GetURL() == "" {

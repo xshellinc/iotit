@@ -36,14 +36,14 @@ const (
 )
 
 type edison struct {
-	*deviceFlasher
+	*flasher
 }
 
 func (d *edison) PrepareForFlashing() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		return d.deviceFlasher.PrepareForFlashing()
+		return d.flasher.PrepareForFlashing()
 	}
 
 	return nil

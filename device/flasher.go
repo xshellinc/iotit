@@ -17,14 +17,14 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-// DeviceFlasher is an entity for flashing different devices
-type DeviceFlasher interface {
+// Flasher is an entity for flashing different devices
+type Flasher interface {
 	PrepareForFlashing() error
 	Configure() error
 }
 
-// deviceFlasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
-type deviceFlasher struct {
+// flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
+type flasher struct {
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
 	devRepo *repo.DeviceMapping
@@ -34,7 +34,7 @@ type deviceFlasher struct {
 }
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
-func (d *deviceFlasher) PrepareForFlashing() error {
+func (d *flasher) PrepareForFlashing() error {
 	var name, description string
 	var err error
 	wg := &sync.WaitGroup{}
@@ -119,7 +119,7 @@ func (d *deviceFlasher) PrepareForFlashing() error {
 }
 
 // Configure is a generic mock method
-func (d *deviceFlasher) Configure() error {
+func (d *flasher) Configure() error {
 	fmt.Println("Mock, nothing to configure")
 	return nil
 }

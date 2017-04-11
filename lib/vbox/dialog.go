@@ -124,7 +124,7 @@ func (v *Config) USBDialog() {
 	}
 }
 
-// Creates custom virtualbox specs
+// SetVbox creates custom virtualbox specs
 func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, error) {
 	conf := filepath.Join(repo.VboxDir, VBoxConf)
 	err := StopMachines()

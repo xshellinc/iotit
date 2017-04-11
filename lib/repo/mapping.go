@@ -23,17 +23,17 @@ func init() {
 
 // DeviceImage contains url, title, username and password which are used after flashing
 type DeviceImage struct {
-	Url   string `json`
-	Title string `json`
-	User  string `json`
-	Pass  string `json`
+	Url   string `json:"Url"`
+	Title string `json:"Title"`
+	User  string `json:"User"`
+	Pass  string `json:"Pass"`
 }
 
 // DeviceMapping is a collection of device, it sub-types and sets of images for these devices
 type DeviceMapping struct {
-	Name   string           `json`
-	Sub    []*DeviceMapping `json`
-	Images []DeviceImage    `json`
+	Name   string           `json:"Name"`
+	Sub    []*DeviceMapping `json:"Sub"`
+	Images []DeviceImage    `json:"Images"`
 
 	dir string
 	Url DeviceImage
@@ -66,7 +66,7 @@ func (d *DeviceMapping) Dir() string {
 
 // deviceCollection is a starting point of the collection of images
 type deviceCollection struct {
-	Devices []*DeviceMapping `json`
+	Devices []*DeviceMapping `json:"Devices"`
 }
 
 // findDevice searches device in the repo

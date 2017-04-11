@@ -11,7 +11,7 @@ const (
 	Keymap
 	Wifi
 	Interface
-	Dns
+	DNS
 )
 
 // consts are a const strings representation
@@ -20,7 +20,7 @@ var consts = [...]string{
 	"Keymap",
 	"Wifi",
 	"Interface",
-	"Dns",
+	"DNS",
 }
 
 // GetConstLiteral gets a literal from configurator.const
@@ -29,27 +29,27 @@ func GetConstLiteral(v int) string {
 }
 
 type (
-	// Configurator is a config helper, which uses ConfigCallbackFn to store configurations for devices
+	// Configurator is a config helper, which uses CallbackFn to store configurations for devices
 	Configurator interface {
 		Setup() error
 		Write() error
-		SetConfigFn(int, *ConfigCallbackFn)
-		GetConfigFn(int) *ConfigCallbackFn
+		SetConfigFn(int, *CallbackFn)
+		GetConfigFn(int) *CallbackFn
 	}
 
-	// configurator is a container of a mutual storage and order of ConfigCallbackFn
+	// configurator is a container of a mutual storage and order of CallbackFn
 	configurator struct {
 		storage map[string]interface{}
-		order   []*ConfigCallbackFn
+		order   []*CallbackFn
 	}
 
-	// ConfigFunction is a function with an input parameter of configurator's `storage`
-	ConfigFunction func(map[string]interface{}) error
+	// Function is a function with an input parameter of configurator's `storage`
+	Function func(map[string]interface{}) error
 
-	// ConfigCallbackFn is an entity with Config and Apply function
-	ConfigCallbackFn struct {
-		Config ConfigFunction
-		Apply  ConfigFunction
+	// CallbackFn is an entity with Config and Apply function
+	CallbackFn struct {
+		Config Function
+		Apply  Function
 	}
 )
 
@@ -59,24 +59,24 @@ func NewDefault(ssh ssh_helper.Util) Configurator {
 	s := make(map[string]interface{})
 
 	// default
-	c := make([]*ConfigCallbackFn, 0)
-	c = append(c, NewConfigCallbackFn(ConfigLocale, SaveLocale))
-	c = append(c, NewConfigCallbackFn(ConfigKeyboard, SaveKeyboard))
-	c = append(c, NewConfigCallbackFn(ConfigWifi, SaveWifi))
-	c = append(c, NewConfigCallbackFn(ConfigInterface, SaveInterface))
-	c = append(c, NewConfigCallbackFn(ConfigSecondaryDns, SaveSecondaryDns))
+	c := make([]*CallbackFn, 0)
+	c = append(c, NewCallbackFn(SetLocale, SaveLocale))
+	c = append(c, NewCallbackFn(SetKeyboard, SaveKeyboard))
+	c = append(c, NewCallbackFn(SetWifi, SaveWifi))
+	c = append(c, NewCallbackFn(SetInterface, SaveInterface))
+	c = append(c, NewCallbackFn(SetSecondaryDns, SaveSecondaryDns))
 
 	s["ssh"] = ssh
 
 	return &configurator{s, c}
 }
 
-// Creates a new ConfigCallbackFn
-func NewConfigCallbackFn(config ConfigFunction, apply ConfigFunction) *ConfigCallbackFn {
-	return &ConfigCallbackFn{config, apply}
+// NewCallbackFn creates a new CallbackFn with 2 Function parameters
+func NewCallbackFn(config Function, apply Function) *CallbackFn {
+	return &CallbackFn{config, apply}
 }
 
-// Write triggers all ConfigCallbackFn Config functions
+// Setup triggers all CallbackFn Config functions
 func (c *configurator) Setup() error {
 	if dialogs.YesNoDialog("Would you like to configure your board?") {
 		for _, o := range c.order {
@@ -92,7 +92,7 @@ func (c *configurator) Setup() error {
 	return nil
 }
 
-// Write triggers all ConfigCallbackFn Apply functions
+// Write triggers all CallbackFn Apply functions
 func (c *configurator) Write() error {
 	for _, o := range c.order {
 		if (*o).Apply == nil {
@@ -107,12 +107,12 @@ func (c *configurator) Write() error {
 	return nil
 }
 
-// SetConfigFn sets ConfigCallbackFn of a specified number of the array
-func (c *configurator) SetConfigFn(num int, ccf *ConfigCallbackFn) {
+// SetConfigFn sets CallbackFn of a specified number of the array
+func (c *configurator) SetConfigFn(num int, ccf *CallbackFn) {
 	c.order[num] = ccf
 }
 
 // GetConfigFn returns GetConfigFn from the array by a number
-func (c *configurator) GetConfigFn(num int) *ConfigCallbackFn {
+func (c *configurator) GetConfigFn(num int) *CallbackFn {
 	return c.order[num]
 }
