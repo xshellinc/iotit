@@ -1,43 +1,56 @@
 package repo
 
 import (
-	"strings"
-	"sync"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/xshellinc/tools/constants"
 )
 
-var repo Repository
-
-func setUpRaspberryRepository() {
-	repo, _ = NewRepository("raspberry-pi")
+func init() {
+	path = "/tmp/mapper.json"
 }
 
-func TestRepository_NewRepository(t *testing.T) {
-	repo, err := NewRepository("raspberry-pi")
-	if err != nil {
-		t.Error(err)
-	}
-	if repo.GetVersion() == "" {
-		t.Errorf("Expecting %s got %s", "2.0.0", repo.GetVersion())
-	}
+func cleanUp() {
+	os.Remove(path)
 }
 
-func TestRaspberry_GetURL(t *testing.T) {
-	setUpRaspberryRepository()
-	if repo.GetURL() == "" {
-		t.Errorf("Expecting non-empty url. Got %s ", repo.GetURL())
-	}
+func TestGenMappingFile(t *testing.T) {
+	assert := assert.New(t)
+	err := GenMappingFile()
+	assert.NoError(err)
+
+	stat, err := os.Stat(path)
+	assert.NoError(err)
+	assert.Equal(stat.Mode()&0644, os.FileMode(0644), "Wrong filemode:", stat.Mode())
+
+	cleanUp()
 }
 
-func TestDownload(t *testing.T) {
-	setUpRaspberryRepository()
-	var wg sync.WaitGroup
-	filename, _, err := DownloadAsync(repo, &wg)
-	if err != nil {
-		t.Error(err)
-	}
-	if strings.EqualFold(filename, "NOOBS_v"+repo.GetVersion()+".zip") {
-		t.Errorf("Expected file name %s got %s", "NOOBS_v"+
-			strings.Replace(repo.GetVersion(), ".", "_", -1)+".zip", filename)
-	}
+func TestGetDeviceRepo(t *testing.T) {
+	assert := assert.New(t)
+	dev, err := GetDeviceRepo(constants.DEVICE_TYPE_RASPBERRY)
+	assert.NoError(err)
+
+	assert.Equal(dev.Name, constants.DEVICE_TYPE_RASPBERRY)
+	assert.EqualValues(dev.Images, dev.Sub[0].Images)
+
+	err = GenMappingFile()
+	assert.NoError(err)
+
+	dev, err = GetDeviceRepo(constants.DEVICE_TYPE_RASPBERRY)
+	assert.NoError(err)
+
+	assert.Equal(dev.Name, constants.DEVICE_TYPE_RASPBERRY)
+	assert.EqualValues(dev.Images, dev.Sub[0].Images)
+
+	cleanUp()
+}
+
+func TestGetVersionLexem(t *testing.T) {
+	assert := assert.New(t)
+
+	assert.Equal([]string{"1", "15", "2"}, getVersionLexem("1.15.2", "."))
+	assert.Equal([]string{"1", "15", "4", "2"}, getVersionLexem("1.15_4.2", ".", "_"))
 }

@@ -4,11 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pborman/uuid"
+	"github.com/riobard/go-virtualbox"
+	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
+)
+
+// vbox types
+const (
+	VBoxTypeDefault = iota
+	VBoxTypeNew
+	VBoxTypeUser
 )
 
 // Virtualbox dialogs
@@ -33,7 +44,6 @@ func (v *Config) NameDialog() {
 	}
 }
 
-// @todo check if needed
 // DescriptionDialog asks for VM description
 func (v *Config) DescriptionDialog() {
 	var inp string
@@ -111,4 +121,68 @@ func (v *Config) USBDialog() {
 		fmt.Println("[+] xhci USB 3.0: ")
 		v.Option.USB.USBType.XHCI = onoff()
 	}
+}
+
+// SetVbox creates custom virtualbox specs
+func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, error) {
+	conf := filepath.Join(repo.VboxDir, VBoxConf)
+	err := StopMachines()
+	help.ExitOnError(err)
+
+	vboxs := v.Enable(conf, VBoxName, device)
+	n := selectVboxInit(conf, vboxs)
+
+	switch n {
+	case VBoxTypeNew:
+		// set up configuration
+		v.NameDialog()
+		v.DescriptionDialog()
+		v.MemoryDialog()
+		v.CPUDialog()
+		v.USBDialog()
+		v.WriteToFile(conf)
+
+		// select virtual machine
+		fallthrough
+	case VBoxTypeUser:
+		// select virtual machine
+		vboxs := v.Enable(conf, VBoxName, device)
+		result := Select(vboxs)
+
+		// modify virtual machine
+		err := result.Modify()
+		help.ExitOnError(err)
+
+		// get virtual machine
+		m, err := result.Machine()
+		return m, result.GetName(), result.GetDescription(), err
+
+	default:
+		fallthrough
+	case VBoxTypeDefault:
+		m, err := virtualbox.GetMachine(VBoxName)
+		return m, m.Name, "", err
+	}
+}
+
+// Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
+// the name of vbox doesn't change
+func selectVboxInit(conf string, v []Config) int {
+	opts := []string{
+		"Use default vbox preset",
+		"Create a new vbox preset",
+		"Use saved vbox preset",
+	}
+	optTypes := []int{
+		VBoxTypeDefault,
+		VBoxTypeNew,
+		VBoxTypeUser,
+	}
+	n := len(opts)
+
+	if _, err := os.Stat(conf); os.IsNotExist(err) || v == nil {
+		n--
+	}
+
+	return optTypes[dialogs.SelectOneDialog("Please select an option: ", opts[:n])]
 }

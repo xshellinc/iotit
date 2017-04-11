@@ -18,6 +18,7 @@ SUPPORTED DEVICES
 REQUIREMENTS
 ------------
 golang >= 1.8
+virtualbox >= 5.0
 
 INSTALLATION
 ------------
@@ -72,16 +73,98 @@ GLOBAL OPTIONS:
 ```
 
 VIRTUALBOX
---------
-Virtualbox uses 2 images
- - iotit-box-sd - used during flashing nano-pi, raspberry-pi and beaglebone boards
- - iotit-box-edison - used during flashing Edison board
-
+----------------
 During installation user can choose `default` virtualbox specs
 
 Alternatively user can create their own vbox spec by choosing `Create new virtual machine`.
 This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
-which is applied to `iotit-box-sd` or `iotit-box-edison`
+which is applied to `iotit-box`
+
+
+INTERNALS
+----------------
+`$HOME/.iotit` - a directory containing iotit related files
+`$HOME/.iotit/mapping.json` - a file containing different device types and urls of images to be downloaded
+`$HOME/.iotit/virtualbox/{version}/iotit-box.zip` - a packed virtual box
+`$HOME/.iotit/images/{device}/{image_pack}` - packed images grouped by device names
+
+`iotit` uses x64 virtualbox in order to flash and configure devices, 
+because it allows to work with linux partitions and reduces installation requirements
+across different OS
+
+Currently 2 workflows are supported:
+
+#### 1 Edison:
+- copy installation files into virtualbox
+- run flashall.sh - to reflash edison
+- run edison_configure - to configure
+ 
+#### 2 Sd:
+- copy installation files into virtualbox
+- mount the image partition into loop via `losetup` and `mount`
+- write configuration files into the image
+- write image into sd-card via `dd` or `diskutil` on macos
+
+VirtualBox uses alpine virtualbox image with additional software installed
+```
+bash
+libusb-dev 
+xz
+util-lixus
+dfu-util
+```
+
+Edison device is additionally mapped to the usb ports
+```
+Intel Edison [0310]
+Intel USB download gadget [9999]
+FTDI FT232R USB UART [0600]
+```
+
+
+STRUCTURE OF `mapping.json`:
+----------------
+
+### Example:
+```
+"Devices":
+	[
+	  {
+	    "Name":"device_name_or_category",
+	    "Sub":[
+	      {
+	        "Name":"device_name_or_sub_category",
+	        "Sub":[],
+	        "Images:[]
+	      }
+	    ],
+	    "Images":[
+	      {
+	        "Url":"url",
+            "Title":"url_title"
+	      }
+	    ]
+	  }
+	]
+```
+
+### Structure:
+```
+DeviceMapping struct {
+    Name string
+    Sub []DeviceMapping
+    []Images struct {
+        Url url,
+        Title string
+    }
+}
+```
+
+### Algorithm:
+has a tree like structure - 
+devices are listed using `Name` field, then devices are listed within `Sub` array and etc.
+
+If a `Sub` device doesn't have any image, then parent's images are used instead
 
 
 
