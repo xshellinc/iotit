@@ -193,8 +193,8 @@ func SaveInterface(storage map[string]interface{}) error {
 	return nil
 }
 
-// SetSecondaryDns is a dialog asking to set 8.8.8.8 DNS
-func SetSecondaryDns(storage map[string]interface{}) error {
+// SetSecondaryDNS is a dialog asking to set 8.8.8.8 DNS
+func SetSecondaryDNS(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Add Google DNS as a secondary NameServer") {
 		storage[GetConstLiteral(DNS)] = true
 		return nil
@@ -203,8 +203,8 @@ func SetSecondaryDns(storage map[string]interface{}) error {
 	return nil
 }
 
-// SaveSecondaryDns is a default method to set 8.8.8.8 as a secondary DNS
-func SaveSecondaryDns(storage map[string]interface{}) error {
+// SaveSecondaryDNS is a default method to set 8.8.8.8 as a secondary DNS
+func SaveSecondaryDNS(storage map[string]interface{}) error {
 
 	if _, ok := storage[GetConstLiteral(DNS)]; !ok {
 		return nil

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
+	"sync"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
@@ -71,7 +71,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	fmt.Println("[+] Starting download ", d.device)
 
-	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Url.Url, d.devRepo.Dir(), 3, wg)
+	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
 		return err
 	}

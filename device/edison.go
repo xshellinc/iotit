@@ -151,52 +151,11 @@ func setConfig() error {
 
 	time.Sleep(time.Second * 4)
 
-	var ifaces = config.Interfaces{
-		Address: "192.168.0.254",
-		Netmask: "255.255.255.0",
-		Gateway: "192.168.0.1",
-		DNS:     "192.168.0.1",
-	}
-
-	if err := setEdisonInterfaces(ifaces, ip); err != nil {
+	if err := setUpInterface(ip); err != nil {
 		return err
 	}
 
-	args := []string{
-		"root@" + ip,
-		"-t",
-		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
-	}
-
-	if err := help.ExecStandardStd("ssh", args...); err != nil {
-		return err
-	}
-
-	base := filepath.Join(constants.TMP_DIR, baseConf)
-	baseConf := baseFeeds
-	help.WriteToFile(baseConf, base)
-	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
-		return err
-	}
-	os.Remove(base)
-
-	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
-	iotdkConf := intelIotdk
-	help.WriteToFile(iotdkConf, iotdk)
-	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
-		return err
-	}
-	os.Remove(iotdk)
-
-	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
-		return err
-	}
-
-	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
-		return err
-	}
-
-	return nil
+	return configBoard(ip)
 
 }
 
@@ -248,6 +207,59 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				break
 			}
 		}
+	}
+
+	return nil
+}
+
+func setUpInterface(ip string) error {
+	var ifaces = config.Interfaces{
+		Address: "192.168.0.254",
+		Netmask: "255.255.255.0",
+		Gateway: "192.168.0.1",
+		DNS:     "192.168.0.1",
+	}
+
+	if err := setEdisonInterfaces(ifaces, ip); err != nil {
+		return err
+	}
+
+	args := []string{
+		"root@" + ip,
+		"-t",
+		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
+	}
+
+	if err := help.ExecStandardStd("ssh", args...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func configBoard(ip string) error {
+	base := filepath.Join(constants.TMP_DIR, baseConf)
+	baseConf := baseFeeds
+	help.WriteToFile(baseConf, base)
+	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(base)
+
+	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
+	iotdkConf := intelIotdk
+	help.WriteToFile(iotdkConf, iotdk)
+	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(iotdk)
+
+	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
+		return err
+	}
+
+	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
+		return err
 	}
 
 	return nil

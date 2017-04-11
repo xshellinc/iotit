@@ -134,23 +134,15 @@ func (d *sdFlasher) Flash() error {
 
 // Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
-	job := help.NewBackgroundJob()
+
 	c := config.NewDefault(d.conf.SSH)
 
-	go func() {
-		defer job.Close()
-
-		if err := d.MountImg(""); err != nil {
-			job.Error(err)
-		}
-	}()
-
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
+	if err := d.MountImg(""); err != nil {
 		return err
 	}
 
-	if err := help.WaitJobAndSpin("waiting", job); err != nil {
+	// setup while background process mounting img
+	if err := c.Setup(); err != nil {
 		return err
 	}
 
@@ -176,7 +168,7 @@ func (d *sdFlasher) Done() error {
 	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s \t\t\t\t\t   *\n", d.device)
 	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET \t\t   *")
 	fmt.Printf("*\t\t SSH USERNAME:\x1b[31m%s\x1b[0m PASSWORD:\x1b[31m%s\x1b[0m \t\t\t\t\t\t\t   *\n",
-		d.devRepo.Url.User, d.devRepo.Url.Pass)
+		d.devRepo.Image.User, d.devRepo.Image.Pass)
 	fmt.Println(strings.Repeat("*", 100))
 
 	return nil

@@ -53,7 +53,7 @@ func CheckMachine(machine string) error {
 
 		// checking local repository
 		if repository.GetURL() == "" {
-			return errors.New("Url is not set for downloading VBox image")
+			return errors.New("URL is not set for downloading VBox image")
 		}
 
 		dst := filepath.Join(repository.Dir(), repository.GetVersion())
@@ -110,9 +110,7 @@ func CheckMachine(machine string) error {
 // Update virtualbox image
 func Update() error {
 	log.Debug("Virtual Machine Update func()")
-	var wg sync.WaitGroup
 
-	bars := make([]*pb.ProgressBar, 0)
 	err := CheckDeps("VBoxManage")
 	help.ExitOnError(err)
 
@@ -122,7 +120,7 @@ func Update() error {
 	}
 
 	if !fileExists(repository.Dir()) {
-		fmt.Println("[+] could not find the virtual machine, lease execute `iotit`")
+		fmt.Println("[+] could not find the virtual machine, please execute `iotit`")
 	}
 
 	fmt.Println(strings.Repeat("*", 100))
@@ -140,31 +138,14 @@ func Update() error {
 			os.Exit(0)
 		}
 
-		machine := VBoxName
 		var path = getPath()
-		var machinePath = filepath.Join(path, machine, machine+".vbox")
+		var machinePath = filepath.Join(path, VBoxName, VBoxName+".vbox")
 
 		fmt.Println("[+] Unregistering old virtual machine")
-		if isActive(machine) {
-			m, err := virtualbox.GetMachine(machine)
-			if err != nil {
-				help.ExitOnError(err)
-			}
-			if m.State == virtualbox.Running {
-				err = m.Poweroff()
-				if err != nil {
-					help.ExitOnError(err)
-				}
-			}
-			help.ExecCmd("VBoxManage",
-				[]string{
-					"unregistervm",
-					fmt.Sprintf("%s", machinePath),
-				})
-			fmt.Println("[+] Done")
-		}
+		deregister(machinePath)
+
 		// remove old virtual machine
-		err = os.RemoveAll(filepath.Join(path, machine))
+		err = os.RemoveAll(filepath.Join(path, VBoxName))
 		if err != nil {
 			// rollback virtual machine
 			out, err := pipeline.Output(
@@ -177,7 +158,7 @@ func Update() error {
 			}
 			currentVersion := strings.Trim(string(out), "\n")
 
-			err = help.Unzip(filepath.Join(repository.Dir(), repository.GetVersion(), currentVersion, machine+".zip"), path)
+			err = help.Unzip(filepath.Join(repository.Dir(), repository.GetVersion(), currentVersion, VBoxName+".zip"), path)
 			if err != nil {
 				help.ExitOnError(err)
 			}
@@ -193,29 +174,7 @@ func Update() error {
 		}
 
 		// download virtual machine
-		// @todo larik
-		fmt.Println("[+] Starting virtual machine download")
-		fileName, bar1, err := repo.DownloadAsync(repository, &wg)
-		if err != nil {
-			help.ExitOnError(err)
-		}
-		dst := filepath.Join(repository.Dir(), repository.GetVersion())
-		bar1.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
-		if bar1.Total > 0 {
-			bars = append(bars, bar1)
-		}
-		pool, err := pb.StartPool(bars...)
-		if err != nil {
-			help.ExitOnError(err)
-		}
-		wg.Wait()
-		pool.Stop()
-		time.Sleep(time.Second * 2)
-
-		err = help.Unzip(filepath.Join(dst, fileName), path)
-		if err != nil {
-			help.ExitOnError(err)
-		}
+		download(path, repository)
 
 		fmt.Println("[+] Registering new virtual machine")
 		_, err = help.ExecCmd("VBoxManage",
@@ -233,6 +192,57 @@ func Update() error {
 		os.Remove(conf)
 	}
 	return nil
+}
+
+// unregister turns off vm and deregisters it
+func deregister(machinePath string) {
+	if isActive(VBoxName) {
+		m, err := virtualbox.GetMachine(VBoxName)
+		if err != nil {
+			help.ExitOnError(err)
+		}
+		if m.State == virtualbox.Running {
+			err = m.Poweroff()
+			if err != nil {
+				help.ExitOnError(err)
+			}
+		}
+		help.ExecCmd("VBoxManage",
+			[]string{
+				"unregistervm",
+				fmt.Sprintf("%s", machinePath),
+			})
+		fmt.Println("[+] Done")
+	}
+}
+
+func download(path string, repository repo.Repository) {
+	var wg sync.WaitGroup
+
+	bars := make([]*pb.ProgressBar, 0)
+
+	fmt.Println("[+] Starting virtual machine download")
+	fileName, bar1, err := repo.DownloadAsync(repository, &wg)
+	if err != nil {
+		help.ExitOnError(err)
+	}
+	dst := filepath.Join(repository.Dir(), repository.GetVersion())
+	bar1.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
+	if bar1.Total > 0 {
+		bars = append(bars, bar1)
+	}
+	pool, err := pb.StartPool(bars...)
+	if err != nil {
+		help.ExitOnError(err)
+	}
+	wg.Wait()
+	pool.Stop()
+	time.Sleep(time.Second * 2)
+
+	err = help.Unzip(filepath.Join(dst, fileName), path)
+	if err != nil {
+		help.ExitOnError(err)
+	}
 }
 
 // CheckDeps checks for virtualbox dependencies

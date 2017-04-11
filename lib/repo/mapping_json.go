@@ -22,13 +22,13 @@ const (
 	    ],
 	    "Images":[
 	      {
-		"Url":"http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-03-03/2017-03-02-raspbian-jessie-lite.zip",
+		"URL":"http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-03-03/2017-03-02-raspbian-jessie-lite.zip",
 		"Title":"Raspbian jessie light",
 		"User":"pi",
 		"Pass":"raspberry"
 	      },
 	      {
-		"Url":"http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-03-03/2017-03-02-raspbian-jessie.zip",
+		"URL":"http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-03-03/2017-03-02-raspbian-jessie.zip",
 		"Title":"Raspbian jessie w Pixel",
 		"User":"pi",
 		"Pass":"raspberry"
@@ -39,7 +39,7 @@ const (
 	    "Name":"edison",
 	    "Images":[
 	      {
-		"Url":"http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",
+		"URL":"http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",
 		"User":"root"
 	      }
 	    ]
@@ -57,13 +57,13 @@ const (
 		"Name":"NanoPi M1 Plus",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/izyvj97my2h0qbj/nanopi-m1-plus-ubuntu-core-qte-sd4g-20170227.img.zip",
+		    "URL":"http://www.mediafire.com/file/izyvj97my2h0qbj/nanopi-m1-plus-ubuntu-core-qte-sd4g-20170227.img.zip",
 		    "Title":"Light Ubuntu-core",
 		    "User":"root",
 		    "Pass":"fa"
 		  },
 		  {
-		    "Url":"http://www.mediafire.com/file/68m7e1q4vsr3hlc/nanopi-m1-plus-debian-sd4g-20170228.img.zip",
+		    "URL":"http://www.mediafire.com/file/68m7e1q4vsr3hlc/nanopi-m1-plus-debian-sd4g-20170228.img.zip",
 		    "Title":"Debian",
 		    "User":"root",
 		    "Pass":"fa"
@@ -74,13 +74,13 @@ const (
 		"Name":"NanoPi M1",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+		    "URL":"http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
 		    "Title":"Light Ubuntu-core",
 		    "User":"root",
 		    "Pass":"fa"
 		  },
 		  {
-		    "Url":"http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+		    "URL":"http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
 		    "Title":"Debian",
 		    "User":"root",
 		    "Pass":"fa"
@@ -94,19 +94,19 @@ const (
 		"Name":"NanoPi M3",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/dts72ru5vzzzsr5/s5p6818-ubuntu-core-qte-sd4g-20170316.img.zip",
+		    "URL":"http://www.mediafire.com/file/dts72ru5vzzzsr5/s5p6818-ubuntu-core-qte-sd4g-20170316.img.zip",
 		    "Title":"Light Ubuntu-core",
 		    "User":"root",
 		    "Pass":"fa"
 		  },
 		  {
-		    "Url":"http://www.mediafire.com/file/bb5xf8t4203m89y/s5p6818-debian-sd4g-20170316.img.zip",
+		    "URL":"http://www.mediafire.com/file/bb5xf8t4203m89y/s5p6818-debian-sd4g-20170316.img.zip",
 		    "Title":"Debian",
 		    "User":"root",
 		    "Pass":"fa"
 		  },
 		  {
-		    "Url":"http://www.mediafire.com/file/e19c3nhjvm56ico/s5p6818-debian-wifiap-sd4g-20170316.img.zip",
+		    "URL":"http://www.mediafire.com/file/e19c3nhjvm56ico/s5p6818-debian-wifiap-sd4g-20170316.img.zip",
 		    "Title":"Debian wifiap",
 		    "User":"root",
 		    "Pass":"fa"
@@ -117,7 +117,7 @@ const (
 		"Name":"NanoPi NEO",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/5524t880fht9vtq/nanopi-neo-ubuntu-core-qte-sd4g-20170331.img.zip",
+		    "URL":"http://www.mediafire.com/file/5524t880fht9vtq/nanopi-neo-ubuntu-core-qte-sd4g-20170331.img.zip",
 		    "User":"root",
 		    "Pass":"fa"
 		  }
@@ -127,7 +127,7 @@ const (
 		"Name":"NanoPi NEO Air",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/h6y011436mc3qs3/nanopi-air-ubuntu-core-qte-sd4g-20170220.img.zip",
+		    "URL":"http://www.mediafire.com/file/h6y011436mc3qs3/nanopi-air-ubuntu-core-qte-sd4g-20170220.img.zip",
 		    "User":"root",
 		    "Pass":"fa"
 		  }
@@ -137,7 +137,7 @@ const (
 		"Name":"NanoPi S2",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/h6y011436mc3qs3/nanopi-air-ubuntu-core-qte-sd4g-20170220.img.zip",
+		    "URL":"http://www.mediafire.com/file/h6y011436mc3qs3/nanopi-air-ubuntu-core-qte-sd4g-20170220.img.zip",
 		    "Title":"Light Ubuntu-core",
 		    "User":"root",
 		    "Pass":"fa"
@@ -148,13 +148,13 @@ const (
 		"Name":"NanoPi a64",
 		"Images":[
 		  {
-		    "Url":"http://www.mediafire.com/file/hzfhcu0r1bb9ogt/nanopi-a64-core-qte-sd4g-20161129.img.zip",
+		    "URL":"http://www.mediafire.com/file/hzfhcu0r1bb9ogt/nanopi-a64-core-qte-sd4g-20161129.img.zip",
 		    "Title":"Light Ubuntu-core",
 		    "User":"root",
 		    "Pass":"fa"
 		  },
 		  {
-		    "Url":"http://www.mediafire.com/file/cbh9mkb70p18m12/nanopi-a64-ubuntu-mate-sd4g-20161129.img.zip",
+		    "URL":"http://www.mediafire.com/file/cbh9mkb70p18m12/nanopi-a64-ubuntu-mate-sd4g-20161129.img.zip",
 		    "Title":"Ubuntu with a MATE-desktop",
 		    "User":"root",
 		    "Pass":"fa"
@@ -164,19 +164,19 @@ const (
 	    ],
 	    "Images":[
 	      {
-		"Url":"http://www.mediafire.com/file/9ooty82tkzh88bb/s5p4418-ubuntu-core-qte-sd4g-20170316.img.zip",
+		"URL":"http://www.mediafire.com/file/9ooty82tkzh88bb/s5p4418-ubuntu-core-qte-sd4g-20170316.img.zip",
 		"Title":"Light Ubuntu-core",
 		"User":"root",
 		"Pass":"fa"
 	      },
 	      {
-		"Url":"http://www.mediafire.com/file/eykqbtm7en6dwzy/s5p4418-debian-sd4g-20170316.img.zip",
+		"URL":"http://www.mediafire.com/file/eykqbtm7en6dwzy/s5p4418-debian-sd4g-20170316.img.zip",
 		"Title":"Debian",
 		"User":"root",
 		"Pass":"fa"
 	      },
 	      {
-		"Url":"http://www.mediafire.com/file/4g7uniiuvtmlfva/s5p4418-android-sd4g-20170307.img.zip",
+		"URL":"http://www.mediafire.com/file/4g7uniiuvtmlfva/s5p4418-android-sd4g-20170307.img.zip",
 		"Title":"Debian wifiap",
 		"User":"root",
 		"Pass":"fa"
@@ -193,7 +193,7 @@ const (
 		"Name":"BeagleBoard-X15",
 		"Images":[
 		  {
-		    "Url":"https://debian.beagleboard.org/images/bbx15-debian-8.6-lxqt-4gb-armhf-2016-11-06-4gb.img.xz",
+		    "URL":"https://debian.beagleboard.org/images/bbx15-debian-8.6-lxqt-4gb-armhf-2016-11-06-4gb.img.xz",
 		    "User":"ubuntu",
 		    "Pass":"temppwd"
 		  }
@@ -203,7 +203,7 @@ const (
 		"Name":"BeagleBoard-xM",
 		"Images":[
 		  {
-		    "Url":"https://debian.beagleboard.org/images/bbxm-debian-8.6-lxqt-xm-4gb-armhf-2016-11-06-4gb.img.xz",
+		    "URL":"https://debian.beagleboard.org/images/bbxm-debian-8.6-lxqt-xm-4gb-armhf-2016-11-06-4gb.img.xz",
 		    "User":"ubuntu",
 		    "Pass":"temppwd"
 		  }
@@ -212,7 +212,7 @@ const (
 	    ],
 	    "Images":[
 	      {
-		"Url":"https://debian.beagleboard.org/images/bone-debian-8.7-lxqt-4gb-armhf-2017-03-19-4gb.img.xz",
+		"URL":"https://debian.beagleboard.org/images/bone-debian-8.7-lxqt-4gb-armhf-2017-03-19-4gb.img.xz",
 		"Title":"Debian with desktop",
 		"User":"ubuntu",
 		"Pass":"temppwd"

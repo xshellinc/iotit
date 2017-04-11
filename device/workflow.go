@@ -84,7 +84,7 @@ func selectImage(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 		n = dialogs.SelectOneDialog("Please select an image: ", selected.GetImageTitles())
 	}
 
-	selected.Url = selected.Images[n]
+	selected.Image = selected.Images[n]
 
 	return selected
 }

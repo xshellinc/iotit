@@ -64,7 +64,7 @@ func NewDefault(ssh ssh_helper.Util) Configurator {
 	c = append(c, NewCallbackFn(SetKeyboard, SaveKeyboard))
 	c = append(c, NewCallbackFn(SetWifi, SaveWifi))
 	c = append(c, NewCallbackFn(SetInterface, SaveInterface))
-	c = append(c, NewCallbackFn(SetSecondaryDns, SaveSecondaryDns))
+	c = append(c, NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS))
 
 	s["ssh"] = ssh
 

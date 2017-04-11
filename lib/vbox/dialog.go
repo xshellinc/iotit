@@ -44,7 +44,6 @@ func (v *Config) NameDialog() {
 	}
 }
 
-// @todo check if needed
 // DescriptionDialog asks for VM description
 func (v *Config) DescriptionDialog() {
 	var inp string

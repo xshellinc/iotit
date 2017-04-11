@@ -23,20 +23,20 @@ func init() {
 
 // DeviceImage contains url, title, username and password which are used after flashing
 type DeviceImage struct {
-	Url   string `json:"Url"`
-	Title string `json:"Title"`
-	User  string `json:"User"`
-	Pass  string `json:"Pass"`
+	URL   string `json:"URL"`
+	Title string `json:"Title,omitempty"`
+	User  string `json:"User,omitempty"`
+	Pass  string `json:"Pass,omitempty"`
 }
 
 // DeviceMapping is a collection of device, it sub-types and sets of images for these devices
 type DeviceMapping struct {
 	Name   string           `json:"Name"`
-	Sub    []*DeviceMapping `json:"Sub"`
-	Images []DeviceImage    `json:"Images"`
+	Sub    []*DeviceMapping `json:"Sub,omitempty"`
+	Images []DeviceImage    `json:"Images,omitempty"`
 
-	dir string
-	Url DeviceImage
+	dir   string
+	Image DeviceImage
 }
 
 // GetSubsNames returns array of Names within a `Sub`
