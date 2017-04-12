@@ -20,6 +20,7 @@ const (
 	VBoxTypeDefault = iota
 	VBoxTypeNew
 	VBoxTypeUser
+	VBoxTypeDelete
 )
 
 // Virtualbox dialogs
@@ -156,6 +157,18 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 		// get virtual machine
 		m, err := result.Machine()
 		return m, result.GetName(), result.GetDescription(), err
+	case VBoxTypeDelete:
+		// select virtual machine
+		vboxs := v.Enable(conf, VBoxName, device)
+		result := Select(vboxs)
+
+		// modify virtual machine
+		err := result.Modify()
+		help.ExitOnError(err)
+
+		// get virtual machine
+		m, err := result.Machine()
+		return m, result.GetName(), result.GetDescription(), err
 
 	default:
 		fallthrough
@@ -172,16 +185,18 @@ func selectVboxInit(conf string, v []Config) int {
 		"Use default vbox preset",
 		"Create a new vbox preset",
 		"Use saved vbox preset",
+		"Remove a saved vbox preset",
 	}
 	optTypes := []int{
 		VBoxTypeDefault,
 		VBoxTypeNew,
 		VBoxTypeUser,
+		VBoxTypeDelete,
 	}
 	n := len(opts)
-
+	fmt.Println(n)
 	if _, err := os.Stat(conf); os.IsNotExist(err) || v == nil {
-		n--
+		n-=2
 	}
 
 	return optTypes[dialogs.SelectOneDialog("Please select an option: ", opts[:n])]
