@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/xshellinc/tools/constants"
@@ -11,6 +10,14 @@ import (
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
 
+func localesToStrings(locales []*constants.Locale) []string {
+	out := make([]string, len(locales))
+	for i, l := range locales {
+		out[i] = l.String()
+	}
+	return out
+}
+
 // SetLocale is a default method to with dialog to configure the locale
 func SetLocale(storage map[string]interface{}) error {
 
@@ -18,16 +25,16 @@ func SetLocale(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Change default language?") {
 		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
 
-		arr, _ := constants.GetLocale(inp)
+		arr := constants.GetLocale(inp)
 
 		var l string
 		if len(arr) == 1 {
-			l = arr[0]
+			l = arr[0].Locale
 		} else {
-			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr)]
+			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", localesToStrings(arr))].Locale
 		}
 
-		storage[GetConstLiteral(Locale)] = strings.Split(l, " ")[0]
+		storage[GetConstLiteral(Locale)] = l
 	}
 
 	return nil
