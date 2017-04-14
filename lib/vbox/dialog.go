@@ -168,8 +168,8 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 
 		// get virtual machine
 		m, err := result.Machine()
-		return m, result.GetName(), result.GetDescription(), err
-
+		SetVbox(v, device)
+		fallthrough
 	default:
 		fallthrough
 	case VBoxTypeDefault:
@@ -194,7 +194,7 @@ func selectVboxInit(conf string, v []Config) int {
 		VBoxTypeDelete,
 	}
 	n := len(opts)
-	fmt.Println(n)
+
 	if _, err := os.Stat(conf); os.IsNotExist(err) || v == nil {
 		n-=2
 	}
