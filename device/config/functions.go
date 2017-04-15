@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/xshellinc/tools/constants"
@@ -9,14 +10,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
-
-func localesToStrings(locales []*constants.Locale) []string {
-	out := make([]string, len(locales))
-	for i, l := range locales {
-		out[i] = l.String()
-	}
-	return out
-}
 
 // SetLocale is a default method to with dialog to configure the locale
 func SetLocale(storage map[string]interface{}) error {
@@ -31,7 +24,7 @@ func SetLocale(storage map[string]interface{}) error {
 		if len(arr) == 1 {
 			l = arr[0].Locale
 		} else {
-			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", localesToStrings(arr))].Locale
+			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr.Strings())].Locale
 		}
 
 		storage[GetConstLiteral(Locale)] = l
@@ -73,10 +66,33 @@ func SaveLocale(storage map[string]interface{}) error {
 
 // SetKeyboard is a default method to with dialog to configure the keymap
 func SetKeyboard(storage map[string]interface{}) error {
+	var (
+		locale string
+		ok     bool
+	)
 
-	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
-	if dialogs.YesNoDialog("Change default keyboard?") {
-		l := dialogs.GetSingleAnswer("New keyboard: ", dialogs.EmptyStringValidator)
+	if locale, ok = storage[GetConstLiteral(Locale)].(string); ok {
+		if i := strings.IndexAny(locale, "_."); i >= 0 {
+			locale = locale[:i]
+		}
+	}
+
+	fmt.Println("[+] Default keyboard layout: ", constants.DefaultKeymap)
+
+	if dialogs.YesNoDialog("Change default keyboard layout?") {
+		inp := dialogs.GetSingleAnswer("New keyboard layout: ",
+			dialogs.EmptyStringValidator,
+			dialogs.CreateValidatorFn(func(layout string) error { return constants.ValidateLayout(locale, layout) }))
+
+		arr := constants.GetLayout(locale, inp)
+
+		var l string
+		if len(arr) == 1 {
+			l = arr[0].Layout
+		} else {
+			l = arr[dialogs.SelectOneDialog("Please select a layout from a list: ", arr.Strings())].Layout
+		}
+
 		storage[GetConstLiteral(Keymap)] = fmt.Sprintf(constants.KeyMap, l)
 	}
 
