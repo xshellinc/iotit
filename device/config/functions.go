@@ -16,7 +16,7 @@ func SetLocale(storage map[string]interface{}) error {
 
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
+		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.CreateValidatorFn(constants.ValidateLocale))
 
 		arr := constants.GetLocale(inp)
 
@@ -81,7 +81,6 @@ func SetKeyboard(storage map[string]interface{}) error {
 
 	if dialogs.YesNoDialog("Change default keyboard layout?") {
 		inp := dialogs.GetSingleAnswer("New keyboard layout: ",
-			dialogs.EmptyStringValidator,
 			dialogs.CreateValidatorFn(func(layout string) error { return constants.ValidateLayout(locale, layout) }))
 
 		arr := constants.GetLayout(locale, inp)
