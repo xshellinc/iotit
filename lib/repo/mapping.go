@@ -87,7 +87,7 @@ func SetPath(p string) {
 	path = p
 }
 
-// GetDeviceRepo returns a devices repo. It checks the existance of mapping.json first then proceeds to the default variable
+// GetDeviceRepo returns a devices repo. It checks the existence of mapping.json first then proceeds to the default variable
 func GetDeviceRepo(device string) (*DeviceMapping, error) {
 	dm := deviceCollection{}
 

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
@@ -38,6 +38,7 @@ func (d *flasher) PrepareForFlashing() error {
 	var name, description string
 	var err error
 	wg := &sync.WaitGroup{}
+	job := help.NewBackgroundJob()
 
 	if err = vbox.CheckDeps("VBoxManage"); err != nil {
 		return err
@@ -53,20 +54,36 @@ func (d *flasher) PrepareForFlashing() error {
 	if d.vbox.State != virtualbox.Running {
 		fmt.Printf("[+] Selected virtual machine \n\t[\x1b[34mName\x1b[0m] - \x1b[34m%s\x1b[0m\n\t[\x1b[34mDescription\x1b[0m] - \x1b[34m%s\x1b[0m\n",
 			name, description)
-		progress := make(chan bool)
-		wg.Add(1)
-		go func(progress chan bool) {
-			defer close(progress)
-			defer wg.Done()
 
-			err := d.vbox.Start()
-			help.ExitOnError(err)
-			time.Sleep(45 * time.Second)
-		}(progress)
+		if err := d.vbox.Start(); err != nil {
+			return err
+		}
 
-		// @todo replace wait and spin
-		help.WaitAndSpin("starting", progress)
-		wg.Wait()
+		go func() {
+			ticker := time.NewTicker(15 * time.Second)
+			defer ticker.Stop()
+			defer job.Close()
+
+		Loop:
+			for {
+				select {
+				case <-ticker.C:
+					_, eut, err := d.conf.SSH.Run("whoami")
+					if err == nil && strings.TrimSpace(eut) == "" {
+						fmt.Println("success")
+						break Loop
+					}
+				case <-time.After(180 * time.Second):
+					job.Error(errors.New("Cannot connect to vbox via ssh"))
+				}
+			}
+		}()
+
+		if err := help.WaitJobAndSpin("starting", job); err != nil {
+			return err
+		}
+
+		time.Sleep(time.Second)
 	}
 
 	fmt.Println("[+] Starting download ", d.device)

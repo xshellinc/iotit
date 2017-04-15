@@ -3,13 +3,10 @@ package device
 import (
 	"fmt"
 	"os"
-
-	"time"
-
 	"os/exec"
 	"path/filepath"
-
 	"strings"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
@@ -81,14 +78,13 @@ func (d *edison) Configure() error {
 		logrus.Error(err)
 	}
 
-	progress := make(chan bool)
+	job := help.NewBackgroundJob()
 	go func() {
-		defer close(progress)
+		defer job.Close()
 		time.Sleep(120 * time.Second)
 	}()
 
-	help.WaitAndSpin("Configuring edison", progress)
-	<-progress
+	help.WaitJobAndSpin("Configuring edison", job)
 
 	setConfig()
 

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -68,31 +67,26 @@ func SetInterfaces(i *Interfaces) {
 
 // setIP detects entered ip address is already leased, by pinging it
 func setIP(i *Interfaces) bool {
-	wg := &sync.WaitGroup{}
-
 	loop := true
 	retries := 5
 
 	var ip string
 
 	for retries > 0 && loop {
+		job := help.NewBackgroundJob()
 		ip = dialogs.GetSingleAnswer("IP address of the device: ", dialogs.IpAddressValidator)
 
-		progress := make(chan bool)
-		wg.Add(1)
-		go func(progress chan bool) {
-			defer close(progress)
-			defer wg.Done()
+		go func() {
+			defer job.Close()
 
 			loop = !ping.PingIp(ip)
 			if loop {
-				fmt.Printf("\n[-] Sorry, a device with %s was already registered", i.Address)
+				fmt.Printf("\n[-] Sorry, a device with %s was already registered", ip)
 			}
 
 			retries--
-		}(progress)
-		help.WaitAndSpin("validating", progress)
-		wg.Wait()
+		}()
+		help.WaitJobAndSpin("validating", job)
 	}
 
 	if retries == 0 {
