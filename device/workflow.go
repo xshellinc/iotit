@@ -47,7 +47,7 @@ func New(device string) (Flasher, error) {
 			return nil, errors.New("No custom boards are available")
 		}
 
-		device = r[dialogs.SelectOneDialog("Please select a cutom board", g)]
+		device = g[dialogs.SelectOneDialog("Please select a cutom board", g)]
 
 	}
 
