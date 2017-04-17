@@ -105,7 +105,7 @@ func (v *Config) CPUDialog() {
 // USBDialog asks for VM USB settings
 func (v *Config) USBDialog() {
 	usb, ehci, xhci := v.GetUSBs()
-	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%v\x1b[0m | USB 2.0:\x1b[34m%v\x1b[0m | USB 3.0:\x1b[34m%v\x1b[0m } \n",
+	fmt.Printf("[+] Your VB USB Controller set to { ohci USB 1.0:\x1b[34m%v\x1b[0m | ehci USB 2.0:\x1b[34m%v\x1b[0m | xhci USB 3.0:\x1b[34m%v\x1b[0m } \n",
 		usb, ehci, xhci)
 
 	if dialogs.YesNoDialog("Would you like to change virtual machine usb type?") {
@@ -125,9 +125,15 @@ func (v *Config) USBDialog() {
 
 // SetVbox creates custom virtualbox specs
 func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, error) {
-	conf := filepath.Join(repo.VboxDir, VBoxConf)
+	conf := filepath.Join(repo.VboxDir, VBoxConfFile)
 	err := StopMachines()
 	help.ExitOnError(err)
+
+	a, err := virtualbox.GetMachine("iotit-box")
+
+	if a.State == virtualbox.Running {
+		return a, a.Name, a.Description, err
+	}
 
 	vboxs := v.Enable(conf, VBoxName, device)
 	n := selectVboxInit(conf, vboxs)

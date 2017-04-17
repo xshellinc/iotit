@@ -142,8 +142,8 @@ func setupSSH(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	f1 := help.AddPathSuffix("unix", constants.MountDir, "rc2.d/K*ssh")
-	f2 := help.AddPathSuffix("unix", constants.MountDir, "rc2.d/S02ssh")
+	f1 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/K*ssh")
+	f2 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/S02ssh")
 
 	command := fmt.Sprintf(`mv %s %s`, f1, f2)
 

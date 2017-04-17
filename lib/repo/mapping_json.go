@@ -1,7 +1,7 @@
 package repo
 
 const (
-	file = "mapper.json"
+	file = "mapping.json"
 
 	// example is used to create mapper.json file or used in case of absence of the file
 	example = `{

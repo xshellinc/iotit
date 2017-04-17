@@ -9,6 +9,7 @@ import (
 
 // BadRepoError is an error message
 const BadRepoError = "Bad repository "
+const CUSTOM_FLASH = "Custom"
 
 // devices is a list of currently supported devices
 var devices = [...]string{
@@ -16,10 +17,38 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
+	CUSTOM_FLASH,
 }
 
 // New triggers select repository methods and initializes a new flasher
 func New(device string) (Flasher, error) {
+	if device == CUSTOM_FLASH {
+		r, err := repo.GetAllRepos()
+		if err != nil {
+			return nil, err
+		}
+
+		g := make([]string, 0)
+		for _, s := range r {
+			c := true
+			for _, d := range devices {
+				if s == d {
+					c = false
+				}
+			}
+			if c {
+				g = append(g, s)
+			}
+		}
+
+		if len(g) == 0 {
+			return nil, errors.New("No custom boards are available")
+		}
+
+		device = r[dialogs.SelectOneDialog("Please select a cutom board", g)]
+
+	}
+
 	r, err := repo.GetDeviceRepo(device)
 	if err != nil && !repo.IsMissingRepoError(err) {
 		return nil, err

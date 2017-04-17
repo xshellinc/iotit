@@ -21,7 +21,7 @@ const (
 	VBoxPassword = ""
 	VBoxSSHPort  = "2222"
 
-	VBoxConf = "iotit-vbox.json"
+	VBoxConfFile = "iotit-vbox.json"
 )
 
 type (

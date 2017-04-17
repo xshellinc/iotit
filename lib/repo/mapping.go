@@ -10,15 +10,15 @@ import (
 
 const missingRepo = "Device repo is missing"
 
+var dm *deviceCollection = nil
 var path string
 
 func init() {
-	//p, err := os.Executable()
-	//if err != nil {
-	//	logrus.Error(err)
-	//}
-
 	path = filepath.Join(baseDir, file)
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		ioutil.WriteFile(path, []byte(example), 0644)
+	}
 }
 
 // DeviceImage contains url, title, username and password which are used after flashing
@@ -87,30 +87,58 @@ func SetPath(p string) {
 	path = p
 }
 
+// GetAllRepos returns all repo Names
+func GetAllRepos() ([]string, error) {
+	if dm == nil {
+		if err := initDeviceCollection(); err != nil {
+			return nil, err
+		}
+	}
+
+	str := make([]string, 0)
+
+	for _, d := range dm.Devices {
+		str = append(str, d.Name)
+	}
+
+	return str, nil
+}
+
 // GetDeviceRepo returns a devices repo. It checks the existence of mapping.json first then proceeds to the default variable
 func GetDeviceRepo(device string) (*DeviceMapping, error) {
-	dm := deviceCollection{}
-
-	if _, err := os.Stat(path); err != nil {
-		if os.IsExist(err) {
-			return nil, err
-		}
-
-		if err := json.Unmarshal([]byte(example), &dm); err != nil {
-			return nil, err
-		}
-	} else {
-		d, err := ioutil.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := json.Unmarshal(d, &dm); err != nil {
+	if dm == nil {
+		if err := initDeviceCollection(); err != nil {
 			return nil, err
 		}
 	}
 
 	return dm.findDevice(device)
+}
+
+// initDeviceCollection initializes deviceCollection from file, alternatively from the internal constant
+func initDeviceCollection() error {
+	dm = &deviceCollection{}
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsExist(err) {
+			return err
+		}
+
+		if err := json.Unmarshal([]byte(example), dm); err != nil {
+			return err
+		}
+	} else {
+		d, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal(d, dm); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // GenMappingFile generates mapping.json file
