@@ -1,12 +1,9 @@
 package device
 
 import (
-	"fmt"
-
 	"errors"
-
+	"fmt"
 	"net"
-
 	"strconv"
 
 	"github.com/xshellinc/iotit/device/config"
@@ -31,6 +28,7 @@ func (d *raspberryPi) Configure() error {
 	c := config.NewDefault(d.conf.SSH)
 
 	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
+	c.AddConfigFn(config.NewCallbackFn(nil, setupSSH))
 
 	go func() {
 		defer job.Close()
@@ -129,6 +127,25 @@ func saveInterface(storage map[string]interface{}) error {
 
 	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
 	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.GetConstLiteral(config.Interface)], fp)
+
+	_, eut, err := ssh.Run(command)
+	if err != nil {
+		return errors.New(err.Error() + ":" + eut)
+	}
+
+	return nil
+}
+
+func setupSSH(storage map[string]interface{}) error {
+	ssh, ok := storage["ssh"].(ssh_helper.Util)
+	if !ok {
+		return errors.New("Cannot get ssh config")
+	}
+
+	f1 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/K*ssh")
+	f2 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/S02ssh")
+
+	command := fmt.Sprintf(`mv %s %s`, f1, f2)
 
 	_, eut, err := ssh.Run(command)
 	if err != nil {

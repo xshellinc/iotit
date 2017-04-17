@@ -121,6 +121,10 @@ Intel USB download gadget [9999]
 FTDI FT232R USB UART [0600]
 ```
 
+CUSTOM BOARDS FLASHING:
+----------------
+In order to flash a custom board, device info should be added into mapping.json
+
 
 STRUCTURE OF `mapping.json`:
 ----------------

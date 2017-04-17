@@ -35,6 +35,8 @@ type (
 		Write() error
 		SetConfigFn(int, *CallbackFn)
 		GetConfigFn(int) *CallbackFn
+		AddConfigFn(*CallbackFn)
+		RemoveConfigFn(int)
 	}
 
 	// configurator is a container of a mutual storage and order of CallbackFn
@@ -107,6 +109,11 @@ func (c *configurator) Write() error {
 	return nil
 }
 
+// AddConfigFn
+func (c *configurator) AddConfigFn(ccf *CallbackFn) {
+	c.order = append(c.order, ccf)
+}
+
 // SetConfigFn sets CallbackFn of a specified number of the array
 func (c *configurator) SetConfigFn(num int, ccf *CallbackFn) {
 	c.order[num] = ccf
@@ -115,4 +122,16 @@ func (c *configurator) SetConfigFn(num int, ccf *CallbackFn) {
 // GetConfigFn returns GetConfigFn from the array by a number
 func (c *configurator) GetConfigFn(num int) *CallbackFn {
 	return c.order[num]
+}
+
+// RemoveConfigFn removes CallbackFn from order
+func (c *configurator) RemoveConfigFn(num int) {
+	if num == len(c.order)-1 {
+		c.order = c.order[:num]
+	}
+	if num == 0 {
+		c.order = c.order[1:]
+	}
+
+	c.order = append(c.order[:num], c.order[num+1:]...)
 }
