@@ -47,7 +47,7 @@ func New(device string) (Flasher, error) {
 			return nil, errors.New("No custom boards are available")
 		}
 
-		device = g[dialogs.SelectOneDialog("Please select a cutom board", g)]
+		device = g[dialogs.SelectOneDialog("Please select a cutom board: ", g)]
 
 	}
 
@@ -84,6 +84,7 @@ func New(device string) (Flasher, error) {
 	default:
 		i := &sdFlasher{flasher: &flasher{}}
 		i.device = device
+		i.devRepo = r
 		return i, nil
 	}
 }
