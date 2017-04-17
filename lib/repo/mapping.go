@@ -10,7 +10,7 @@ import (
 
 const missingRepo = "Device repo is missing"
 
-var dm *deviceCollection = nil
+var dm *deviceCollection
 var path string
 
 func init() {
