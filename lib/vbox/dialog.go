@@ -131,6 +131,7 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 
 	a, err := virtualbox.GetMachine("iotit-box")
 
+	// Checks if the iotit box is running and skips setting section
 	if a.State == virtualbox.Running {
 		return a, a.Name, a.Description, err
 	}

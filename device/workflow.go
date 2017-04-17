@@ -9,7 +9,7 @@ import (
 
 // BadRepoError is an error message
 const BadRepoError = "Bad repository "
-const CUSTOM_FLASH = "Custom"
+const CustomFlash = "Custom"
 
 // devices is a list of currently supported devices
 var devices = [...]string{
@@ -17,12 +17,12 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
-	CUSTOM_FLASH,
+	CustomFlash,
 }
 
 // New triggers select repository methods and initializes a new flasher
 func New(device string) (Flasher, error) {
-	if device == CUSTOM_FLASH {
+	if device == CustomFlash {
 		r, err := repo.GetAllRepos()
 		if err != nil {
 			return nil, err
