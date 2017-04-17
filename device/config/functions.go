@@ -16,18 +16,18 @@ func SetLocale(storage map[string]interface{}) error {
 
 	fmt.Println("[+] Default language: ", constants.DefaultLocale)
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.EmptyStringValidator, dialogs.CreateValidatorFn(constants.ValidateLocale))
+		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.CreateValidatorFn(constants.ValidateLocale))
 
-		arr, _ := constants.GetLocale(inp)
+		arr := constants.GetLocale(inp)
 
 		var l string
 		if len(arr) == 1 {
-			l = arr[0]
+			l = arr[0].Locale
 		} else {
-			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr)]
+			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr.Strings())].Locale
 		}
 
-		storage[GetConstLiteral(Locale)] = strings.Split(l, " ")[0]
+		storage[GetConstLiteral(Locale)] = l
 	}
 
 	return nil
@@ -66,10 +66,32 @@ func SaveLocale(storage map[string]interface{}) error {
 
 // SetKeyboard is a default method to with dialog to configure the keymap
 func SetKeyboard(storage map[string]interface{}) error {
+	var (
+		locale string
+		ok     bool
+	)
 
-	fmt.Println("[+] Default keyboard: ", constants.DefaultKeymap)
-	if dialogs.YesNoDialog("Change default keyboard?") {
-		l := dialogs.GetSingleAnswer("New keyboard: ", dialogs.EmptyStringValidator)
+	if locale, ok = storage[GetConstLiteral(Locale)].(string); ok {
+		if i := strings.IndexAny(locale, "_."); i >= 0 {
+			locale = locale[:i]
+		}
+	}
+
+	fmt.Println("[+] Default keyboard layout: ", constants.DefaultKeymap)
+
+	if dialogs.YesNoDialog("Change default keyboard layout?") {
+		inp := dialogs.GetSingleAnswer("New keyboard layout: ",
+			dialogs.CreateValidatorFn(func(layout string) error { return constants.ValidateLayout(locale, layout) }))
+
+		arr := constants.GetLayout(locale, inp)
+
+		var l string
+		if len(arr) == 1 {
+			l = arr[0].Layout
+		} else {
+			l = arr[dialogs.SelectOneDialog("Please select a layout from a list: ", arr.Strings())].Layout
+		}
+
 		storage[GetConstLiteral(Keymap)] = fmt.Sprintf(constants.KeyMap, l)
 	}
 
