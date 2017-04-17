@@ -212,6 +212,12 @@ const (
 	    ],
 	    "Images":[
 	      {
+	        "URL":"https://cdn.isaax.io/isaax-distro/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
+		"Title":"Debian light isaax-distro",
+		"User":"ubuntu",
+		"Pass":"temppwd"
+	      },
+	      {
 		"URL":"https://debian.beagleboard.org/images/bone-debian-8.7-lxqt-4gb-armhf-2017-03-19-4gb.img.xz",
 		"Title":"Debian with desktop",
 		"User":"ubuntu",
