@@ -9,6 +9,8 @@ import (
 
 // BadRepoError is an error message
 const BadRepoError = "Bad repository "
+
+// CustomFlash custom method enum
 const CustomFlash = "Custom"
 
 // devices is a list of currently supported devices
