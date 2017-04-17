@@ -43,6 +43,7 @@ func init() {
 	help.CreateDir(baseDir)
 	help.CreateDir(ImageDir)
 	help.CreateDir(VboxDir)
+	help.CreateDir(filepath.Join(help.UserHomeDir(), "VirtualBox VMs"))
 }
 
 // Repository represents image repo

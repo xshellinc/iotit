@@ -6,12 +6,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"regexp"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -30,10 +33,6 @@ type sdFlasher struct {
 
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
-	if loopMount == "" {
-		return errors.New("Application error: Nothing to mount")
-	}
-
 	logrus.Debug("Attaching an image")
 	command := fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, d.img))
 	out, eut, err := d.conf.SSH.Run(command)
@@ -51,6 +50,26 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		return err
 	}
 	logrus.Debug(out, eut)
+
+	if loopMount == "" {
+		command = fmt.Sprintf("ls /dev/loop0p*")
+		out, eut, err = d.conf.SSH.Run(command)
+		if err != nil {
+			logrus.Error("[-] Error when execute: ", command, eut)
+			return err
+		}
+		logrus.Debug(out, eut)
+
+		compiler, _ := regexp.Compile(`loop0p[\d]+`)
+		opts := compiler.FindAllString(out, -1)
+
+		if len(opts) == 0 {
+			return errors.New("Cannot find a mounting point")
+		}
+
+		loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point", opts)]
+		loopMount = loopMount[5:]
+	}
 
 	logrus.Debug("Mounting tmp folder")
 	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.Mount, loopMount, constants.MountDir)
@@ -136,7 +155,7 @@ func (d *sdFlasher) Configure() error {
 
 	c := config.NewDefault(d.conf.SSH)
 
-	if err := d.MountImg(""); err != nil {
+	if err := d.MountImg(fmt.Sprintf("")); err != nil {
 		return err
 	}
 
