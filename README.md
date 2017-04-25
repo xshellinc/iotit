@@ -123,7 +123,7 @@ FTDI FT232R USB UART [0600]
 
 CUSTOM BOARDS FLASHING:
 ----------------
-In order to flash a custom board, device info should be added into mapping.json
+In order to flash a custom board, device info should be added into `~/.iotit/mapping.json`. This file should be created as soon as you start iotit but can also be generated witht the command `iotit --help`.
 
 
 STRUCTURE OF `mapping.json`:
@@ -151,6 +151,8 @@ STRUCTURE OF `mapping.json`:
 	  }
 	]
 ```
+
+If you do not specify any images for sub categeory it will choose whatever you have specified in the global image section. If you have more than one image in any image section you will be presented with a list when flashing.
 
 ### Structure:
 ```
