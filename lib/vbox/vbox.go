@@ -73,7 +73,6 @@ func NewConfig(device string) *Config {
 	err := CheckMachine(VBoxName)
 	help.ExitOnError(err)
 	m, err := virtualbox.GetMachine(VBoxName)
-	help.ExitOnError(err)
 
 	conf := Config{
 		Name:        "",

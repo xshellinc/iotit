@@ -91,7 +91,7 @@ func CheckMachine(machine string) error {
 		}
 
 	}
-	if !isActive(machine) {
+	if !isActive(machinePath) {
 		fmt.Printf("[+] Registering %s\n", machine)
 		_, err := help.ExecCmd("VBoxManage",
 			[]string{
