@@ -258,9 +258,5 @@ func configBoard(ip string) error {
 		return err
 	}
 
-	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "reboot now"); err != nil {
-		return err
-	}
-
 	return nil
 }
