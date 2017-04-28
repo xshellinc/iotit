@@ -77,7 +77,7 @@ func New(device string) (Flasher, error) {
 		i.devRepo = r
 		return i, err
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{&flasher{}}
+		i := &edison{flasher:&flasher{}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
