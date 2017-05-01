@@ -46,57 +46,8 @@ func (d *edison) PrepareForFlashing() error {
 }
 
 func (d *edison) Configure() error {
-	for !dialogs.YesNoDialog("Please plug your edison board. Press yes once unpluged? ") {
+	for !dialogs.YesNoDialog("Please plug your edison board. Press yes once pluged? ") {
 	}
-	//d.flasher.conf = vbox.NewConfig(d.device)
-	//m, _, _, err := vbox.SetVbox(d.flasher.conf, d.device)
-	//d.flasher.vbox = m
-	//if err != nil {
-	//	return err
-	//}
-	//// check if vm is running
-	//if d.vbox.State != virtualbox.Running {
-	//	err := d.vbox.Start()
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-
-	//for {
-	//	script := "flashall.sh"
-	//
-	//	args := []string{
-	//		fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
-	//		"-p",
-	//		vbox.VBoxSSHPort,
-	//		constants.TMP_DIR + script,
-	//	}
-	//
-	//	if err := help.ExecStandardStd("ssh", args...); err != nil {
-	//		fmt.Println("[-] Cannot find mounted Intel edison device, please try to re-mount it")
-	//
-	//		if !dialogs.YesNoDialog("Press yes once mounted? ") {
-	//			fmt.Println("Exiting with exit status 2 ...")
-	//			os.Exit(2)
-	//		}
-	//
-	//		continue
-	//	}
-	//
-	//	break
-	//}
-	//
-	//if err := vbox.Stop(d.vbox.UUID); err != nil {
-	//	logrus.Error(err)
-	//}
-	//
-	//job := help.NewBackgroundJob()
-	//go func() {
-	//	defer job.Close()
-	//	time.Sleep(120 * time.Second)
-	//}()
-	//
-	//help.WaitJobAndSpin("Configuring edison", job)
 
 	err := setConfig()
 	if err != nil {
@@ -156,7 +107,7 @@ func setConfig() error {
 		ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
 	}
 
-	if err := help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), ip); err != nil {
+	if err := help.DeleteHost(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"), ip); err != nil {
 		logrus.Error(err)
 	}
 
