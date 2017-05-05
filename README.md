@@ -30,8 +30,8 @@ The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/
 
 ##### Windows specific
 You will need to install [git-for-windows](https://git-for-windows.github.io/)
-Upon installing, choose to add git and it's shell binaries to the system PATH
-![select this option](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
+
+Upon installing, you will need to add both git and Unix tools to the system PATH [example screenshot](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
 
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)
 
