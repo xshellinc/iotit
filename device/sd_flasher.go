@@ -112,13 +112,14 @@ func (d *sdFlasher) Flash() error {
 
 	logrus.Debug("Copying files from vbox")
 	fmt.Println("[+] Copying files...")
-	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img), filepath.Join(constants.TMP_DIR, d.img))
+	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img),
+		filepath.Join(help.GetTempDir(), d.img))
 	if err != nil {
 		return err
 	}
 
 	w := workstation.NewWorkStation()
-	img := filepath.Join(constants.TMP_DIR, d.img)
+	img := filepath.Join(help.GetTempDir(), d.img)
 
 	logrus.Debug("Writing the image into sd card")
 	job, err := w.WriteToDisk(img)

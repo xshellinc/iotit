@@ -7,13 +7,13 @@ import (
 
 	"log"
 	"runtime"
-	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
@@ -53,7 +53,7 @@ func init() {
 	if Env == "dev" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	logfile := fmt.Sprintf(strings.Trim(os.TempDir(), string(os.PathSeparator))+string(os.PathSeparator)+"%s.log", progName)
+	logfile := fmt.Sprintf(help.GetTempDir()+string(os.PathSeparator)+"%s.log", progName)
 
 	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {

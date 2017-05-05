@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -109,13 +110,13 @@ func (d *flasher) PrepareForFlashing() error {
 	}
 
 	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	if err = d.conf.SSH.Scp(help.AddPathSuffix("unix", d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
+	if err = d.conf.SSH.Scp(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
 		return err
 	}
 
 	fmt.Printf("[+] Extracting %s \n", zipName)
-	logrus.Debug("Extracting an image")
 	command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
+	logrus.Debug("Extracting an image... ", command)
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil || len(strings.TrimSpace(eut)) > 0 {

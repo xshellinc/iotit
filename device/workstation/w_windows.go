@@ -7,5 +7,5 @@ type windows struct {
 }
 
 func newWorkstation() WorkStation {
-	return nil
+	return &windows{}
 }
