@@ -14,6 +14,7 @@ import (
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -40,7 +41,7 @@ func (d *flasher) PrepareForFlashing() error {
 	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
 
-	if err = vbox.CheckDeps("VBoxManage"); err != nil {
+	if err = vbox.CheckVBInstalled(); err != nil {
 		return err
 	}
 
@@ -52,8 +53,9 @@ func (d *flasher) PrepareForFlashing() error {
 	}
 
 	if d.vbox.State != virtualbox.Running {
-		fmt.Printf("[+] Selected virtual machine \n\t[\x1b[34mName\x1b[0m] - \x1b[34m%s\x1b[0m\n\t[\x1b[34mDescription\x1b[0m] - \x1b[34m%s\x1b[0m\n",
-			name, description)
+		fmt.Printf(`[+] Selected virtual machine
+	Name - `+dialogs.PrintColored("%s")+`
+	Description - `+dialogs.PrintColored("%s")+"\n", name, description)
 
 		if err := d.vbox.Start(); err != nil {
 			return err
@@ -72,6 +74,8 @@ func (d *flasher) PrepareForFlashing() error {
 					if err == nil && strings.TrimSpace(eut) == "" {
 						fmt.Println("success")
 						break Loop
+					} else if err != nil {
+						logrus.WithField("error", err).Debug("Connecting SSH")
 					}
 				case <-time.After(180 * time.Second):
 					job.Error(errors.New("Cannot connect to vbox via ssh"))

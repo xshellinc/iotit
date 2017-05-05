@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"log"
 	"runtime"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
@@ -51,14 +53,17 @@ func init() {
 	if Env == "dev" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+	logfile := fmt.Sprintf(strings.Trim(os.TempDir(), string(os.PathSeparator))+strings(os.PathSeparator)+"%s.log", progName)
 
-	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", progName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		logrus.Errorf("error opening file: %v", err)
 		return
 	}
 
+	fmt.Println("Log location:", logfile)
 	logrus.SetOutput(f)
+	log.SetOutput(f)
 
 	initCommands()
 }
@@ -71,6 +76,7 @@ func main() {
 	if commandsHandler(flag.Args()) {
 		return
 	}
+
 	device.Init(*deviceType)
 }
 

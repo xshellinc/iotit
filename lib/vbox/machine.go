@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -111,7 +112,7 @@ func CheckMachine(machine string) error {
 func Update() error {
 	log.Debug("Virtual Machine Update func()")
 
-	err := CheckDeps("VBoxManage")
+	err := CheckVBInstalled()
 	help.ExitOnError(err)
 
 	repository, err := repo.NewRepositoryVM()
@@ -245,18 +246,36 @@ func download(path string, repository repo.Repository) {
 	}
 }
 
-// CheckDeps checks for virtualbox dependencies
-func CheckDeps(pkg string) error {
-	err := exec.Command("which", pkg).Run()
-	if err != nil {
-		log.Error("Error while running `which` : ", err.Error())
-		return fmt.Errorf("[-] Could not find virtualbox, please install virtualbox")
+// CheckVBInstalled checks for virtualbox dependencies
+func CheckVBInstalled() error {
+	vbm := "VBoxManage"
+	if err := exec.Command("which", vbm).Run(); err != nil {
+		if runtime.GOOS == "windows" {
+			path := `C:\Program Files\Oracle\VirtualBox\`
+			if !help.DirExists(path) {
+				path = dialogs.GetSingleAnswer("[-] Couldn't find VirtualBox in default location, please specify installation dir manually: ", dialogs.EmptyStringValidator)
+				if help.DirExists(path) {
+					return fmt.Errorf("Could not find virtualbox, may be you need to install it first")
+				}
+			}
+			exec.Command("setx", "path", `%path%;`+path).Run()
+			if err := exec.Command("PowerShell", "-Command", "[Environment]::SetEnvironmentVariable('Path', $env:Path + ';"+path+"', [EnvironmentVariableTarget]::User)").Run(); err != nil {
+				log.Error("Error setting PowerShell `path` : ", err.Error())
+				return fmt.Errorf(`Couldn't alter your system PATH, please change it manually. E.g. 'C:\Program Files\Oracle\VirtualBox\'`)
+			} else {
+				fmt.Println("[+] Added VirtualBox installation directory to system PATH")
+			}
+		}
+		if err := exec.Command("which", vbm).Run(); err != nil {
+			log.Error("Error while running `which` : ", err.Error())
+			return fmt.Errorf("Could not find virtualbox, please install it first")
+		}
 	}
-	out, _ := exec.Command("VBoxManage", "list", "extpacks").Output()
+	out, _ := exec.Command(vbm, "list", "extpacks").Output()
 
 	match, _ := regexp.MatchString(".*Oracle VM VirtualBox Extension Pack.*", string(out))
 	if !match {
-		return fmt.Errorf("[-] Could not find virtualbox extension pack, please install virtualbox extension pack, try")
+		return fmt.Errorf("Could not find virtualbox extension pack, please install virtualbox extension pack, try")
 	}
 	return nil
 }
@@ -265,7 +284,7 @@ func CheckDeps(pkg string) error {
 func CheckUpdate() bool {
 	log.Debug("Check Update func()")
 
-	err := CheckDeps("VBoxManage")
+	err := CheckVBInstalled()
 	help.ExitOnError(err)
 
 	var baseDir = filepath.Join(help.UserHomeDir(), ".iotit")
@@ -333,7 +352,7 @@ func StopMachines() error {
 				nameStr = "default"
 			}
 
-			if dialogs.YesNoDialog(fmt.Sprintf("\x1b[34m%s (%s)\x1b[0m is running, would you like to stop this virtual machine?", m.Name, nameStr)) {
+			if dialogs.YesNoDialog(fmt.Sprintf(dialogs.PrintColored("%s (%s)")+" is running, would like you stop this virtual machine?", m.Name, nameStr)) {
 				if err = m.Poweroff(); err != nil {
 					return err
 				}
@@ -350,8 +369,8 @@ func getPath() string {
 	}
 	re := regexp.MustCompile(`Default machine folder:(.*)`)
 	result := re.FindStringSubmatch(string(out))
-	return strings.Trim(result[1], " ")
 
+	return strings.TrimSpace(result[1])
 }
 
 func fileExists(name string) bool {
