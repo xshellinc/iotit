@@ -53,7 +53,7 @@ func init() {
 	if Env == "dev" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	logfile := fmt.Sprintf(strings.Trim(os.TempDir(), string(os.PathSeparator))+strings(os.PathSeparator)+"%s.log", progName)
+	logfile := fmt.Sprintf(strings.Trim(os.TempDir(), string(os.PathSeparator))+string(os.PathSeparator)+"%s.log", progName)
 
 	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
