@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -28,28 +30,27 @@ type windows struct {
 func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
-	return &windows{&workstation{runtime.GOOS, true, m, ms}, "./bin/ddw.exe"}
+	return &windows{&workstation{runtime.GOOS, true, m, ms}, ""}
 }
 
 // Lists available mounts
 func (w *windows) ListRemovableDisk() error {
+	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
 	rePH := regexp.MustCompile(`PHYSICALDRIVE(\d+)$`)
 	reHD := regexp.MustCompile(`Device\\Harddisk(\d+)\\`)
 	reSize := regexp.MustCompile(`size is (\d+) bytes`)
 
-	// listDisks := "wmic logicaldisk get caption,description,drivetype,volumename,size"
-	//E:       Removable Disk      2          3999825920     FLASH
-	// stdout, err := help.ExecCmd("wmic", []string{"logicaldisk", "get", "caption,description,drivetype,volumename,size,deviceid", "/format:csv"})
 	stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "list", "brief", "/format:csv"})
+	log.Debug(stdout)
 	if err != nil {
 		stdout = ""
 	}
 	wmiList := strings.Split(stdout, "\n")
+	// get drives models to make drives list more human readable
 	modelMap := make(map[string]string)
 	for _, line := range wmiList {
 		result := strings.Split(line, ",")
-		log.Debug(line)
 		if len(result) < 3 {
 			continue
 		}
@@ -58,16 +59,25 @@ func (w *windows) ListRemovableDisk() error {
 			modelMap[index] = result[1] //physical id = model name //  \\.\PHYSICALDRIVE0
 		}
 	}
-	log.Debug(modelMap)
-	log.Debug("Listing disks...")
+	log.WithField("map", modelMap).Debug("got models")
+	// get actual physical drives names
+	if w.ddPath == "" {
+		if err := w.getDDBinary(); err != nil {
+			log.Error(err)
+			fmt.Println("[-] Error downloading dd binary")
+			return err
+		}
+	}
 	output, err := exec.Command(w.ddPath, "--list", "--filter=removable").CombinedOutput()
 	if err != nil {
 		log.Error(err)
 		fmt.Println("[-] Error getting disk drives list")
+		return err
 	}
-
+	log.WithField("output", string(output)).Debug("dd --list")
 	ddListInfo := strings.Split(string(output), "\n")
 	diskName := ""
+	// map models with physical endpoints using size as extra checkpoint for the user
 	for _, line := range ddListInfo {
 		if diskName == "" && strings.Contains(line, `Device\Harddisk`) {
 			diskName = strings.TrimSpace(line)
@@ -76,7 +86,6 @@ func (w *windows) ListRemovableDisk() error {
 		if diskName == "" {
 			continue
 		}
-		log.Info(line, len(reHD.FindStringIndex(diskName)))
 		if strings.Contains(line, `size is`) && len(reHD.FindStringIndex(diskName)) > 0 {
 			var p = &MountInfo{}
 			size := reSize.FindStringSubmatch(line)[1]
@@ -86,18 +95,18 @@ func (w *windows) ListRemovableDisk() error {
 			if deviceName, ok := modelMap[index]; !ok {
 				continue
 			} else {
-				p.deviceName = "[" + strconv.Itoa(int(math.Ceil(float64(sizeInt)/1024/1024/1024))) + "GB] " + deviceName
+				sizeFloat := math.Ceil(float64(sizeInt) / 1024 / 1024 / 1024)
+				p.deviceName = deviceName + " [" + strconv.Itoa(int(sizeFloat)) + "GB]"
 			}
 			p.diskName = diskName
 			p.diskNameRaw = diskName
 			out = append(out, p)
 			diskName = ""
 		}
-		log.Debug(line)
 	}
-
+	log.WithField("out", out).Debug("got drives")
 	if !(len(out) > 0) {
-		return fmt.Errorf("[-] No external disks found, remember to run this tool as administrator.\n[-] Please insert your SD card and try again\n")
+		return fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
 	}
 	w.workstation.mounts = out
 	return nil
@@ -123,7 +132,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 
 		err = w.ListRemovableDisk()
 		if err != nil {
-			fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 			continue
 		}
 
@@ -131,7 +140,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 		for i, e := range w.workstation.mounts {
 			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), e.deviceName, e.diskName)
 		}
-		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		num := dialogs.SelectOneDialog("Select disk to use: ", rng)
 
 		disk := w.workstation.mounts[num]
 
@@ -209,5 +218,36 @@ func (w *windows) Eject() error {
 	if w.workstation.writable != false {
 		fmt.Printf("[+] Eject your sd card :%s\n", w.workstation.mount.diskName)
 	}
+	return nil
+}
+
+func (w *windows) getDDBinary() error {
+	dst := help.GetTempDir() + help.Separator()
+	url := "https://cdn.isaax.io/isaax-distro/utilities/dd/ddrelease64.zip"
+
+	if help.Exists(dst + "ddrelease64.exe") {
+		w.ddPath = dst + "ddrelease64.exe"
+		return nil
+	}
+
+	wg := &sync.WaitGroup{}
+	fileName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
+	if err != nil {
+		return err
+	}
+
+	bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
+	bar.Start()
+	wg.Wait()
+	bar.Finish()
+	time.Sleep(time.Second)
+
+	log.WithField("dst", dst).Debug("Extracting")
+	if out, err := exec.Command("unzip", "-o", dst+"ddrelease64.zip", "-d", dst).CombinedOutput(); err != nil {
+		return err
+	} else {
+		log.Debug(string(out))
+	}
+	w.ddPath = dst + "ddrelease64.exe"
 	return nil
 }

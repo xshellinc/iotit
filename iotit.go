@@ -53,7 +53,7 @@ func init() {
 	if Env == "dev" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	logfile := fmt.Sprintf(help.GetTempDir()+string(os.PathSeparator)+"%s.log", progName)
+	logfile := fmt.Sprintf(help.GetTempDir()+help.Separator()+"%s.log", progName)
 
 	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
@@ -154,7 +154,7 @@ func initCommands() {
 
 		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
 
-		dir, err := repo.DownloadNewVersion(progName, Version, "/tmp")
+		dir, err := repo.DownloadNewVersion(progName, Version, help.GetTempDir())
 
 		if err != nil {
 			fmt.Println("[-] Error:", err)
