@@ -33,6 +33,10 @@ You will need to install [git-for-windows](https://git-for-windows.github.io/)
 
 Upon installing, you will need to add both git and Unix tools to the system PATH [example screenshot](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
 
+Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be able to write on external drives.
+
+#### Building
+
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)
 
 *Note:* Install all requirements before trying to build it on your local workstation:
