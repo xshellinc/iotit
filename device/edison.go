@@ -14,6 +14,8 @@ import (
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
+	"github.com/xshellinc/iotit/lib/vbox"
+	"github.com/riobard/go-virtualbox"
 )
 
 const (
@@ -39,16 +41,60 @@ func (d *edison) PrepareForFlashing() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
 
 	if ack {
-		return d.flasher.PrepareForFlashing()
+		d.flasher.PrepareForFlashing()
+		for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {
+		}
+		d.flasher.conf = vbox.NewConfig(d.device)
+		m, _, _, err := vbox.SetVbox(d.flasher.conf, d.device)
+		d.flasher.vbox = m
+		if err != nil {
+			return err
+		}
+		// check if vm is running
+		if d.vbox.State != virtualbox.Running {
+			err := d.vbox.Start()
+			if err != nil {
+				return err
+			}
+		}
+
+		for {
+			script := "flashall.sh"
+			args := []string{
+				fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
+				"-p",
+				vbox.VBoxSSHPort,
+				constants.TMP_DIR + script,
+			}
+			if err := help.ExecStandardStd("ssh", args...); err != nil {
+				fmt.Println("[-] Cannot find mounted Intel edison device, please try to re-mount it")
+
+				if !dialogs.YesNoDialog("Press yes once mounted? ") {
+					fmt.Println("Exiting with exit status 2 ...")
+					os.Exit(2)
+				}
+				continue
+			}
+			break
+		}
+
+		if err := vbox.Stop(d.vbox.UUID); err != nil {
+			logrus.Error(err)
+		}
+
+		job := help.NewBackgroundJob()
+		go func() {
+			defer job.Close()
+			time.Sleep(120 * time.Second)
+		}()
+
+		help.WaitJobAndSpin("Configuring edison", job)
 	}
 
 	return nil
 }
 
 func (d *edison) Configure() error {
-	for !dialogs.YesNoDialog("Please plug your edison board. Press yes once pluged? ") {
-	}
-
 	err := setConfig()
 	if err != nil {
 		logrus.Error(err)
