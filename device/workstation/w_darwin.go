@@ -255,3 +255,8 @@ func (d *darwin) Unmount() error {
 	}
 	return nil
 }
+
+// CleanDisk does nothing on macOS
+func (d *darwin) CleanDisk() error {
+	return nil
+}

@@ -218,3 +218,8 @@ func (l *linux) Eject() error {
 	}
 	return nil
 }
+
+// CleanDisk does nothing on linux
+func (l *linux) CleanDisk() error {
+	return nil
+}

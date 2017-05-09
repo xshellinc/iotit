@@ -10,6 +10,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
+	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
@@ -181,6 +182,14 @@ func initCommands() {
 		}
 	}
 
+	clean := func() {
+		w := workstation.NewWorkStation()
+		if err := w.CleanDisk(); err != nil {
+			fmt.Println("[-] Error:", err)
+			return
+		}
+	}
+
 	commands["version"] = v
 	commands["v"] = v
 	commands["help"] = h
@@ -190,4 +199,5 @@ func initCommands() {
 	commands["uninstall"] = u
 	commands["un"] = u
 	commands["update"] = upd
+	commands["clean"] = clean
 }

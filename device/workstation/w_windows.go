@@ -2,11 +2,10 @@ package workstation
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"os/exec"
 
 	"math"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,12 +14,18 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
+	"encoding/csv"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
-	"github.com/xshellinc/tools/lib/sudo"
 )
 
-// @todo add windows methods
+var cleanTemplate = `
+select disk %s
+clean
+create partition primary
+active
+format fs=fat32 label=New quick
+`
 
 type windows struct {
 	*workstation
@@ -37,71 +42,31 @@ func newWorkstation() WorkStation {
 func (w *windows) ListRemovableDisk() error {
 	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
-	rePH := regexp.MustCompile(`PHYSICALDRIVE(\d+)$`)
-	reHD := regexp.MustCompile(`Device\\Harddisk(\d+)\\`)
-	reSize := regexp.MustCompile(`size is (\d+) bytes`)
 
-	stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "list", "brief", "/format:csv"})
+	stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})
 	log.Debug(stdout)
 	if err != nil {
 		stdout = ""
 	}
-	wmiList := strings.Split(stdout, "\n")
-	// get drives models to make drives list more human readable
-	modelMap := make(map[string]string)
-	for _, line := range wmiList {
-		result := strings.Split(line, ",")
-		if len(result) < 3 {
-			continue
-		}
-		if len(rePH.FindStringIndex(result[2])) > 0 {
-			index := rePH.FindStringSubmatch(result[2])[1]
-			modelMap[index] = result[1] //physical id = model name //  \\.\PHYSICALDRIVE0
-		}
-	}
-	log.WithField("map", modelMap).Debug("got models")
-	// get actual physical drives names
-	if w.ddPath == "" {
-		if err := w.getDDBinary(); err != nil {
-			log.Error(err)
-			fmt.Println("[-] Error downloading dd binary")
-			return err
-		}
-	}
-	output, err := exec.Command(w.ddPath, "--list", "--filter=removable").CombinedOutput()
-	if err != nil {
-		log.Error(err)
-		fmt.Println("[-] Error getting disk drives list")
-		return err
-	}
-	log.WithField("output", string(output)).Debug("dd --list")
-	ddListInfo := strings.Split(string(output), "\n")
-	diskName := ""
-	// map models with physical endpoints using size as extra checkpoint for the user
-	for _, line := range ddListInfo {
-		if diskName == "" && strings.Contains(line, `Device\Harddisk`) {
-			diskName = strings.TrimSpace(line)
-			continue
-		}
-		if diskName == "" {
-			continue
-		}
-		if strings.Contains(line, `size is`) && len(reHD.FindStringIndex(diskName)) > 0 {
-			var p = &MountInfo{}
-			size := reSize.FindStringSubmatch(line)[1]
-			sizeInt, _ := strconv.Atoi(size)
-			p.deviceSize = size
-			index := reHD.FindStringSubmatch(diskName)[1]
-			if deviceName, ok := modelMap[index]; !ok {
+	r := csv.NewReader(strings.NewReader(strings.TrimSpace(stdout)))
+	r.TrimLeadingSpace = true
+	r.Read() //skip the first line
+	for {
+		if record, err := r.Read(); err == io.EOF {
+			break
+		} else if err == nil {
+			if !strings.Contains(record[4], "Removable") || strings.Contains(record[3], "IDE") {
 				continue
-			} else {
-				sizeFloat := math.Ceil(float64(sizeInt) / 1024 / 1024 / 1024)
-				p.deviceName = deviceName + " [" + strconv.Itoa(int(sizeFloat)) + "GB]"
 			}
-			p.diskName = diskName
-			p.diskNameRaw = diskName
+			var p = &MountInfo{}
+			size := record[6]
+			p.deviceSize = size
+			sizeInt, _ := strconv.Atoi(size)
+			sizeFloat := math.Ceil(float64(sizeInt) / 1024 / 1024 / 1024)
+			p.deviceName = record[5] + " [" + strconv.Itoa(int(sizeFloat)) + "GB]"
+			p.diskName = `\\?\Device\Harddisk` + record[2] + `\Partition0`
+			p.diskNameRaw = record[2]
 			out = append(out, p)
-			diskName = ""
 		}
 	}
 	log.WithField("out", out).Debug("got drives")
@@ -114,16 +79,18 @@ func (w *windows) ListRemovableDisk() error {
 
 // Unmounts the disk
 func (w *windows) Unmount() error {
-	if w.workstation.writable != false {
-		fmt.Printf("[+] Unmounting disk:%s\n", w.workstation.mount.deviceName)
-	}
+	return nil
+}
+
+// Ejects the mounted disk
+func (w *windows) Eject() error {
 	return nil
 }
 
 const diskSelectionTries = 3
 const writeAttempts = 3
 
-// Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
+// Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
@@ -142,59 +109,60 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 		}
 		num := dialogs.SelectOneDialog("Select disk to use: ", rng)
 
-		disk := w.workstation.mounts[num]
-
-		if ok, err := help.FileModeMask(disk.diskNameRaw, 0200); !ok || err != nil {
-			if err != nil {
-				log.Error(err)
-				return nil, err
-
-			} else {
-				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
-				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again\n")
-			}
-		} else {
-			w.workstation.mount = disk
-			break
-		}
+		w.workstation.mount = w.workstation.mounts[num]
+		break
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
+	if w.ddPath == "" {
+		if err := w.getDDBinary(); err != nil {
+			log.Error(err)
+			fmt.Println("[-] Error downloading dd binary")
+			return nil, err
+		}
+	}
+
 	if dialogs.YesNoDialog("Are you sure? ") {
-		fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.diskName)
-		fmt.Println("[+] You may need to enter user password")
+		fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
 
 		job = help.NewBackgroundJob()
 
 		go func() {
 			defer job.Close()
 
-			args := []string{
-				"dd",
-				fmt.Sprintf("if=%s", img),
-				fmt.Sprintf("of=%s", w.workstation.mount.diskName),
-				"bs=4M",
-			}
-			fmt.Println(args)
-			os.Exit(1)
 			var err error
 			for attempt := 0; attempt < writeAttempts; attempt++ {
-				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
-					break
+				if attempt > 0 {
+					fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
+					if !dialogs.YesNoDialog("Try again?") {
+						break
+					}
 				}
 				job.Active(true)
-				// todo: add progress bar?
-				var out, eut []byte
-				if out, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-					help.LogCmdErrors(string(out), string(eut), err, args...)
-
+				if out, err := exec.Command(w.ddPath,
+					"--filter=removable",
+					"--progress",
+					fmt.Sprintf("if=%s", img),
+					fmt.Sprintf("of=%s", w.workstation.mount.diskName),
+					"bs=1M").CombinedOutput(); err != nil {
+					log.WithField("out", string(out)).Error("Error while executing: `", w.ddPath)
 					job.Active(false)
-					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct")
+					fmt.Println("\r[-] Can't write to disk.")
 				} else {
+					sout := string(out)
 					job.Active(false)
+					log.WithField("out", sout).Debug("dd done")
+					if strings.Contains(sout, "Error writing") {
+						if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
+							fmt.Println("[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
+							continue
+						} else {
+							fmt.Println(sout)
+						}
+					}
 					fmt.Printf("\r[+] Done writing %s to %s \n", img, w.workstation.mount.diskName)
 					break
 				}
@@ -204,21 +172,9 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				job.Error(err)
 			}
 		}()
-
-		w.workstation.writable = true
 		return job, nil
 	}
-
-	w.workstation.writable = false
 	return nil, nil
-}
-
-// Ejects the mounted disk
-func (w *windows) Eject() error {
-	if w.workstation.writable != false {
-		fmt.Printf("[+] Eject your sd card :%s\n", w.workstation.mount.diskName)
-	}
-	return nil
 }
 
 func (w *windows) getDDBinary() error {
@@ -250,4 +206,51 @@ func (w *windows) getDDBinary() error {
 	}
 	w.ddPath = dst + "ddrelease64.exe"
 	return nil
+}
+
+// CleanDisk cleans target disk partitions
+func (w *windows) CleanDisk() (err error) {
+	fmt.Println("[+] Cleaning disk...")
+	for attempt := 0; attempt < diskSelectionTries; attempt++ {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+			break
+		}
+
+		err = w.ListRemovableDisk()
+		if err != nil {
+			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
+			continue
+		}
+
+		rng := make([]string, len(w.workstation.mounts))
+		for i, e := range w.workstation.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), e.deviceName, e.diskName)
+		}
+		num := dialogs.SelectOneDialog("Select disk to clean: ", rng)
+
+		w.workstation.mount = w.workstation.mounts[num]
+		break
+	}
+
+	if err != nil {
+		return err
+	}
+
+	dst := help.GetTempDir() + help.Separator() + "clean_script.txt"
+	if dialogs.YesNoDialog("Are you sure you want to clean this disk? ") {
+		fmt.Printf("[+] Cleaning disk %s (%s)\n", w.workstation.mount.diskNameRaw, w.workstation.mount.deviceName)
+		help.CreateFile(dst)
+		help.WriteFile(dst, fmt.Sprintf(cleanTemplate, w.workstation.mount.diskNameRaw))
+
+		if help.Exists(dst) {
+			if out, err := exec.Command("diskpart", "/s", dst).CombinedOutput(); err != nil {
+				return err
+			} else {
+				log.Debug(string(out))
+				fmt.Println(string(out))
+				return nil
+			}
+		}
+	}
+	return err
 }

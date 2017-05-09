@@ -127,7 +127,7 @@ func (d *sdFlasher) Flash() error {
 		return err
 	}
 	if job != nil {
-		if err := help.WaitJobAndSpin("flashing", job); err != nil {
+		if err := help.WaitJobAndSpin("Flashing", job); err != nil {
 			return err
 		}
 	}
