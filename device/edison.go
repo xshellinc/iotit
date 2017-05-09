@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/device/config"
+	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
-	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/riobard/go-virtualbox"
 )
 
 const (
@@ -212,10 +212,6 @@ func configBoard(ip string) error {
 		return err
 	}
 	os.Remove(iotdk)
-	fmt.Println("[+] Updating WiFi configuration")
-	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
-		return err
-	}
 	fmt.Println("[+] Updating user password")
 	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
 		return err
@@ -262,10 +258,16 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.ResolveF),
 			}
 
-			reloadIface := []string{
+			ifaceDown := []string{
 				"root@" + ip,
 				"-t",
-				fmt.Sprint("ifconfig wlan0 down && ifconfig wlan0 up"),
+				fmt.Sprint("ifconfig wlan0 down"),
+			}
+
+			ifaceUp := []string{
+				"root@" + ip,
+				"-t",
+				fmt.Sprint("ifconfig wlan0 up"),
 			}
 
 			fmt.Println("[+] Updating network configuration")
@@ -280,8 +282,18 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			if err := help.ExecStandardStd("ssh", args3...); err != nil {
 				return err
 			}
+			fmt.Println("[+] Updating WiFi configuration")
+			if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
+				return err
+			}
 			fmt.Println("[+] Reloading interface settings")
-			if err := help.ExecStandardStd("ssh", reloadIface...); err != nil {
+			if err := help.ExecStandardStd("ssh", ifaceDown...); err != nil {
+				fmt.Println("[-] Error shutting down wlan0 interface: ", err.Error())
+				return err
+			}
+			time.Sleep(1 * time.Second)
+			if err := help.ExecStandardStd("ssh", ifaceUp...); err != nil {
+				fmt.Println("[-] Error starting wlan0 interface: ", err.Error())
 				return err
 			}
 			break
