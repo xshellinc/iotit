@@ -44,13 +44,7 @@ func (d *edison) PrepareForFlashing() error {
 		d.flasher.PrepareForFlashing()
 		for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {
 		}
-		d.flasher.conf = vbox.NewConfig(d.device)
-		m, _, _, err := vbox.SetVbox(d.flasher.conf, d.device)
-		d.flasher.vbox = m
-		if err != nil {
-			return err
-		}
-		// check if vm is running
+
 		if d.vbox.State != virtualbox.Running {
 			err := d.vbox.Start()
 			if err != nil {
@@ -78,9 +72,6 @@ func (d *edison) PrepareForFlashing() error {
 			break
 		}
 
-		if err := vbox.Stop(d.vbox.UUID); err != nil {
-			logrus.Error(err)
-		}
 
 		job := help.NewBackgroundJob()
 		go func() {
@@ -157,6 +148,8 @@ func setConfig() error {
 		logrus.Error(err)
 	}
 
+	fmt.Println("[+] Copying board id")
+	help.ExecStandardStd("ssh-copy-id", []string{"root@" + ip}...)
 	time.Sleep(time.Second * 4)
 
 	if err := setUpInterface(ip); err != nil {
@@ -178,8 +171,6 @@ func setUpInterface(ip string) error {
 	if err := setEdisonInterfaces(ifaces, ip); err != nil {
 		return err
 	}
-	fmt.Println("[+] Copying board id")
-	help.ExecStandardStd("ssh-copy-id", []string{"root@" + ip}...)
 	fmt.Println("[+] Updating edison help info")
 	args := []string{
 		"root@" + ip,
