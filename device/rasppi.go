@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -24,6 +25,7 @@ type raspberryPi struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
+	logrus.WithField("device", "raspi").Debug("Configure")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
@@ -84,7 +86,7 @@ func configInterface(storage map[string]interface{}) error {
 
 	if dialogs.YesNoDialog("Would you like to assign static IP address for your device?") {
 		fmt.Println("[+] Available network interface: ")
-		num := dialogs.SelectOneDialog("Please select a network interface:", device)
+		num := dialogs.SelectOneDialog("Please select a network interface: ", device)
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
 		for {

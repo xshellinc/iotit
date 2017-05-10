@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
@@ -76,7 +76,7 @@ func (d *flasher) PrepareForFlashing() error {
 						fmt.Println("success")
 						break Loop
 					} else if err != nil {
-						logrus.WithField("error", err).Debug("Connecting SSH")
+						log.WithField("error", err).Debug("Connecting SSH")
 					}
 				case <-time.After(180 * time.Second):
 					job.Error(errors.New("Cannot connect to vbox via ssh"))
@@ -91,7 +91,7 @@ func (d *flasher) PrepareForFlashing() error {
 		time.Sleep(time.Second)
 	}
 
-	fmt.Println("[+] Starting download ", d.device)
+	fmt.Println("[+] Starting download", d.device)
 
 	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
@@ -106,30 +106,43 @@ func (d *flasher) PrepareForFlashing() error {
 
 	err = help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
+	}
+	// check if zip is already inside VM
+	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + zipName); err != nil || len(strings.TrimSpace(eut)) > 0 {
+		fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
+		if err = d.conf.SSH.Scp(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
+			return err
+		}
+	} else {
+		log.Debug("Image zip exists inside VM")
+	}
+	if strings.HasSuffix(zipName, ".zip") {
+		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName)); err == nil && len(files) == 1 {
+			if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
+				log.Debug("Image file already extracted")
+				d.img = files[0].Name
+			}
+		}
 	}
 
-	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	if err = d.conf.SSH.Scp(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
-		return err
-	}
+	if d.img == "" {
+		fmt.Printf("[+] Extracting %s \n", zipName)
+		command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
+		log.Debug("Extracting an image... ", command)
+		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 
-	fmt.Printf("[+] Extracting %s \n", zipName)
-	command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
-	logrus.Debug("Extracting an image... ", command)
-	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
-	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil || len(strings.TrimSpace(eut)) > 0 {
-		fmt.Println("[-] ", eut)
-		return err
-	}
-
-	logrus.Debug(out)
-
-	for _, raw := range strings.Split(out, " ") {
-		s := strings.TrimSpace(raw)
-		if s != "" && strings.HasSuffix(s, ".img") {
-			d.img = s
+		if out, eut, err := d.conf.SSH.Run(command); err != nil || len(strings.TrimSpace(eut)) > 0 {
+			fmt.Println("[-] ", eut)
+			return err
+		} else {
+			log.Debug(out)
+			for _, raw := range strings.Split(out, " ") {
+				s := strings.TrimSpace(raw)
+				if s != "" && strings.HasSuffix(s, ".img") {
+					d.img = s
+				}
+			}
 		}
 	}
 

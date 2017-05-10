@@ -8,7 +8,7 @@ import (
 
 	"regexp"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/device/workstation"
@@ -33,91 +33,83 @@ type sdFlasher struct {
 
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
-	logrus.Debug("Attaching an image")
+	log.Debug("Attaching an image")
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
-	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
+		log.Debug(out, eut)
 	}
-	logrus.Debug(out, eut)
 
-	logrus.Debug("Creating tmp folder")
+	log.Debug("Creating tmp folder")
 	command = fmt.Sprintf("mkdir -p %s", constants.MountDir)
-	out, eut, err = d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
+		log.Debug(out, eut)
 	}
-	logrus.Debug(out, eut)
 
 	if loopMount == "" {
 		command = fmt.Sprintf("ls /dev/loop0p*")
-		out, eut, err = d.conf.SSH.Run(command)
-		if err != nil {
-			logrus.Error("[-] Error when execute: ", command, eut)
-			return err
-		}
-		logrus.Debug(out, eut)
-
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
-		opts := compiler.FindAllString(out, -1)
-
-		if len(opts) == 0 {
-			return errors.New("Cannot find a mounting point")
+		if out, eut, err := d.conf.SSH.Run(command); err != nil {
+			log.Error("[-] Error when execute: ", command, eut)
+			return err
+		} else {
+			log.Debug(out, eut)
+			opts := compiler.FindAllString(out, -1)
+			if len(opts) == 0 {
+				return errors.New("Cannot find a mounting point")
+			}
+			loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point: ", opts)]
+			loopMount = loopMount[5:]
 		}
-
-		loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point: ", opts)]
-		loopMount = loopMount[5:]
 	}
 
-	logrus.Debug("Mounting tmp folder")
+	log.Debug("Mounting tmp folder")
 	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.Mount, loopMount, constants.MountDir)
-	out, eut, err = d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
+		log.Debug(out, eut)
 	}
-	logrus.Debug(out, eut)
 
 	return nil
 }
 
 // UnmountImg is a method to unlink image folder and detach image from the loop
 func (d *sdFlasher) UnmountImg() error {
-	logrus.Debug("Unlinking image folder")
+	log.Debug("Unmounting image folder")
 	command := fmt.Sprintf("umount %s", constants.MountDir)
-	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
 	}
-	logrus.Debug(out)
 
-	logrus.Debug("Detaching and image")
+	log.Debug("Detaching image loop device")
 	command = "losetup -D"
-	out, eut, err = d.conf.SSH.Run(command)
-	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
 	}
-	logrus.Debug(out)
-
 	return nil
 }
 
 // Flash method is used to flash image to the sdcard
 func (d *sdFlasher) Flash() error {
-	logrus.Debug("Downloading image from vbox")
 	if !dialogs.YesNoDialog("Proceed to image burning?") {
-		logrus.Debug("Aborted")
+		log.Debug("Aborted")
 		return nil
 	}
 
-	logrus.WithField("img", filepath.Join(help.GetTempDir(), d.img)).Debug("Removing default image")
-	if err := os.Remove(filepath.Join(help.GetTempDir(), d.img)); err != nil {
-		logrus.Error("Can not remove image: " + err.Error())
-	}
+	help.DeleteFile(filepath.Join(help.GetTempDir(), d.img))
 
 	fmt.Println("[+] Copying files...")
 	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img),
@@ -125,35 +117,34 @@ func (d *sdFlasher) Flash() error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println("[+] Listing available disks...")
 	w := workstation.NewWorkStation()
 	img := filepath.Join(help.GetTempDir(), d.img)
 
-	logrus.WithField("img", img).Debug("Writing image to disk")
-	job, err := w.WriteToDisk(img)
-	if err != nil {
+	log.WithField("img", img).Debug("Writing image to disk")
+	if job, err := w.WriteToDisk(img); err != nil {
 		return err
-	}
-	if job != nil {
+	} else if job != nil {
 		if err := help.WaitJobAndSpin("Flashing", job); err != nil {
 			return err
 		}
 	}
 
-	logrus.Debug("Removing sd from dir")
+	log.Debug("Removing sd from dir")
 	if err := os.Remove(img); err != nil {
-		logrus.Error("Can not remove image: " + err.Error())
+		log.Error("Can not remove image: " + err.Error())
 	}
 
 	if err := w.Unmount(); err != nil {
-		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
+		log.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 	if err := w.Eject(); err != nil {
-		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
+		log.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 
 	if err := vbox.Stop(d.vbox.UUID); err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 
 	return nil
@@ -191,10 +182,10 @@ func (d *sdFlasher) Configure() error {
 // Done prints out final success message
 func (d *sdFlasher) Done() error {
 	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t SD CARD READY!  \t\t\t\t\t\t\t\t   *")
-	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s \t\t\t\t\t   *\n", d.device)
-	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET \t\t   *")
-	fmt.Printf("*\t\t SSH USERNAME:\x1b[31m%s\x1b[0m PASSWORD:\x1b[31m%s\x1b[0m \t\t\t\t\t\t\t   *\n",
+	fmt.Println("*\t\t SD CARD READY!")
+	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s\n", d.device)
+	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET")
+	fmt.Printf("*\t\t SSH USERNAME:"+dialogs.PrintColored("%s")+" PASSWORD:"+dialogs.PrintColored("%s")+"\n",
 		d.devRepo.Image.User, d.devRepo.Image.Pass)
 	fmt.Println(strings.Repeat("*", 100))
 
