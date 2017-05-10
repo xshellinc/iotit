@@ -24,6 +24,8 @@ select disk %s
 clean
 create partition primary
 active
+assign letter=N
+remove letter=N
 format fs=fat32 label=New quick
 `
 
@@ -88,7 +90,7 @@ func (w *windows) Eject() error {
 }
 
 const diskSelectionTries = 3
-const writeAttempts = 3
+const writeAttempts = 5
 
 // Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -134,6 +136,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			defer job.Close()
 
 			var err error
+			// may be save state here? So if user canceled operation or error happened he wouldn't need to start the process from the beginning
 			for attempt := 0; attempt < writeAttempts; attempt++ {
 				if attempt > 0 {
 					fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
@@ -144,7 +147,6 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				job.Active(true)
 				if out, err := exec.Command(w.ddPath,
 					"--filter=removable",
-					"--progress",
 					fmt.Sprintf("if=%s", img),
 					fmt.Sprintf("of=%s", w.workstation.mount.diskName),
 					"bs=1M").CombinedOutput(); err != nil {
@@ -154,23 +156,25 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				} else {
 					sout := string(out)
 					job.Active(false)
-					log.WithField("out", sout).Debug("dd done")
-					if strings.Contains(sout, "Error writing") {
+					log.WithField("out", sout).Debug("dd finished")
+					if strings.Contains(sout, "Error ") {
 						if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
 							fmt.Println("[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
 							continue
 						} else {
 							fmt.Println(sout)
+							continue
 						}
 					}
 					fmt.Printf("\r[+] Done writing %s to %s \n", img, w.workstation.mount.diskName)
-					break
+					return
 				}
 			}
 
 			if err != nil {
 				job.Error(err)
 			}
+			job.Error(fmt.Errorf("[-] Image wasn't burned to disk"))
 		}()
 		return job, nil
 	}

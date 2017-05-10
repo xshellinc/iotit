@@ -34,7 +34,7 @@ type sdFlasher struct {
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
 	logrus.Debug("Attaching an image")
-	command := fmt.Sprintf("losetup -f -P %s", filepath.Join(constants.TMP_DIR, d.img))
+	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
 		logrus.Error("[-] Error when execute: ", command, eut)
@@ -106,22 +106,30 @@ func (d *sdFlasher) UnmountImg() error {
 	return nil
 }
 
-// Flash method is used to flash image into the sdcard
+// Flash method is used to flash image to the sdcard
 func (d *sdFlasher) Flash() error {
-	logrus.Debug("Downloading an image from vbox")
+	logrus.Debug("Downloading image from vbox")
+	if !dialogs.YesNoDialog("Proceed to image burning?") {
+		logrus.Debug("Aborted")
+		return nil
+	}
 
-	logrus.Debug("Copying files from vbox")
+	logrus.WithField("img", filepath.Join(help.GetTempDir(), d.img)).Debug("Removing default image")
+	if err := os.Remove(filepath.Join(help.GetTempDir(), d.img)); err != nil {
+		logrus.Error("Can not remove image: " + err.Error())
+	}
+
 	fmt.Println("[+] Copying files...")
 	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img),
 		filepath.Join(help.GetTempDir(), d.img))
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("[+] Listing available disks...")
 	w := workstation.NewWorkStation()
 	img := filepath.Join(help.GetTempDir(), d.img)
 
-	logrus.Debug("Writing the image into sd card")
+	logrus.WithField("img", img).Debug("Writing image to disk")
 	job, err := w.WriteToDisk(img)
 	if err != nil {
 		return err
@@ -133,18 +141,18 @@ func (d *sdFlasher) Flash() error {
 	}
 
 	logrus.Debug("Removing sd from dir")
-	if err = os.Remove(img); err != nil {
-		logrus.Error("[-] Can not remove image: " + err.Error())
+	if err := os.Remove(img); err != nil {
+		logrus.Error("Can not remove image: " + err.Error())
 	}
 
-	if err = w.Unmount(); err != nil {
+	if err := w.Unmount(); err != nil {
 		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
-	if err = w.Eject(); err != nil {
+	if err := w.Eject(); err != nil {
 		logrus.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 
-	if err = vbox.Stop(d.vbox.UUID); err != nil {
+	if err := vbox.Stop(d.vbox.UUID); err != nil {
 		logrus.Error(err)
 	}
 
