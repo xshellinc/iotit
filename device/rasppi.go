@@ -6,7 +6,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -25,7 +25,7 @@ type raspberryPi struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
-	logrus.WithField("device", "raspi").Debug("Configure")
+	log.WithField("device", "raspi").Debug("Configure")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
@@ -45,7 +45,7 @@ func (d *raspberryPi) Configure() error {
 		return err
 	}
 
-	if err := help.WaitJobAndSpin("waiting", job); err != nil {
+	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
 		return err
 	}
 

@@ -111,10 +111,18 @@ func (d *sdFlasher) Flash() error {
 
 	help.DeleteFile(filepath.Join(help.GetTempDir(), d.img))
 
-	fmt.Println("[+] Copying files...")
-	err := d.conf.SSH.ScpFromServer(help.AddPathSuffix("unix", constants.TMP_DIR, d.img),
-		filepath.Join(help.GetTempDir(), d.img))
-	if err != nil {
+	log.Debug("Downloading image from vbox")
+
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		if err := d.conf.SSH.ScpFrom(help.AddPathSuffix("unix", constants.TMP_DIR, d.img), filepath.Join(help.GetTempDir(), d.img)); err != nil {
+
+			job.Error(err)
+		}
+	}()
+	if err := help.WaitJobAndSpin("Copying files", job); err != nil {
+		log.Error(err)
 		return err
 	}
 

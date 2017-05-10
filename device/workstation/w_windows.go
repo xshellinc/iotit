@@ -174,7 +174,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			if err != nil {
 				job.Error(err)
 			}
-			job.Error(fmt.Errorf("[-] Image wasn't burned to disk"))
+			job.Error(fmt.Errorf("Image wasn't burned to disk"))
 		}()
 		return job, nil
 	}

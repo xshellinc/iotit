@@ -84,7 +84,7 @@ func (d *flasher) PrepareForFlashing() error {
 			}
 		}()
 
-		if err := help.WaitJobAndSpin("starting", job); err != nil {
+		if err := help.WaitJobAndSpin("Starting", job); err != nil {
 			return err
 		}
 
@@ -108,6 +108,7 @@ func (d *flasher) PrepareForFlashing() error {
 	if err != nil {
 		log.Error(err)
 	}
+
 	// check if zip is already inside VM
 	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + zipName); err != nil || len(strings.TrimSpace(eut)) > 0 {
 		fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
