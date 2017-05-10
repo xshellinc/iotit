@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
@@ -45,13 +44,6 @@ func (d *edison) PrepareForFlashing() error {
 		for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {
 		}
 
-		if d.vbox.State != virtualbox.Running {
-			err := d.vbox.Start()
-			if err != nil {
-				return err
-			}
-		}
-
 		for {
 			script := "flashall.sh"
 			args := []string{
@@ -72,6 +64,9 @@ func (d *edison) PrepareForFlashing() error {
 			break
 		}
 
+		if err := vbox.Stop(d.vbox.UUID); err != nil {
+			logrus.Error(err)
+		}
 
 		job := help.NewBackgroundJob()
 		go func() {
