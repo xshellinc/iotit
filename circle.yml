@@ -5,6 +5,7 @@ machine:
 dependencies:
   pre:
     - go get github.com/laher/goxc
+    - go get github.com/tcnksm/ghr
     - rm -rf $HOME/.go_workspace/src/github.com/xshellinc/
     - mkdir -p "$GOPATH/src/$IMPORT_PATH"
     - rsync -azC --delete ./ "$GOPATH/src/$IMPORT_PATH/"

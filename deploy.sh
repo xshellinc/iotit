@@ -42,6 +42,15 @@ deploy() {
         .stable.version = $version_stable' \
         > version.json
         aws s3 cp version.json s3://iotit/version.json
+
+        # Cleanup build files
+        rm -rf build/$VERSION/.goxc-temp
+        rm -rf build/$VERSION/downloads.md
+        rm -rf build/$VERSION/LICENSE
+        rm -rf build/$VERSION/iotit_$VERSION_*deb
+        # Create release on GH
+        ghr -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME --replace $VERSION build/${VERSION}/
+        
     elif [ "$CIRCLE_BRANCH" == "develop" ]; then
 
 	    VERSION=$(git describe --tags)
