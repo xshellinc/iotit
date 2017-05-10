@@ -1,3 +1,4 @@
+[![CircleCI](https://circleci.com/gh/xshellinc/iotit.svg?style=svg)](https://circleci.com/gh/xshellinc/iotit)
 IoTit SBC flashing tool
 ==========================
 
