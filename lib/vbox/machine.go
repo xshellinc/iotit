@@ -333,7 +333,7 @@ func StopMachines() error {
 				nameStr = "default"
 			}
 
-			if dialogs.YesNoDialog(fmt.Sprintf("\x1b[34m%s (%s)\x1b[0m is running, would you stop this virtual machine?", m.Name, nameStr)) {
+			if dialogs.YesNoDialog(fmt.Sprintf("\x1b[34m%s (%s)\x1b[0m is running, would you like to stop this virtual machine?", m.Name, nameStr)) {
 				if err = m.Poweroff(); err != nil {
 					return err
 				}
