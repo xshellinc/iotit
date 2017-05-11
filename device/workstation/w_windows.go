@@ -139,8 +139,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			// may be save state here? So if user canceled operation or error happened he wouldn't need to start the process from the beginning
 			for attempt := 0; attempt < writeAttempts; attempt++ {
 				if attempt > 0 {
-					fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
-					if !dialogs.YesNoDialog("Try again?") {
+					if !dialogs.YesNoDialog("Retry flashing?") {
 						break
 					}
 				}
@@ -159,7 +158,16 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 					log.WithField("out", sout).Debug("dd finished")
 					if strings.Contains(sout, "Error ") {
 						if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
-							fmt.Println("[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
+							fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
+							if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
+								if err := w.CleanDisk(); err != nil {
+									fmt.Println("[-] Disk cleaning failed:", err)
+									continue
+								} else {
+									for !dialogs.YesNoDialog("[+] Disk formatted, now please reconnect the device. Type yes once you've done it.") {
+									}
+								}
+							}
 							continue
 						} else {
 							fmt.Println(sout)
@@ -174,7 +182,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			if err != nil {
 				job.Error(err)
 			}
-			job.Error(fmt.Errorf("Image wasn't burned to disk"))
+			job.Error(fmt.Errorf("Image wasn't flashed"))
 		}()
 		return job, nil
 	}
