@@ -37,6 +37,11 @@ If you want to build binaries yourself, then follow the regular recommendations 
 go get ./...
 ```
 
+*Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison:
+
+```
+brew install ssh-copy-id
+```
 
 ### DEVELOPMENT ENVIRONMENT
 
