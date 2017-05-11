@@ -5,10 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
@@ -37,11 +38,11 @@ type edison struct {
 }
 
 func (d *edison) PrepareForFlashing() error {
-	ack := dialogs.YesNoDialog("Would you like to flash your device? ")
+	ack := dialogs.YesNoDialog("Would you like to flash your board? ")
 
 	if ack {
 		d.flasher.PrepareForFlashing()
-		for !dialogs.YesNoDialog("Please unplug your edison board. Press yes once unpluged? ") {
+		for !dialogs.YesNoDialog("Please unplug your Edison board. Type yes once unpluged.") {
 		}
 
 		for {
@@ -53,9 +54,9 @@ func (d *edison) PrepareForFlashing() error {
 				constants.TMP_DIR + script,
 			}
 			if err := help.ExecStandardStd("ssh", args...); err != nil {
-				fmt.Println("[-] Cannot find mounted Intel edison device, please try to re-mount it")
+				fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
 
-				if !dialogs.YesNoDialog("Press yes once mounted? ") {
+				if !dialogs.YesNoDialog("Type yes once connected.") {
 					fmt.Println("Exiting with exit status 2 ...")
 					os.Exit(2)
 				}
@@ -65,7 +66,7 @@ func (d *edison) PrepareForFlashing() error {
 		}
 
 		if err := vbox.Stop(d.vbox.UUID); err != nil {
-			logrus.Error(err)
+			log.Error(err)
 		}
 
 		job := help.NewBackgroundJob()
@@ -74,7 +75,7 @@ func (d *edison) PrepareForFlashing() error {
 			time.Sleep(120 * time.Second)
 		}()
 
-		help.WaitJobAndSpin("Configuring edison", job)
+		help.WaitJobAndSpin("Configuring Edison", job)
 	}
 
 	return nil
@@ -83,7 +84,7 @@ func (d *edison) PrepareForFlashing() error {
 func (d *edison) Configure() error {
 	err := setConfig()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 
 	fmt.Println(strings.Repeat("*", 100))
@@ -99,14 +100,14 @@ func setConfig() error {
 	// get IP
 	var ip string
 
-	i := dialogs.SelectOneDialog("Chose the edison's inteface to connect via usb: ", []string{"Default", "Enter IP"})
+	i := dialogs.SelectOneDialog("Choose Edison's interface to connect to: ", []string{"Select from a list of interfaces", "Enter IP manually"})
 	fallback := false
 
 	if i == 0 {
 		ifaces, err := help.LocalIfaces()
 
 		if err != nil || len(ifaces) == 0 {
-			logrus.Error(err)
+			log.Error(err)
 			fmt.Println("[-] ", err.Error())
 			fallback = true
 		}
@@ -114,20 +115,36 @@ func setConfig() error {
 		if !fallback {
 			arr := make([]string, len(ifaces))
 			arrSel := make([]string, len(ifaces))
+			fmt.Println("[+] Highlighted interfaces is our heuristic guess")
 			for i, iface := range ifaces {
 				arr[i] = iface.Name
 				arrSel[i] = iface.Name
 				if iface.Ipv4[:4] == "169." {
-					arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
-					fmt.Println("[+] The highlighted interface is our heuristic guess")
+					if runtime.GOOS == "windows" {
+						arrSel[i] = "**" + iface.Name + "**"
+					} else {
+						arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
+					}
 				}
 			}
 
 			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
-			fmt.Println("[+] NOTE: You might need to provide your sudo password")
-			if out, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
-				fmt.Println("[-] Error running \x1b[34msudo ifconfig ", arrSel[i], " 192.168.2.2\x1b[0m: ", out)
-				fallback = true
+			if runtime.GOOS == "windows" {
+				// it's either: netsh interface ipv4 add address “Local Area Connection” 192.168.1.2 255.255.255.0
+				// or: netsh int ipv4 set address "%interface%" static %IP% %MASK% %GATE% gwmetric=1
+				command := fmt.Sprintf(`netsh int ipv4 set address "%s" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`, arr[i])
+				fmt.Println("[+] NOTE: You need to run this tool as an administrator")
+				if out, err := exec.Command(command).CombinedOutput(); err != nil {
+					fmt.Println("[-] Error running '", command, "': ", out)
+					fallback = true
+				}
+			} else {
+				fmt.Println("[+] NOTE: You might need to provide your sudo password")
+				if out, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "ifconfig", arr[i], "192.168.2.2"); err != nil {
+					fmt.Println("[-] Error running 'sudo ifconfig ", arrSel[i], " 192.168.2.2': ", out)
+					fallback = true
+				}
+
 			}
 
 			ip = "192.168.2.15"
@@ -135,12 +152,18 @@ func setConfig() error {
 	}
 
 	if i == 1 || fallback {
-		fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} \x1b[34m192.168.2.2\x1b[0m` in order to access Edison at \x1b[34m192.168.2.15\x1b[0m")
+		if runtime.GOOS == "windows" {
+			fmt.Println("NOTE: You might need to run `netsh interface ipv4 add address \"{interface}\" 192.168.2.2 255.255.255.0`")
+			fmt.Println("OR")
+			fmt.Println("`netsh int ipv4 set address \"{interface}\" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`")
+		} else {
+			fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} " + dialogs.PrintColored("192.168.2.2") + "` in order to access Edison at " + dialogs.PrintColored("192.168.2.15"))
+		}
 		ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
 	}
 
 	if err := help.DeleteHost(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"), ip); err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 
 	fmt.Println("[+] Copying board id")
@@ -166,7 +189,7 @@ func setUpInterface(ip string) error {
 	if err := setEdisonInterfaces(ifaces, ip); err != nil {
 		return err
 	}
-	fmt.Println("[+] Updating edison help info")
+	fmt.Println("[+] Updating Edison help info")
 	args := []string{
 		"root@" + ip,
 		"-t",
@@ -209,7 +232,7 @@ func configBoard(ip string) error {
 // Set up Interface values
 func setEdisonInterfaces(i config.Interfaces, ip string) error {
 
-	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your device?") {
+	if dialogs.YesNoDialog("Would you like to assign static IP wlan address for your board?") {
 
 		// assign static ip
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
