@@ -51,7 +51,7 @@ var commands = make(map[string]func())
 
 func init() {
 	logrus.SetLevel(logrus.WarnLevel)
-	if Env == "dev" {
+	if Env == "dev" || runtime.GOOS == "windows" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	logfile := fmt.Sprintf(help.GetTempDir()+help.Separator()+"%s.log", progName)

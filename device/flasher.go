@@ -92,7 +92,7 @@ func (d *flasher) PrepareForFlashing() error {
 	}
 
 	fmt.Println("[+] Starting download", d.device)
-
+	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
 	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
 		return err
