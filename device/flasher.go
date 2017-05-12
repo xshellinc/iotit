@@ -37,18 +37,17 @@ type flasher struct {
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
 func (d *flasher) PrepareForFlashing() error {
-	var name, description string
-	var err error
 	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
 
-	if err = vbox.CheckVBInstalled(); err != nil {
+	if err := vbox.CheckVBInstalled(); err != nil {
 		return err
 	}
 
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
-	d.vbox, name, description, err = vbox.SetVbox(d.conf, d.device)
+	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
+	d.vbox = vbox
 	if err != nil {
 		return err
 	}

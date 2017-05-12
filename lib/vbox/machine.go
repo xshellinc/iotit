@@ -262,9 +262,8 @@ func CheckVBInstalled() error {
 			if err := exec.Command("PowerShell", "-Command", "[Environment]::SetEnvironmentVariable('Path', $env:Path + ';"+path+"', [EnvironmentVariableTarget]::User)").Run(); err != nil {
 				log.Error("Error setting PowerShell `path` : ", err.Error())
 				return fmt.Errorf(`Couldn't alter your system PATH, please change it manually. E.g. 'C:\Program Files\Oracle\VirtualBox\'`)
-			} else {
-				fmt.Println("[+] Added VirtualBox installation directory to system PATH")
 			}
+			fmt.Println("[+] Added VirtualBox installation directory to system PATH")
 		}
 		if err := exec.Command("which", vbm).Run(); err != nil {
 			log.Error("Error while running `which` : ", err.Error())

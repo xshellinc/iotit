@@ -187,9 +187,8 @@ func initCommands() {
 		if err := w.CleanDisk(); err != nil {
 			fmt.Println("[-] Error:", err)
 			return
-		} else {
-			fmt.Println("[+] Disk formatted, now please reconnect the device.")
 		}
+		fmt.Println("[+] Disk formatted, now please reconnect the device.")
 	}
 
 	commands["version"] = v
