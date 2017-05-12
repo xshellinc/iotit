@@ -198,7 +198,7 @@ func Select(vboxs []Config) Config {
 
 	opts := make([]string, len(vboxs))
 	for i, v := range vboxs {
-		opts[i] = fmt.Sprintf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
+		opts[i] = fmt.Sprintf("\t["+dialogs.PrintColored("%d")+"] "+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" \n", i, v.Name, v.Description)
 	}
 
 	fmt.Println("[+] Available virtual machine: ")

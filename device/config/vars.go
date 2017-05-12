@@ -78,15 +78,14 @@ func setIP(i *Interfaces) bool {
 
 		go func() {
 			defer job.Close()
-
-			loop = !ping.PingIp(ip)
+			loop = !ping.PingIp(ip) //returns false on ping success
 			if loop {
-				fmt.Printf("\n[-] Sorry, a device with %s was already registered", ip)
+				fmt.Printf("\n[-] Sorry, device with %s already exists on the network", ip)
 			}
 
 			retries--
 		}()
-		help.WaitJobAndSpin("validating", job)
+		help.WaitJobAndSpin("Checking availability", job)
 	}
 
 	if retries == 0 {
@@ -94,6 +93,6 @@ func setIP(i *Interfaces) bool {
 	}
 
 	i.Address = ip
-
+	fmt.Println("[+] Using IP:", ip)
 	return true
 }

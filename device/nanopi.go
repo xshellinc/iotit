@@ -32,7 +32,7 @@ func (d *nanoPi) Configure() error {
 		return err
 	}
 
-	if err := help.WaitJobAndSpin("waiting", job); err != nil {
+	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
 		return err
 	}
 

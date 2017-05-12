@@ -27,7 +27,7 @@ func Init(typeFlag string) {
 		deviceType = devices[dialogs.SelectOneDialog("Select device type: ", devices[:])]
 	}
 
-	fmt.Println("[+] flashing", deviceType)
+	fmt.Println("[+] Flashing", deviceType)
 
 	df, err := New(deviceType)
 	if err != nil {

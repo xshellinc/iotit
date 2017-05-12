@@ -12,6 +12,7 @@ type WorkStation interface {
 	Unmount() error
 	WriteToDisk(img string) (job *help.BackgroundJob, err error)
 	Eject() error
+	CleanDisk() error
 }
 
 // Workstation struct contains parameters such as:
