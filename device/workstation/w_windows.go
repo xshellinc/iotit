@@ -266,5 +266,5 @@ func (w *windows) CleanDisk() error {
 			}
 		}
 	}
-	return err
+	return nil
 }
