@@ -139,11 +139,10 @@ func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 
 		dev := l.workstation.mounts[num]
 
-		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
-			if err != nil {
-				log.Error(err)
-				return nil, err
-
+		if ok, ferr := help.FileModeMask(dev.diskNameRaw, 0200); !ok || ferr != nil {
+			if ferr != nil {
+				log.Error(ferr)
+				return nil, ferr
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
 				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again\n")
@@ -213,7 +212,7 @@ func (l *linux) Eject() error {
 		fmt.Printf("[+] Eject your sd card :%s\n", l.workstation.mount.diskName)
 		eut, err := help.ExecSudo(sudo.InputMaskedPassword, nil, l.unix.eject, l.workstation.mount.diskName)
 		if err != nil {
-			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: \n", l.workstation.mount.diskName, eut)
+			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", l.workstation.mount.diskName, eut)
 		}
 	}
 	return nil

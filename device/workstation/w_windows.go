@@ -144,7 +144,8 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 					}
 				}
 				job.Active(true)
-				if out, err := exec.Command(w.ddPath,
+				var out []byte
+				if out, err = exec.Command(w.ddPath,
 					"--filter=removable",
 					fmt.Sprintf("if=%s", img),
 					fmt.Sprintf("of=%s", w.workstation.mount.diskName),
@@ -160,8 +161,8 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 						if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
 							fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
 							if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
-								if err := w.CleanDisk(); err != nil {
-									fmt.Println("[-] Disk cleaning failed:", err)
+								if derr := w.CleanDisk(); derr != nil {
+									fmt.Println("[-] Disk cleaning failed:", derr)
 									continue
 								} else {
 									for !dialogs.YesNoDialog("[+] Disk formatted, now please reconnect the device. Type yes once you've done it.") {
@@ -221,16 +222,17 @@ func (w *windows) getDDBinary() error {
 }
 
 // CleanDisk cleans target disk partitions
-func (w *windows) CleanDisk() (err error) {
+func (w *windows) CleanDisk() error {
 	fmt.Println("[+] Cleaning disk...")
+	var last error
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
 		}
 
-		err = w.ListRemovableDisk()
-		if err != nil {
+		if err := w.ListRemovableDisk(); err != nil {
 			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
+			last = err
 			continue
 		}
 
@@ -244,8 +246,8 @@ func (w *windows) CleanDisk() (err error) {
 		break
 	}
 
-	if err != nil {
-		return err
+	if last != nil {
+		return last
 	}
 
 	dst := help.GetTempDir() + help.Separator() + "clean_script.txt"
