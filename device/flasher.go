@@ -131,17 +131,16 @@ func (d *flasher) PrepareForFlashing() error {
 		command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
 		log.Debug("Extracting an image... ", command)
 		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
-
-		if out, eut, err := d.conf.SSH.Run(command); err != nil || len(strings.TrimSpace(eut)) > 0 {
+		out, eut, err := d.conf.SSH.Run(command)
+		if err != nil || len(strings.TrimSpace(eut)) > 0 {
 			fmt.Println("[-] ", eut)
 			return err
-		} else {
-			log.Debug(out)
-			for _, raw := range strings.Split(out, " ") {
-				s := strings.TrimSpace(raw)
-				if s != "" && strings.HasSuffix(s, ".img") {
-					d.img = s
-				}
+		}
+		log.Debug(out)
+		for _, raw := range strings.Split(out, " ") {
+			s := strings.TrimSpace(raw)
+			if s != "" && strings.HasSuffix(s, ".img") {
+				d.img = s
 			}
 		}
 	}

@@ -54,18 +54,18 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	if loopMount == "" {
 		command = fmt.Sprintf("ls /dev/loop0p*")
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
-		if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		out, eut, err := d.conf.SSH.Run(command)
+		if err != nil {
 			log.Error("[-] Error when execute: ", command, eut)
 			return err
-		} else {
-			log.Debug(out, eut)
-			opts := compiler.FindAllString(out, -1)
-			if len(opts) == 0 {
-				return errors.New("Cannot find a mounting point")
-			}
-			loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point: ", opts)]
-			loopMount = loopMount[5:]
 		}
+		log.Debug(out, eut)
+		opts := compiler.FindAllString(out, -1)
+		if len(opts) == 0 {
+			return errors.New("Cannot find a mounting point")
+		}
+		loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point: ", opts)]
+		loopMount = loopMount[5:]
 	}
 
 	log.Debug("Mounting tmp folder")

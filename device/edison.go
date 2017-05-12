@@ -31,6 +31,7 @@ const (
 		"src intel-quark   http://iotdk.intel.com/repos/1.1/iotdk/quark\n" +
 		"src intel-i586    http://iotdk.intel.com/repos/1.1/iotdk/i586\n" +
 		"src intel-x86     http://iotdk.intel.com/repos/1.1/iotdk/x86\n"
+	windows = "windows"
 )
 
 type edison struct {
@@ -120,7 +121,7 @@ func setConfig() error {
 				arr[i] = iface.Name
 				arrSel[i] = iface.Name
 				if iface.Ipv4[:4] == "169." {
-					if runtime.GOOS == "windows" {
+					if runtime.GOOS == windows {
 						arrSel[i] = "**" + iface.Name + "**"
 					} else {
 						arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
@@ -129,7 +130,7 @@ func setConfig() error {
 			}
 
 			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
-			if runtime.GOOS == "windows" {
+			if runtime.GOOS == windows {
 				// it's either: netsh interface ipv4 add address “Local Area Connection” 192.168.1.2 255.255.255.0
 				// or: netsh int ipv4 set address "%interface%" static %IP% %MASK% %GATE% gwmetric=1
 				command := fmt.Sprintf(`netsh int ipv4 set address "%s" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`, arr[i])
@@ -152,7 +153,7 @@ func setConfig() error {
 	}
 
 	if i == 1 || fallback {
-		if runtime.GOOS == "windows" {
+		if runtime.GOOS == windows {
 			fmt.Println("NOTE: You might need to run `netsh interface ipv4 add address \"{interface}\" 192.168.2.2 255.255.255.0`")
 			fmt.Println("OR")
 			fmt.Println("`netsh int ipv4 set address \"{interface}\" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`")
