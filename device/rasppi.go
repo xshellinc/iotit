@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -14,7 +16,9 @@ import (
 )
 
 const (
-	raspMount = "p2"
+	raspiBoot = "p1"
+	raspiMain = "p2"
+	bootMount = "/tmp/isaax-boot/"
 )
 
 // raspberryPi device
@@ -24,16 +28,21 @@ type raspberryPi struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
+	log.Println("Configure...")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
 	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
-	c.AddConfigFn(config.NewCallbackFn(nil, setupSSH))
+	c.AddConfigFn(config.NewCallbackFn(setupSSH, nil))
 
 	go func() {
 		defer job.Close()
 
-		if err := d.MountImg(raspMount); err != nil {
+		if err := d.MountImg(raspiMain); err != nil {
+			job.Error(err)
+			return
+		}
+		if err := d.MountBoot(); err != nil {
 			job.Error(err)
 		}
 	}()
@@ -136,21 +145,66 @@ func saveInterface(storage map[string]interface{}) error {
 	return nil
 }
 
+// setupSSH is enabling ssh server on pi
 func setupSSH(storage map[string]interface{}) error {
-	ssh, ok := storage["ssh"].(ssh_helper.Util)
-	if !ok {
-		return errors.New("Cannot get ssh config")
+	if dialogs.YesNoDialog("Would you like to enable SSH server?") {
+		ssh, ok := storage["ssh"].(ssh_helper.Util)
+		if !ok {
+			return errors.New("Cannot get ssh config")
+		}
+		command := fmt.Sprintf("touch %sssh", bootMount)
+		if _, eut, err := ssh.Run(command); err != nil {
+			return errors.New(err.Error() + ":" + eut)
+		}
+	}
+	return nil
+}
+
+// MountImg is a method to attach image to loop and mount it
+func (d *raspberryPi) MountBoot() error {
+	log.Debug("Mounting boot partition")
+	//check if image is attached?
+	// command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
+	// log.WithField("cmd", command).Debug("Attaching image loop device")
+	// if err := d.exec(command); err != nil {
+	// 	return err
+	// }
+
+	log.Debug("Creating tmp folder")
+	if err := d.exec(fmt.Sprintf("mkdir -p %s", bootMount)); err != nil {
+		return err
 	}
 
-	f1 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/K*ssh")
-	f2 := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "rc2.d/S02ssh")
+	command := fmt.Sprintf("mount -o rw /dev/loop0%s %s", raspiBoot, bootMount)
+	log.WithField("cmd", command).Debug("Mounting tmp folder")
+	if err := d.exec(command); err != nil {
+		return err
+	}
+	return nil
+}
 
-	command := fmt.Sprintf(`mv %s %s`, f1, f2)
-
-	_, eut, err := ssh.Run(command)
-	if err != nil {
-		return errors.New(err.Error() + ":" + eut)
+// UnmountImg is a method to unlink image folder and detach image from the loop
+func (d *raspberryPi) UnmountBoot() error {
+	log.Debug("Unlinking boot folder")
+	command := fmt.Sprintf("umount %s", bootMount)
+	if err := d.exec(command); err != nil {
+		return err
 	}
 
+	log.Debug("Detaching and image")
+	command = "losetup -D" // -D detaches all loop devices
+	if err := d.exec(command); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *raspberryPi) exec(command string) error {
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error executing: ", command, eut)
+		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
+	}
 	return nil
 }
