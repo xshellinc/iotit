@@ -5,14 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"github.com/xshellinc/tools/lib/ssh_helper"
+)
+
+// VirtualBox location and connection details variables
+const (
+	VBoxName = "iotit-box"
+
+	VBoxIP       = "localhost"
+	VBoxUser     = "root"
+	VBoxPassword = ""
+	VBoxSSHPort  = "2222"
+
+	VBoxConfFile = "iotit-vbox.json"
 )
 
 type (
@@ -24,8 +33,7 @@ type (
 		Device      string     `json:"device"`
 		Description string     `json:"description"`
 		Option      ArchConfig `json:"option"`
-		SSH         SSHConfig  `json:"ssh"`
-		HTTP        HTTPConfig `json:"http"`
+		SSH         ssh_helper.Util
 	}
 
 	// ArchConfig represents basic VM settings
@@ -47,20 +55,6 @@ type (
 		XHCI OnOff `json:"3.0"`
 	}
 
-	// SSHConfig represents SSH forwarding settings
-	SSHConfig struct {
-		IP       string `json:"ip"`
-		User     string `json:"user"`
-		Password string `json:"password"`
-		Port     string `json:"port"`
-	}
-
-	// HTTPConfig represents HTTP forwarding settings
-	HTTPConfig struct {
-		URL  string `json:"url"`
-		Port string `json:"url"`
-	}
-
 	// OnOff is just a bool with Stringer interface
 	OnOff bool
 )
@@ -75,13 +69,12 @@ func (o OnOff) String() string {
 
 // NewConfig returns new VirtualBox wrapper, containing helper functions to copy into vbox and dowload from it
 // Run commands over ssh and get Virtual box configuration files
-func NewConfig(template, device string) *Config {
-	err := CheckMachine(template, device)
+func NewConfig(device string) *Config {
+	err := CheckMachine(VBoxName)
 	help.ExitOnError(err)
-	m, err := virtualbox.GetMachine(template)
-	help.ExitOnError(err)
+	m, err := virtualbox.GetMachine(VBoxName)
 
-	return &Config{
+	conf := Config{
 		Name:        "",
 		UUID:        m.UUID,
 		Template:    m.Name,
@@ -98,62 +91,10 @@ func NewConfig(template, device string) *Config {
 				},
 			},
 		},
-		SSH: SSHConfig{
-			IP:       lib.TemplateIP,
-			User:     lib.TemplateUser,
-			Password: lib.TemplatePassword,
-			Port:     lib.TemplateSSHPort,
-		},
-		HTTP: HTTPConfig{
-			URL:  lib.TemplateURL,
-			Port: lib.TemplateHTTPPort,
-		},
-	}
-}
-
-// RunOverSSH runs command over SSH
-func (vc *Config) RunOverSSH(command string) (string, error) {
-	return vc.runOverSSHWithTimeout(command, help.SshCommandTimeout)
-}
-
-// RunOverSSHExtendedPeriod runs command over SSH
-func (vc *Config) RunOverSSHExtendedPeriod(command string) (string, error) {
-	return vc.runOverSSHWithTimeout(command, help.SshExtendedCommandTimeout)
-}
-
-func (vc *Config) runOverSSHWithTimeout(command string, timeout int) (string, error) {
-	return help.GenericRunOverSsh(command, vc.SSH.IP, vc.SSH.User, vc.SSH.Password, vc.SSH.Port,
-		true, false, timeout)
-}
-
-// RunOverSSHStream runs command over SSH with stdout redirection
-func (vc *Config) RunOverSSHStream(command string) (output chan string, done chan bool, err error) {
-	out, eut, done, err := help.StreamEasySsh(vc.SSH.IP, vc.SSH.User, vc.SSH.Password, vc.SSH.Port, "~/.ssh/id_rsa.pub", command, help.SshExtendedCommandTimeout)
-	if err != nil {
-		log.Error("[-] Error running command: ", eut, ",", err.Error())
-		return out, done, err
+		SSH: ssh_helper.New(VBoxIP, VBoxUser, VBoxPassword, VBoxSSHPort),
 	}
 
-	return out, done, nil
-}
-
-// SCP performs secure copy operation
-func (vc *Config) SCP(src, dst string) error {
-	return help.ScpWPort(src, dst, vc.SSH.IP, vc.SSH.Port, vc.SSH.User, vc.SSH.Password)
-}
-
-// Download resulting image from VirtualBox
-func (vc *Config) Download(img string, wg *sync.WaitGroup) error {
-	localURL := vc.HTTP.URL + ":" + vc.HTTP.Port + "/" + img
-	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(localURL, constants.TMP_DIR, constants.NUMBER_OF_RETRIES, wg)
-	if err != nil {
-		return err
-	}
-	bar.Prefix(fmt.Sprintf("[+] Download %-15s", imgName))
-	bar.Start()
-	wg.Wait()
-	bar.Finish()
-	return nil
+	return &conf
 }
 
 // ToJSON returns JSON representation
@@ -257,7 +198,7 @@ func Select(vboxs []Config) Config {
 
 	opts := make([]string, len(vboxs))
 	for i, v := range vboxs {
-		opts[i] = fmt.Sprintf("\t[\x1b[34m%d\x1b[0m] \x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m \n", i, v.Name, v.Description)
+		opts[i] = fmt.Sprintf("\t["+dialogs.PrintColored("%d")+"] "+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" \n", i, v.Name, v.Description)
 	}
 
 	fmt.Println("[+] Available virtual machine: ")

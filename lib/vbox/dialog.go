@@ -4,11 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pborman/uuid"
+	"github.com/riobard/go-virtualbox"
+	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
+)
+
+// vbox types
+const (
+	VBoxTypeDefault = iota
+	VBoxTypeNew
+	VBoxTypeUser
 )
 
 // Virtualbox dialogs
@@ -33,7 +44,6 @@ func (v *Config) NameDialog() {
 	}
 }
 
-// @todo check if needed
 // DescriptionDialog asks for VM description
 func (v *Config) DescriptionDialog() {
 	var inp string
@@ -74,11 +84,11 @@ func (v *Config) MemoryDialog() {
 	if dialogs.YesNoDialog("Would you like to change virtual machine memory?") {
 
 		if v.Device == constants.DEVICE_TYPE_EDISON {
-			fmt.Println("[+] WARNING, please increase memory size to \x1b[34m1024\x1b[0m MB or more!")
+			fmt.Println("[+] WARNING, memory size should be \x1b[34m1024\x1b[0m MB or more!")
 		}
-		fmt.Print("[+] Change memory. Enter number:")
+		fmt.Print("[+] Change memory.")
 
-		v.Option.Memory = uint(dialogs.GetSingleNumber("Change memory. Enter number:", dialogs.PositiveNumber))
+		v.Option.Memory = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
 	}
 }
 
@@ -88,27 +98,98 @@ func (v *Config) CPUDialog() {
 
 	if dialogs.YesNoDialog("Would you like to change the number of virtual machine processor?") {
 		fmt.Println("[+] Change number of processor.")
-		v.Option.CPU = uint(dialogs.GetSingleNumber("Enter number:", dialogs.PositiveNumber))
+		v.Option.CPU = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
 	}
 }
 
 // USBDialog asks for VM USB settings
 func (v *Config) USBDialog() {
 	usb, ehci, xhci := v.GetUSBs()
-	fmt.Printf("[+] Your VB USB Controller set to { USB:\x1b[34m%v\x1b[0m | USB 2.0:\x1b[34m%v\x1b[0m | USB 3.0:\x1b[34m%v\x1b[0m } \n",
+	fmt.Printf("[+] Your VB USB Controller set to { ohci USB 1.0:\x1b[34m%v\x1b[0m | ehci USB 2.0:\x1b[34m%v\x1b[0m | xhci USB 3.0:\x1b[34m%v\x1b[0m } \n",
 		usb, ehci, xhci)
 
 	if dialogs.YesNoDialog("Would you like to change virtual machine usb type?") {
 		if v.Device == constants.DEVICE_TYPE_EDISON {
 			fmt.Println("[+] WARNING, if you set the USB type to \x1b[34m3.0\x1b[0m, it will be faster, but device init may fail.")
 		}
-		fmt.Println("[+] USB: ")
+		fmt.Println("[+] ohci USB 1.0: ")
 		v.Option.USB.USB = onoff()
 
-		fmt.Println("[+] USB 2.0: ")
+		fmt.Println("[+] ehci USB 2.0: ")
 		v.Option.USB.USBType.EHCI = onoff()
 
-		fmt.Println("[+] USB 3.0: ")
+		fmt.Println("[+] xhci USB 3.0: ")
 		v.Option.USB.USBType.XHCI = onoff()
 	}
+}
+
+// SetVbox creates custom virtualbox specs
+func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, error) {
+	conf := filepath.Join(repo.VboxDir, VBoxConfFile)
+	err := StopMachines()
+	help.ExitOnError(err)
+
+	a, err := virtualbox.GetMachine("iotit-box")
+
+	// Checks if the iotit box is running and skips setting section
+	if a.State == virtualbox.Running {
+		return a, a.Name, a.Description, err
+	}
+
+	vboxs := v.Enable(conf, VBoxName, device)
+	n := selectVboxInit(conf, vboxs)
+
+	switch n {
+	case VBoxTypeNew:
+		// set up configuration
+		v.NameDialog()
+		v.DescriptionDialog()
+		v.MemoryDialog()
+		v.CPUDialog()
+		v.USBDialog()
+		v.WriteToFile(conf)
+
+		// select virtual machine
+		fallthrough
+	case VBoxTypeUser:
+		// select virtual machine
+		vboxs := v.Enable(conf, VBoxName, device)
+		result := Select(vboxs)
+
+		// modify virtual machine
+		err := result.Modify()
+		help.ExitOnError(err)
+
+		// get virtual machine
+		m, err := result.Machine()
+		return m, result.GetName(), result.GetDescription(), err
+
+	default:
+		fallthrough
+	case VBoxTypeDefault:
+		m, err := virtualbox.GetMachine(VBoxName)
+		return m, m.Name, "", err
+	}
+}
+
+// Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
+// the name of vbox doesn't change
+func selectVboxInit(conf string, v []Config) int {
+	opts := []string{
+		"Use default vbox preset",
+		"Create a new vbox preset",
+		"Use saved vbox preset",
+	}
+	optTypes := []int{
+		VBoxTypeDefault,
+		VBoxTypeNew,
+		VBoxTypeUser,
+	}
+	n := len(opts)
+
+	if _, err := os.Stat(conf); os.IsNotExist(err) || v == nil {
+		n--
+	}
+
+	return optTypes[dialogs.SelectOneDialog("Please select an option: ", opts[:n])]
 }

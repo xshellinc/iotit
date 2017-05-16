@@ -38,3 +38,4 @@ _testmain.go
 build/
 dist/
 iotit
+mapping.json
