@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"log"
 	"runtime"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
+	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
@@ -48,17 +51,20 @@ var commands = make(map[string]func())
 
 func init() {
 	logrus.SetLevel(logrus.WarnLevel)
-	if Env == "dev" {
+	if Env == "dev" || runtime.GOOS == "windows" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+	logfile := fmt.Sprintf(help.GetTempDir()+help.Separator()+"%s.log", progName)
 
-	f, err := os.OpenFile(fmt.Sprintf("/tmp/%s.log", progName), os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		logrus.Errorf("error opening file: %v", err)
 		return
 	}
 
+	fmt.Println("Log location:", logfile)
 	logrus.SetOutput(f)
+	log.SetOutput(f)
 
 	initCommands()
 }
@@ -71,6 +77,7 @@ func main() {
 	if commandsHandler(flag.Args()) {
 		return
 	}
+
 	device.Init(*deviceType)
 }
 
@@ -148,7 +155,7 @@ func initCommands() {
 
 		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
 
-		dir, err := repo.DownloadNewVersion(progName, Version, "/tmp")
+		dir, err := repo.DownloadNewVersion(progName, Version, help.GetTempDir())
 
 		if err != nil {
 			fmt.Println("[-] Error:", err)
@@ -175,6 +182,15 @@ func initCommands() {
 		}
 	}
 
+	clean := func() {
+		w := workstation.NewWorkStation()
+		if err := w.CleanDisk(); err != nil {
+			fmt.Println("[-] Error:", err)
+			return
+		}
+		fmt.Println("[+] Disk formatted, now please reconnect the device.")
+	}
+
 	commands["version"] = v
 	commands["v"] = v
 	commands["help"] = h
@@ -184,4 +200,5 @@ func initCommands() {
 	commands["uninstall"] = u
 	commands["un"] = u
 	commands["update"] = upd
+	commands["clean"] = clean
 }

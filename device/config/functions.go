@@ -166,7 +166,7 @@ func SetInterface(storage map[string]interface{}) error {
 
 	if dialogs.YesNoDialog("Would you like to assign static IP address for your device?") {
 		fmt.Println("[+] Available network interface: ")
-		num := dialogs.SelectOneDialog("Please select a network interface:", device)
+		num := dialogs.SelectOneDialog("Please select a network interface: ", device)
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
 		for {

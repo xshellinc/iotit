@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -35,25 +37,25 @@ type flasher struct {
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
 func (d *flasher) PrepareForFlashing() error {
-	var name, description string
-	var err error
 	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
 
-	if err = vbox.CheckDeps("VBoxManage"); err != nil {
+	if err := vbox.CheckVBInstalled(); err != nil {
 		return err
 	}
 
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
-	d.vbox, name, description, err = vbox.SetVbox(d.conf, d.device)
+	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
+	d.vbox = vbox
 	if err != nil {
 		return err
 	}
 
 	if d.vbox.State != virtualbox.Running {
-		fmt.Printf("[+] Selected virtual machine \n\t[\x1b[34mName\x1b[0m] - \x1b[34m%s\x1b[0m\n\t[\x1b[34mDescription\x1b[0m] - \x1b[34m%s\x1b[0m\n",
-			name, description)
+		fmt.Printf(`[+] Selected virtual machine
+	Name - `+dialogs.PrintColored("%s")+`
+	Description - `+dialogs.PrintColored("%s")+"\n", name, description)
 
 		if err := d.vbox.Start(); err != nil {
 			return err
@@ -72,6 +74,8 @@ func (d *flasher) PrepareForFlashing() error {
 					if err == nil && strings.TrimSpace(eut) == "" {
 						fmt.Println("success")
 						break Loop
+					} else if err != nil {
+						log.WithField("error", err).Debug("Connecting SSH")
 					}
 				case <-time.After(180 * time.Second):
 					job.Error(errors.New("Cannot connect to vbox via ssh"))
@@ -79,15 +83,15 @@ func (d *flasher) PrepareForFlashing() error {
 			}
 		}()
 
-		if err := help.WaitJobAndSpin("starting", job); err != nil {
+		if err := help.WaitJobAndSpin("Starting", job); err != nil {
 			return err
 		}
 
 		time.Sleep(time.Second)
 	}
 
-	fmt.Println("[+] Starting download ", d.device)
-
+	fmt.Println("[+] Starting download", d.device)
+	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
 	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
 		return err
@@ -101,30 +105,43 @@ func (d *flasher) PrepareForFlashing() error {
 
 	err = help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 
-	fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-	if err = d.conf.SSH.Scp(help.AddPathSuffix("unix", d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
-		return err
+	// check if zip is already inside VM
+	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + zipName); err != nil || len(strings.TrimSpace(eut)) > 0 {
+		fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
+		if err = d.conf.SSH.Scp(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
+			return err
+		}
+	} else {
+		log.Debug("Image zip exists inside VM")
+	}
+	if strings.HasSuffix(zipName, ".zip") {
+		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName)); err == nil && len(files) == 1 {
+			if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
+				log.Debug("Image file already extracted")
+				d.img = files[0].Name
+			}
+		}
 	}
 
-	fmt.Printf("[+] Extracting %s \n", zipName)
-	logrus.Debug("Extracting an image")
-	command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
-	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
-	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil || len(strings.TrimSpace(eut)) > 0 {
-		fmt.Println("[-] ", eut)
-		return err
-	}
-
-	logrus.Debug(out)
-
-	for _, raw := range strings.Split(out, " ") {
-		s := strings.TrimSpace(raw)
-		if s != "" && strings.HasSuffix(s, ".img") {
-			d.img = s
+	if d.img == "" {
+		fmt.Printf("[+] Extracting %s \n", zipName)
+		command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
+		log.Debug("Extracting an image... ", command)
+		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
+		out, eut, err := d.conf.SSH.Run(command)
+		if err != nil || len(strings.TrimSpace(eut)) > 0 {
+			fmt.Println("[-] ", eut)
+			return err
+		}
+		log.Debug(out)
+		for _, raw := range strings.Split(out, " ") {
+			s := strings.TrimSpace(raw)
+			if s != "" && strings.HasSuffix(s, ".img") {
+				d.img = s
+			}
 		}
 	}
 

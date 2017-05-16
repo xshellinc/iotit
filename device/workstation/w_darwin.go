@@ -62,14 +62,13 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
 		dev := d.workstation.mounts[num]
 
-		if ok, err := help.FileModeMask(dev.diskNameRaw, 0200); !ok || err != nil {
-			if err != nil {
-				log.Error(err)
+		if ok, ferr := help.FileModeMask(dev.diskNameRaw, 0200); !ok || ferr != nil {
+			if ferr != nil {
+				log.Error(ferr)
 				break
-
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
-				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again\n")
+				err = fmt.Errorf("your card seems locked")
 			}
 		} else {
 			d.workstation.mount = dev
@@ -220,7 +219,7 @@ func (d *darwin) ListRemovableDisk() error {
 	}
 
 	if !(len(out) > 0) {
-		return fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again\n")
+		return fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
 	}
 
 	d.workstation.mounts = out
@@ -234,7 +233,7 @@ func (d *darwin) Eject() error {
 		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
 
 		if err != nil {
-			return fmt.Errorf("[-] Error eject disk: %s\n[-] Cause: %s\n", d.workstation.mount.diskName, stdout)
+			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", d.workstation.mount.diskName, stdout)
 		}
 	}
 	return nil
@@ -250,8 +249,13 @@ func (d *darwin) Unmount() error {
 				d.workstation.mount.deviceName,
 			})
 		if err != nil {
-			return fmt.Errorf("[-] Error unmounting disk: %s\n[-] Cause: %s\n", d.workstation.mount.diskName, stdout)
+			return fmt.Errorf("error unmounting disk: %s\n[-] Cause: %s", d.workstation.mount.diskName, stdout)
 		}
 	}
+	return nil
+}
+
+// CleanDisk does nothing on macOS
+func (d *darwin) CleanDisk() error {
 	return nil
 }

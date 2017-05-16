@@ -1,4 +1,5 @@
-IoTit SBC flashing tool
+[![CircleCI](https://circleci.com/gh/xshellinc/iotit.svg?style=svg)](https://circleci.com/gh/xshellinc/iotit)
+# IoTit SBC flashing tool
 ==========================
 
 
@@ -6,7 +7,7 @@ IoTit SBC flashing tool
 
 `iotit` contains a VirtualBox wrapper [go-virtualbox](https://github.com/riobard/go-virtualbox), so it can run on OS that allows installation of VirtualBox.
 
-SUPPORTED DEVICES
+### SUPPORTED DEVICES
 -----------
 
 * [NanoPi NEO](http://nanopi.io/nanopi-neo.html)
@@ -15,18 +16,26 @@ SUPPORTED DEVICES
 * [BeagleBone](http://beagleboard.org/bone)
 
 
-REQUIREMENTS
+### REQUIREMENTS
 ------------
 golang >= 1.8
 virtualbox >= 5.0
 
-INSTALLATION
+### INSTALLATION
 ------------
 
 The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/downloads/) and download a precompiled binary that matches your OS.
 
 *Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
+##### Windows specific
+You will need to install [git-for-windows](https://git-for-windows.github.io/)
+
+Upon installing, you will need to add both git and Unix tools to the system PATH [example screenshot](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
+
+Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be able to write on external drives.
+
+#### Building
 
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)
 
@@ -36,6 +45,11 @@ If you want to build binaries yourself, then follow the regular recommendations 
 go get ./...
 ```
 
+*Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison:
+
+```
+brew install ssh-copy-id
+```
 
 ### DEVELOPMENT ENVIRONMENT
 
@@ -45,7 +59,7 @@ To build and run with debug log use:
 ./build.sh && ./iotit
 ```
 
-COMMANDS
+### COMMANDS
 --------
 
 To see available commands launch `iotit -h`
@@ -72,7 +86,7 @@ GLOBAL OPTIONS:
    -version, -v        print the version
 ```
 
-VIRTUALBOX
+#### VIRTUALBOX
 ----------------
 During installation user can choose `default` virtualbox specs
 
@@ -81,25 +95,25 @@ This will create a spec file with a name of virtualbox and specs such as memory,
 which is applied to `iotit-box`
 
 
-INTERNALS
+##### INTERNALS
 ----------------
 `$HOME/.iotit` - a directory containing iotit related files
 `$HOME/.iotit/mapping.json` - a file containing different device types and urls of images to be downloaded
 `$HOME/.iotit/virtualbox/{version}/iotit-box.zip` - a packed virtual box
 `$HOME/.iotit/images/{device}/{image_pack}` - packed images grouped by device names
 
-`iotit` uses x64 virtualbox in order to flash and configure devices, 
+`iotit` uses x64 virtualbox in order to flash and configure devices,
 because it allows to work with linux partitions and reduces installation requirements
 across different OS
 
 Currently 2 workflows are supported:
 
-#### 1 Edison:
+##### 1 Edison:
 - copy installation files into virtualbox
 - run flashall.sh - to reflash edison
 - run edison_configure - to configure
- 
-#### 2 Sd:
+
+##### 2 Sd:
 - copy installation files into virtualbox
 - mount the image partition into loop via `losetup` and `mount`
 - write configuration files into the image
@@ -121,15 +135,15 @@ Intel USB download gadget [9999]
 FTDI FT232R USB UART [0600]
 ```
 
-CUSTOM BOARDS FLASHING:
+#### CUSTOM BOARDS FLASHING:
 ----------------
 In order to flash a custom board, device info should be added into `~/.iotit/mapping.json`. This file should be created as soon as you start iotit but can also be generated witht the command `iotit --help`.
 
 
-STRUCTURE OF `mapping.json`:
+#### STRUCTURE OF `mapping.json`:
 ----------------
 
-### Example:
+##### Example:
 ```
 "Devices":
 	[
@@ -154,7 +168,7 @@ STRUCTURE OF `mapping.json`:
 
 If you do not specify any images for sub categeory it will choose whatever you have specified in the global image section. If you have more than one image in any image section you will be presented with a list when flashing.
 
-### Structure:
+#### Structure:
 ```
 DeviceMapping struct {
     Name string
@@ -166,15 +180,15 @@ DeviceMapping struct {
 }
 ```
 
-### Algorithm:
-has a tree like structure - 
+#### Algorithm:
+has a tree like structure -
 devices are listed using `Name` field, then devices are listed within `Sub` array and etc.
 
 If a `Sub` device doesn't have any image, then parent's images are used instead
 
 
 
-概要
+### 概要
 ----------------
 
 IoTitを使うことによって、RaspberryPi、Intel Edison、Beaglebone、NanoPi のようなL
