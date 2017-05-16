@@ -7,7 +7,8 @@
 
 ### [ADDED]
 - `ssh-copy-id` SBC to disable too many password prompts
-- Windows support
+- Experimental windows platform support
+- Ability to enable SSH on raspberry pi
 
 ### [REMOVED]
 - VBox VM check that caused `iotit` to crash
