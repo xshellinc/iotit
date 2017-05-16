@@ -9,8 +9,8 @@ configure_aws_cli(){
 deploy() {
     if [ ! -z "$CIRCLE_TAG" ]; then
 
-	    VERSION=$(git describe --tags)
-        echo "Current tag is $VERSION"
+	    VERSION=$CIRCLE_TAG
+        echo "Current tag is $CIRCLE_TAG"
 
         # Uploading to folder by tag for user-app
         aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/darwin/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
