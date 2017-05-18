@@ -64,6 +64,9 @@ func (d *raspberryPi) Configure() error {
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
+	if err := d.UnmountBoot(); err != nil {
+		return err
+	}
 	if err := d.Flash(); err != nil {
 		return err
 	}
@@ -153,6 +156,7 @@ func setupSSH(storage map[string]interface{}) error {
 			return errors.New("Cannot get ssh config")
 		}
 		command := fmt.Sprintf("touch %sssh", bootMount)
+		log.WithField("cmd", command).Debug("Enabling SSH")
 		if _, eut, err := ssh.Run(command); err != nil {
 			return errors.New(err.Error() + ":" + eut)
 		}
@@ -176,14 +180,14 @@ func (d *raspberryPi) MountBoot() error {
 	}
 
 	command := fmt.Sprintf("mount -o rw /dev/loop0%s %s", raspiBoot, bootMount)
-	log.WithField("cmd", command).Debug("Mounting tmp folder")
+	log.WithField("cmd", command).Debug("Mounting boot folder")
 	if err := d.exec(command); err != nil {
 		return err
 	}
 	return nil
 }
 
-// UnmountImg is a method to unlink image folder and detach image from the loop
+// UnmountBoot is a method to unlink image folder and detach image from the loop
 func (d *raspberryPi) UnmountBoot() error {
 	log.Debug("Unlinking boot folder")
 	command := fmt.Sprintf("umount %s", bootMount)
@@ -191,7 +195,7 @@ func (d *raspberryPi) UnmountBoot() error {
 		return err
 	}
 
-	log.Debug("Detaching and image")
+	log.Debug("Detaching image")
 	command = "losetup -D" // -D detaches all loop devices
 	if err := d.exec(command); err != nil {
 		return err
