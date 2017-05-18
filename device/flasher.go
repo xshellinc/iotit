@@ -108,11 +108,11 @@ func (d *flasher) PrepareForFlashing() error {
 	} else {
 		fmt.Println("[+] Starting download", d.device)
 		log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
-		fileName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
+		name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 		if err != nil {
 			return err
 		}
-
+		fileName = name
 		filePath = filepath.Join(d.devRepo.Dir(), fileName)
 
 		bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
