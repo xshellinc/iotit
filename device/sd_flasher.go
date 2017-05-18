@@ -64,7 +64,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		if len(opts) == 0 {
 			return errors.New("Cannot find a mounting point")
 		}
-		loopMount = opts[dialogs.SelectOneDialog("Please select a correct mounting point: ", opts)]
+		loopMount = opts[dialogs.SelectOneDialog("Please select the correct mounting point: ", opts)]
 		loopMount = loopMount[5:]
 	}
 
