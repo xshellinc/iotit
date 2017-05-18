@@ -1,3 +1,12 @@
+## [0.2.1]
+
+### [FIXED]
+- Fix ssh enabling for Raspberry Pi
+
+### [ADDED]
+- Add custom image flashing
+
+
 ## [0.2.0]
 
 ### [FIXED]
