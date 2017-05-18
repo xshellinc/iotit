@@ -1,6 +1,7 @@
 package device
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/tools/constants"
@@ -11,7 +12,7 @@ import (
 const BadRepoError = "Bad repository "
 
 // CustomFlash custom method enum
-const CustomFlash = "Custom"
+const CustomFlash = "custom board"
 
 // devices is a list of currently supported devices
 var devices = [...]string{
@@ -24,13 +25,14 @@ var devices = [...]string{
 
 // New triggers select repository methods and initializes a new flasher
 func New(device string) (Flasher, error) {
+	g := make([]string, 0)
+
 	if device == CustomFlash {
 		r, err := repo.GetAllRepos()
 		if err != nil {
 			return nil, err
 		}
 
-		g := make([]string, 0)
 		for _, s := range r {
 			c := true
 			for _, d := range devices {
@@ -43,21 +45,27 @@ func New(device string) (Flasher, error) {
 			}
 		}
 
-		if len(g) == 0 {
-			return nil, errors.New("No custom boards are available")
+		if len(g) != 0 {
+			device = g[dialogs.SelectOneDialog("Please select your custom board: ", g)]
 		}
 
-		device = g[dialogs.SelectOneDialog("Please select a cutom board: ", g)]
-
 	}
+	r := &repo.DeviceMapping{}
+	if device == CustomFlash && len(g) == 0 {
+		fmt.Println("[-] No custom boards are available")
 
-	r, err := repo.GetDeviceRepo(device)
-	if err != nil && !repo.IsMissingRepoError(err) {
-		return nil, err
-	}
+		url := dialogs.GetSingleAnswer("Please enter image location URL or filepath: ", dialogs.EmptyStringValidator)
+		r = &repo.DeviceMapping{Name: "Custom", Image: repo.DeviceImage{URL: url}}
+	} else {
+		var e error
+		r, e = repo.GetDeviceRepo(device)
+		if e != nil && !repo.IsMissingRepoError(e) {
+			return nil, e
+		}
 
-	if r = selectImage(r); r == nil {
-		return nil, errors.New(BadRepoError + device)
+		if r = selectImage(r); r == nil {
+			return nil, errors.New(BadRepoError + device)
+		}
 	}
 
 	switch device {
@@ -65,19 +73,19 @@ func New(device string) (Flasher, error) {
 		i := &nanoPi{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
-		return i, err
+		return i, nil
 	case constants.DEVICE_TYPE_RASPBERRY:
 		i := &raspberryPi{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
-		return i, err
+		return i, nil
 	case constants.DEVICE_TYPE_BEAGLEBONE:
 		i := &beagleBone{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
 		i.devRepo = r
-		return i, err
+		return i, nil
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{flasher:&flasher{}}
+		i := &edison{flasher: &flasher{}}
 		i.device = device
 		i.devRepo = r
 		return i, nil

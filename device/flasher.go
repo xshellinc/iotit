@@ -90,45 +90,62 @@ func (d *flasher) PrepareForFlashing() error {
 		time.Sleep(time.Second)
 	}
 
-	fmt.Println("[+] Starting download", d.device)
-	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
-	zipName, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
-	if err != nil {
-		return err
-	}
-
-	bar.Prefix(fmt.Sprintf("[+] Download %-15s", zipName))
-	bar.Start()
-	wg.Wait()
-	bar.Finish()
-	time.Sleep(time.Second * 2)
-
 	err = help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
 	if err != nil {
 		log.Error(err)
 	}
+	fileName := ""
+	filePath := ""
+	if !help.ValidURL(d.devRepo.Image.URL) {
+		filePath = d.devRepo.Image.URL
+		fileName = filepath.Base(filePath)
+		log.WithField("path", filePath).WithField("name", fileName).Info("Custom image")
+		if !help.Exists(filePath) {
+			fmt.Println("[-] Image location is neither valid URL nor existing file. Aborting.")
+			return errors.New("Invalid image location")
+		}
+		fmt.Println("[+] Using local image file for ", d.device)
+	} else {
+		fmt.Println("[+] Starting download", d.device)
+		log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
+		name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
+		if err != nil {
+			return err
+		}
+		fileName = name
+		filePath = filepath.Join(d.devRepo.Dir(), fileName)
 
-	// check if zip is already inside VM
-	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + zipName); err != nil || len(strings.TrimSpace(eut)) > 0 {
-		fmt.Printf("[+] Uploading %s to virtual machine\n", zipName)
-		if err = d.conf.SSH.Scp(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName), constants.TMP_DIR); err != nil {
+		bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
+		bar.Start()
+		wg.Wait()
+		bar.Finish()
+		time.Sleep(time.Second * 2)
+	}
+
+	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
+		fmt.Printf("[+] Uploading %s to virtual machine\n", fileName)
+		if err = d.conf.SSH.Scp(filePath, constants.TMP_DIR); err != nil {
 			return err
 		}
 	} else {
-		log.Debug("Image zip exists inside VM")
+		log.Debug("Image already exists inside VM")
 	}
-	if strings.HasSuffix(zipName, ".zip") {
-		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), zipName)); err == nil && len(files) == 1 {
+	log.WithField("path", filePath).WithField("name", fileName).Info("Image")
+
+	if strings.HasSuffix(fileName, ".zip") {
+		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), fileName)); err == nil && len(files) == 1 {
 			if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
 				log.Debug("Image file already extracted")
 				d.img = files[0].Name
 			}
 		}
+	} else {
+		d.img = fileName
 	}
 
 	if d.img == "" {
-		fmt.Printf("[+] Extracting %s \n", zipName)
-		command := fmt.Sprintf(help.GetExtractCommand(zipName), help.AddPathSuffix("unix", constants.TMP_DIR, zipName), constants.TMP_DIR)
+		fmt.Printf("[+] Extracting %s \n", fileName)
+		command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", constants.TMP_DIR, fileName), constants.TMP_DIR)
 		log.Debug("Extracting an image... ", command)
 		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 		out, eut, err := d.conf.SSH.Run(command)
