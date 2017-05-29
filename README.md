@@ -35,6 +35,9 @@ Upon installing, you will need to add both git and Unix tools to the system PATH
 
 Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be able to write on external drives.
 
+**When flashing `Intel® Edison` make sure to provide external power supply.**
+Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter unusable under macOS and vice versa [source](https://communities.intel.com/message/430384).
+
 #### Building
 
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)
