@@ -161,9 +161,8 @@ func (d *edison) getDFUUtil(dst string) error {
 
 	log.WithField("dst", dst).Debug("Extracting")
 	if out, err := exec.Command("unzip", "-j", "-o", dst+"dfu-util-0.9-win64.zip", "-d", dst).CombinedOutput(); err != nil {
-		return err
-	} else {
 		log.Debug(string(out))
+		return err
 	}
 	return nil
 }
