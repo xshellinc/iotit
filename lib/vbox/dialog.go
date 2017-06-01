@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/lib/repo"
@@ -26,7 +27,7 @@ const (
 func onoff() OnOff {
 	var a = []string{"on", "off"}
 
-	n := dialogs.SelectOneDialog("Please select a number:", a)
+	n := dialogs.SelectOneDialog("Please select an option: ", a)
 	return OnOff(n == 0)
 }
 
@@ -126,6 +127,7 @@ func (v *Config) USBDialog() {
 // SetVbox creates custom virtualbox specs
 func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, error) {
 	conf := filepath.Join(repo.VboxDir, VBoxConfFile)
+	log.WithField("path", conf).Info("custom vbox config")
 	err := StopMachines()
 	help.ExitOnError(err)
 
@@ -137,7 +139,8 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 	}
 
 	vboxs := v.Enable(conf, VBoxName, device)
-	n := selectVboxInit(conf, vboxs)
+VBoxInit:
+	n := selectVboxPreset(conf, vboxs)
 
 	switch n {
 	case VBoxTypeNew:
@@ -154,7 +157,11 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 	case VBoxTypeUser:
 		// select virtual machine
 		vboxs := v.Enable(conf, VBoxName, device)
-		result := Select(vboxs)
+		index := selectVM(vboxs)
+		if index < 0 {
+			goto VBoxInit
+		}
+		result := vboxs[index]
 
 		// modify virtual machine
 		err := result.Modify()
@@ -174,7 +181,7 @@ func SetVbox(v *Config, device string) (*virtualbox.Machine, string, string, err
 
 // Select option of virtualboxes, default uses default parameters of virtualbox image, others modifies vbox spec
 // the name of vbox doesn't change
-func selectVboxInit(conf string, v []Config) int {
+func selectVboxPreset(conf string, v []Config) int {
 	opts := []string{
 		"Use default vbox preset",
 		"Create a new vbox preset",
@@ -192,4 +199,16 @@ func selectVboxInit(conf string, v []Config) int {
 	}
 
 	return optTypes[dialogs.SelectOneDialog("Please select an option: ", opts[:n])]
+}
+
+// selectVM displays VM selection dialog
+func selectVM(vboxs []Config) int {
+
+	opts := make([]string, len(vboxs))
+	for i, v := range vboxs {
+		opts[i] = fmt.Sprintf("\t"+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" \n", v.Name, v.Description)
+	}
+
+	fmt.Println("[+] Available virtual machines: ")
+	return dialogs.SelectOneDialogWithBack("Please select virtual machine: ", opts)
 }

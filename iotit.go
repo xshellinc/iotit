@@ -45,7 +45,7 @@ GLOBAL OPTIONS:
 var Version string
 
 // Env string came from linker
-var Env string
+var Env string = "dev"
 
 var commands = make(map[string]func())
 

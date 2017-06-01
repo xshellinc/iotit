@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ssh_helper"
 )
@@ -101,7 +101,7 @@ func NewConfig(device string) *Config {
 func (vc *Config) ToJSON() string {
 	obj, err := json.Marshal(vc)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.WithField("config", vc).Error(err)
 		return ""
 	}
 	return string(obj)
@@ -127,7 +127,10 @@ func (vc *Config) WriteToFile(dst string) {
 		}
 		writer := bufio.NewWriter(fileHandle)
 		defer fileHandle.Close()
-		fmt.Fprintln(writer, vc.ToJSON())
+		json := vc.ToJSON()
+		if json != "" {
+			fmt.Fprintln(writer, vc.ToJSON())
+		}
 		writer.Flush()
 	}
 }
@@ -191,18 +194,6 @@ func (vc *Config) Modify() error {
 func (vc *Config) Machine() (*virtualbox.Machine, error) {
 	m, err := virtualbox.GetMachine(vc.Template)
 	return m, err
-}
-
-// Select displays VM selection dialog
-func Select(vboxs []Config) Config {
-
-	opts := make([]string, len(vboxs))
-	for i, v := range vboxs {
-		opts[i] = fmt.Sprintf("\t["+dialogs.PrintColored("%d")+"] "+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" \n", i, v.Name, v.Description)
-	}
-
-	fmt.Println("[+] Available virtual machine: ")
-	return vboxs[dialogs.SelectOneDialog("Please select a virtual machine: ", opts)]
 }
 
 // Enable picks allowed VMs
