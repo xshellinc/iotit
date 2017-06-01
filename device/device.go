@@ -90,9 +90,9 @@ func New(device string) (Flasher, error) {
 	}
 	r := &repo.DeviceMapping{}
 	if device == CustomFlash && len(g) == 0 {
-		fmt.Println("[-] No custom boards are available")
+		fmt.Println("[-] No custom boards defined")
 
-		url := dialogs.GetSingleAnswer("Custom image URL or path: ", dialogs.EmptyStringValidator)
+		url := dialogs.GetSingleAnswer("Please provide image URL or path: ", dialogs.EmptyStringValidator)
 		r = &repo.DeviceMapping{Name: "Custom", Image: repo.DeviceImage{URL: url}}
 	} else {
 		var e error
