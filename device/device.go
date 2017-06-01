@@ -88,7 +88,7 @@ func New(device string) (Flasher, error) {
 		}
 
 	}
-	r := &repo.DeviceMapping{}
+	var r *repo.DeviceMapping
 	if device == CustomFlash && len(g) == 0 {
 		fmt.Println("[-] No custom boards defined")
 
