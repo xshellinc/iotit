@@ -35,48 +35,53 @@ type sdFlasher struct {
 func (d *sdFlasher) MountImg(loopMount string) error {
 	log.Debug("Attaching an image")
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
 
 	log.Debug("Creating tmp folder")
 	command = fmt.Sprintf("mkdir -p %s", constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
-
 	if loopMount == "" {
 		command = fmt.Sprintf("ls /dev/loop0p*")
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
-		out, eut, err := d.conf.SSH.Run(command)
-		if err != nil {
-			log.Error("[-] Error when execute: ", command, eut)
+
+		out := ""
+		if err := d.execOverSSH(command, &out); err != nil {
 			return err
 		}
-		log.Debug(out, eut)
 		opts := compiler.FindAllString(out, -1)
 		if len(opts) == 0 {
 			return errors.New("Cannot find a mounting point")
 		}
-		loopMount = opts[dialogs.SelectOneDialog("Please select the correct mounting point: ", opts)]
-		loopMount = loopMount[5:]
+		unmount := fmt.Sprintf("umount %s", constants.MountDir)
+		for _, loop := range opts {
+			command = fmt.Sprintf("%s -o rw /dev/%s %s", constants.Mount, loop, constants.MountDir)
+			if err := d.execOverSSH(command, nil); err != nil {
+				return err
+			}
+			command = fmt.Sprintf("ls %s", constants.MountDir)
+			out := ""
+			if err := d.execOverSSH(command, &out); err != nil {
+				return err
+			}
+			if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
+				if err := d.execOverSSH(unmount, nil); err != nil {
+					return err
+				}
+			} else {
+				return nil
+			}
+		}
+		return errors.New("Can't find linux root partition inside that image")
 	}
-
-	log.Debug("Mounting tmp folder")
+	log.Debug("Mounting sd folder on", loopMount)
 	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.Mount, loopMount, constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
-
 	return nil
 }
 
@@ -84,20 +89,14 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 func (d *sdFlasher) UnmountImg() error {
 	log.Debug("Unmounting image folder")
 	command := fmt.Sprintf("umount %s", constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" {
-		log.Debug(strings.TrimSpace(out))
 	}
 
 	log.Debug("Detaching image loop device")
 	command = "losetup -D"
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" {
-		log.Debug(strings.TrimSpace(out))
 	}
 	return nil
 }
@@ -197,5 +196,18 @@ func (d *sdFlasher) Done() error {
 		d.devRepo.Image.User, d.devRepo.Image.Pass)
 	fmt.Println(strings.Repeat("*", 100))
 
+	return nil
+}
+
+func (d *sdFlasher) execOverSSH(command string, outp *string) error {
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error executing: ", command, eut)
+		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
+		if outp != nil {
+			*outp = strings.TrimSpace(out)
+		}
+	}
 	return nil
 }

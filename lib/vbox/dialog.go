@@ -1,11 +1,9 @@
 package vbox
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
@@ -47,34 +45,11 @@ func (v *Config) NameDialog() {
 
 // DescriptionDialog asks for VM description
 func (v *Config) DescriptionDialog() {
-	var inp string
-
 	if v.Description != "" {
 		fmt.Printf("[+] Your VB description set to \x1b[34m%s\x1b[0m: \n", v.Description)
-		fmt.Print("[+] Would you like to change virtual machine description?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
-	} else {
-		fmt.Print("[+] Would you like to set a description for the virtual machine?(\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m):")
 	}
-
-	for {
-		fmt.Scanln(&inp)
-		if strings.EqualFold(inp, "y") || strings.EqualFold(inp, "yes") {
-			fmt.Print("[+] Enter description:")
-			reader := bufio.NewReader(os.Stdin)
-			description, err := reader.ReadString('\n')
-			if err != nil {
-				fmt.Println("[-] Invalid user input")
-				continue
-			}
-			description = strings.TrimSpace(description)
-			v.Description = description
-
-			break
-		} else if strings.EqualFold(inp, "n") || strings.EqualFold(inp, "no") {
-			break
-		} else {
-			fmt.Print("[-] Unknown user input. Please enter (\x1b[33my/yes\x1b[0m OR \x1b[33mn/no\x1b[0m)")
-		}
+	if dialogs.YesNoDialog("Would you like to change virtual machine description?") {
+		v.Description = dialogs.GetSingleAnswer("Enter description: ")
 	}
 }
 
@@ -87,9 +62,7 @@ func (v *Config) MemoryDialog() {
 		if v.Device == constants.DEVICE_TYPE_EDISON {
 			fmt.Println("[+] WARNING, memory size should be \x1b[34m1024\x1b[0m MB or more!")
 		}
-		fmt.Print("[+] Change memory.")
-
-		v.Option.Memory = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
+		v.Option.Memory = uint(dialogs.GetSingleNumber("Memory size: ", dialogs.PositiveNumber))
 	}
 }
 
@@ -97,9 +70,8 @@ func (v *Config) MemoryDialog() {
 func (v *Config) CPUDialog() {
 	fmt.Printf("[+] Your VB number of cpu set to \x1b[34m%d\x1b[0m: \n", int(v.Option.CPU))
 
-	if dialogs.YesNoDialog("Would you like to change the number of virtual machine processor?") {
-		fmt.Println("[+] Change number of processor.")
-		v.Option.CPU = uint(dialogs.GetSingleNumber("Enter value:", dialogs.PositiveNumber))
+	if dialogs.YesNoDialog("Would you like to change the number of virtual processors?") {
+		v.Option.CPU = uint(dialogs.GetSingleNumber("Number of processors: ", dialogs.PositiveNumber))
 	}
 }
 
@@ -206,7 +178,7 @@ func selectVM(vboxs []Config) int {
 
 	opts := make([]string, len(vboxs))
 	for i, v := range vboxs {
-		opts[i] = fmt.Sprintf("\t"+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" \n", v.Name, v.Description)
+		opts[i] = fmt.Sprintf("\t"+dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), v.Name, v.Description)
 	}
 
 	fmt.Println("[+] Available virtual machines: ")
