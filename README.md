@@ -132,7 +132,7 @@ VirtualBox uses alpine virtualbox image with additional software installed
 bash
 libusb-dev 
 xz
-util-lixus
+util-linux
 dfu-util
 ```
 
