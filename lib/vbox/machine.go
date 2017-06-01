@@ -253,7 +253,7 @@ func CheckVBInstalled() error {
 		if runtime.GOOS == "windows" {
 			path := `C:\Program Files\Oracle\VirtualBox\`
 			if !help.DirExists(path) {
-				path = dialogs.GetSingleAnswer("[-] Couldn't find VirtualBox in default location, please specify installation dir manually: ", dialogs.EmptyStringValidator)
+				path = dialogs.GetSingleAnswer("Couldn't find VirtualBox in default location, please specify installation dir manually: ", dialogs.EmptyStringValidator)
 				if help.DirExists(path) {
 					return fmt.Errorf("Could not find virtualbox, may be you need to install it first")
 				}

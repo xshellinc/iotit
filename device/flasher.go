@@ -78,6 +78,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
+	log.Debug("Configuring virtual box")
 	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
 	d.vbox = vbox
 	if err != nil {
