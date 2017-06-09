@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
@@ -123,7 +124,7 @@ func SaveKeyboard(storage map[string]interface{}) error {
 
 // SetWifi is a dialog asking to configure wpa supplicant
 func SetWifi(storage map[string]interface{}) error {
-	if dialogs.YesNoDialog("Would you like to configure your WI-Fi?") {
+	if dialogs.YesNoDialog("Would you like to configure your Wi-Fi?") {
 		storage[GetConstLiteral(Wifi)+"_name"] = dialogs.GetSingleAnswer("WIFI SSID name: ", dialogs.EmptyStringValidator)
 		storage[GetConstLiteral(Wifi)+"_pass"] = []byte(dialogs.WiFiPassword())
 	}
@@ -156,6 +157,7 @@ func SaveWifi(storage map[string]interface{}) error {
 
 // SetInterface is a dialog asking to setup user Interfaces for the static ip functionality
 func SetInterface(storage map[string]interface{}) error {
+	log.WithField("type", "default").Debug("setInterface")
 	device := []string{"eth0", "wlan0"}
 	i := Interfaces{
 		Address: "192.168.0.254",

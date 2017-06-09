@@ -29,16 +29,6 @@ func GetConstLiteral(v int) string {
 }
 
 type (
-	// Configurator is a config helper, which uses CallbackFn to store configurations for devices
-	Configurator interface {
-		Setup() error
-		Write() error
-		SetConfigFn(int, *CallbackFn)
-		GetConfigFn(int) *CallbackFn
-		AddConfigFn(*CallbackFn)
-		RemoveConfigFn(int)
-	}
-
 	// configurator is a container of a mutual storage and order of CallbackFn
 	configurator struct {
 		storage map[string]interface{}
@@ -55,22 +45,28 @@ type (
 	}
 )
 
-// NewDefault creates a default Configurator
-func NewDefault(ssh ssh_helper.Util) Configurator {
-
-	s := make(map[string]interface{})
+// New creates an empty Configurator
+func New(ssh ssh_helper.Util) *configurator {
+	storage := make(map[string]interface{})
 
 	// default
-	c := make([]*CallbackFn, 0)
-	c = append(c, NewCallbackFn(SetLocale, SaveLocale))
-	c = append(c, NewCallbackFn(SetKeyboard, SaveKeyboard))
-	c = append(c, NewCallbackFn(SetWifi, SaveWifi))
-	c = append(c, NewCallbackFn(SetInterface, SaveInterface))
-	c = append(c, NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS))
+	order := make([]*CallbackFn, 0)
 
-	s["ssh"] = ssh
+	storage["ssh"] = ssh
 
-	return &configurator{s, c}
+	return &configurator{storage, order}
+}
+
+// NewDefault creates a default Configurator
+func NewDefault(ssh ssh_helper.Util) *configurator {
+	config := New(ssh)
+	// add default callbacks
+	config.order = append(config.order, NewCallbackFn(SetLocale, SaveLocale))
+	config.order = append(config.order, NewCallbackFn(SetKeyboard, SaveKeyboard))
+	config.order = append(config.order, NewCallbackFn(SetWifi, SaveWifi))
+	config.order = append(config.order, NewCallbackFn(SetInterface, SaveInterface))
+	config.order = append(config.order, NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS))
+	return config
 }
 
 // NewCallbackFn creates a new CallbackFn with 2 Function parameters
@@ -134,4 +130,8 @@ func (c *configurator) RemoveConfigFn(num int) {
 	}
 
 	c.order = append(c.order[:num], c.order[num+1:]...)
+}
+
+func (c *configurator) StoreValue(name string, value interface{}) {
+	c.storage[name] = value
 }

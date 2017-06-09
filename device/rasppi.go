@@ -30,7 +30,7 @@ type raspberryPi struct {
 func (d *raspberryPi) Configure() error {
 	log.WithField("device", "raspi").Debug("Configure")
 	job := help.NewBackgroundJob()
-	c := config.NewDefault(d.conf.SSH)
+	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
 
 	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
 	c.AddConfigFn(config.NewCallbackFn(setupSSH, nil))
@@ -86,6 +86,7 @@ interface %s
 
 // configInterface is a custom configInterface method uses interfaceConfig var
 func configInterface(storage map[string]interface{}) error {
+	log.WithField("type", "raspi").Debug("configInterface")
 	device := []string{"eth0", "wlan0"}
 	i := config.Interfaces{
 		Address: "192.168.0.254",
