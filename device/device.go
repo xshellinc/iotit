@@ -22,6 +22,7 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
+	constants.DEVICE_TYPE_ESP,
 	customFlash,
 }
 
@@ -99,7 +100,7 @@ func New(device string) (Flasher, error) {
 	} else {
 		var e error
 		r, e = repo.GetDeviceRepo(device)
-		if e != nil && !repo.IsMissingRepoError(e) {
+		if e != nil {
 			return nil, e
 		}
 
@@ -121,6 +122,11 @@ func New(device string) (Flasher, error) {
 		return i, nil
 	case constants.DEVICE_TYPE_EDISON:
 		i := &edison{flasher: &flasher{}}
+		i.device = device
+		i.devRepo = r
+		return i, nil
+	case constants.DEVICE_TYPE_ESP:
+		i := &serialFlasher{flasher: &flasher{}}
 		i.device = device
 		i.devRepo = r
 		return i, nil

@@ -14,6 +14,7 @@
 * [Raspberry Pi](https://www.raspberrypi.org/)
 * [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
 * [BeagleBone](http://beagleboard.org/bone)
+* [ESP-32](http://esp32.net/)
 
 
 ### REQUIREMENTS
@@ -54,10 +55,6 @@ go get ./...
 ```
 
 *Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison:
-
-```
-brew install ssh-copy-id
-```
 
 ### DEVELOPMENT ENVIRONMENT
 
@@ -107,14 +104,14 @@ which is applied to `iotit-box`
 ----------------
 `$HOME/.iotit` - a directory containing iotit related files
 `$HOME/.iotit/mapping.json` - a file containing different device types and urls of images to be downloaded
-`$HOME/.iotit/virtualbox/{version}/iotit-box.zip` - a packed virtual box
+`$HOME/.iotit/virtualbox/{version}/iotit-box.zip` - a packed virtual box image
 `$HOME/.iotit/images/{device}/{image_pack}` - packed images grouped by device names
 
 `iotit` uses x64 virtualbox in order to flash and configure devices,
 because it allows to work with linux partitions and reduces installation requirements
-across different OS
+across different OSes
 
-Currently 2 workflows are supported:
+Currently 3 workflows are supported:
 
 ##### 1 Edison:
 - copy installation files into virtualbox
@@ -127,6 +124,11 @@ Currently 2 workflows are supported:
 - write configuration files into the image
 - write image into sd-card via `dd` or `diskutil` on macos
 
+##### 3 ESP-32:
+- copy firmware files into virtualbox
+- run flash.sh - to flash it using esptool
+- configure module parameters using serial connection
+
 VirtualBox uses alpine virtualbox image with additional software installed
 ```
 bash
@@ -134,6 +136,8 @@ libusb-dev
 xz
 util-linux
 dfu-util
+python2
+esptool2
 ```
 
 Edison device is additionally mapped to the usb ports
@@ -141,6 +145,13 @@ Edison device is additionally mapped to the usb ports
 Intel Edison [0310]
 Intel USB download gadget [9999]
 FTDI FT232R USB UART [0600]
+```
+
+Common ESP usb-serial adapters are additionally mapped to the usb ports
+```
+Silicon Labs CP2102 USB to UART Bridge Controller [0100]
+Silicon Labs CP2104 USB to UART Bridge Controller [0100]
+QinHeng Electronics USB2.0-Serial [0254]
 ```
 
 #### CUSTOM BOARDS FLASHING:
