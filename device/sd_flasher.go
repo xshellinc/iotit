@@ -34,6 +34,11 @@ type sdFlasher struct {
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
 	log.Debug("Attaching an image")
+
+	if d.img == "" {
+		return errors.New("Image not found, please check if the repo is valid")
+	}
+
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err

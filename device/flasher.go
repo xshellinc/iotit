@@ -154,8 +154,6 @@ func (d *flasher) PrepareForFlashing() error {
 				d.img = files[0].Name
 			}
 		}
-	} else {
-		d.img = fileName
 	}
 
 	if d.img == "" {
@@ -173,12 +171,19 @@ func (d *flasher) PrepareForFlashing() error {
 			s := strings.TrimSpace(raw)
 			if s != "" && strings.HasSuffix(s, ".img") {
 				d.img = s
+				return nil
 			}
 		}
-	}
-
-	if d.img == "" {
-		return errors.New("Image not found, please check if the repo is valid")
+		if out, _, err := d.conf.SSH.Run("ls -1 " + constants.TMP_DIR); err == nil && len(strings.TrimSpace(out)) > 0 {
+			log.Debug(out)
+			for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
+				s := strings.TrimSpace(raw)
+				if s != "" && strings.HasSuffix(s, ".img") {
+					d.img = s
+					return nil
+				}
+			}
+		}
 	}
 
 	return nil
