@@ -1,3 +1,16 @@
+## [0.2.2]
+
+### [FIXED]
+- Windows platform support improvements (edison flashing in particular)
+- Custom boards flashing
+
+### [REMOVED]
+- Removed unnecessary mounting point selection dialog
+
+### [UPDATED]
+- Update NanoPi images links
+
+
 ## [0.2.1]
 
 ### [FIXED]
