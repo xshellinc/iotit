@@ -39,6 +39,15 @@
 	  		  "Title":"ESP-32 Firmata"
 	  	    }
 	      ]
+	    },
+	    {
+		    "Name":"ESP-8266",
+	  	    "Images":[
+	  	    {
+  	  		  "URL":"https://cdn.isaax.io/isaax-distro/boards/esp/8266/firmata.zip",
+	  		  "Title":"ESP-8266 Firmata"
+	  	    }
+	      ]
 	    }
 	  ]
     },

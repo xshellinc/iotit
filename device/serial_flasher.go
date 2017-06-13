@@ -22,8 +22,6 @@ var flashsh = `flash`
 
 // Configure method overrides generic flasher
 func (d *serialFlasher) Configure() error {
-	// c := config.NewDefault(d.conf.SSH)
-
 	if err := d.Flash(); err != nil {
 		return err
 	}
@@ -43,7 +41,7 @@ func (d *serialFlasher) Configure() error {
 
 // Flash method is used to flash image to the sdcard
 func (d *serialFlasher) Flash() error {
-	if !dialogs.YesNoDialog("Proceed to image burning?") {
+	if !dialogs.YesNoDialog("Proceed to firmware burning?") {
 		log.Debug("Flash aborted")
 		return nil
 	}
@@ -52,7 +50,7 @@ func (d *serialFlasher) Flash() error {
 	if err := d.getPort(); err != nil {
 		return err
 	}
-	fmt.Println("[+] Flashing...")
+	fmt.Println("[+] Using ", dialogs.PrintColored(d.port))
 	args := []string{
 		fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
 		"-p",
@@ -72,11 +70,13 @@ func (d *serialFlasher) Flash() error {
 
 func (d *serialFlasher) getPort() error {
 	list := d.enumerateSerialPorts()
-	if len(list) > 0 {
-		d.port = list[0]
-		return nil
+	if len(list) == 0 {
+		return errors.New("No ports found")
 	}
-	return errors.New("No ports found")
+	// we are inside VM, so we assume it's unlikely there will be more then one port
+	// and even if there are more, there is no way for us to tell user what is what.
+	d.port = list[0]
+	return nil
 }
 
 func (d *serialFlasher) enumerateSerialPorts() []string {

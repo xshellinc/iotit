@@ -100,6 +100,7 @@ func New(device string) (Flasher, error) {
 	} else {
 		var e error
 		r, e = repo.GetDeviceRepo(device)
+
 		if e != nil {
 			return nil, e
 		}
@@ -144,7 +145,7 @@ func New(device string) (Flasher, error) {
 func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	var selected *repo.DeviceMapping
 	if len(mapping.Sub) > 1 {
-		n := dialogs.SelectOneDialog("Please select a device type: ", mapping.GetSubsNames())
+		n := dialogs.SelectOneDialog("Please select device type: ", mapping.GetSubsNames())
 		selected = mapping.Sub[n]
 	} else if len(mapping.Sub) == 1 {
 		selected = mapping.Sub[0]
@@ -154,7 +155,7 @@ func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	return selectDevice(selected)
 }
 
-// selectImage is a dialog to select an image from the list if more than one, null is returned if nothing is to return
+// selectImage is a dialog to select an image from the list if more than one, nil is returned if nothing is to return
 func selectImage(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	selected := selectDevice(mapping)
 
