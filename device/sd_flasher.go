@@ -193,13 +193,26 @@ func (d *sdFlasher) Configure() error {
 
 // Done prints out final success message
 func (d *sdFlasher) Done() error {
-	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t SD CARD READY!")
-	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s\n", d.device)
-	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET")
-	fmt.Printf("*\t\t SSH USERNAME:"+dialogs.PrintColored("%s")+" PASSWORD:"+dialogs.PrintColored("%s")+"\n",
+	//fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("\t\t ...                      .................    ..                ")
+	fmt.Println("\t\t ...                      .................   ....    ...        ")
+	fmt.Println("\t\t ...                             ....                 ...        ")
+	fmt.Println("\t\t ...          .....              ....                 ...        ")
+	fmt.Println("\t\t ...       ...........           ....         ...     .......... ")
+	fmt.Println("\t\t ...      ...       ...          ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ....       ....         ....         ...      ...       ")
+	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
+	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
+
+	fmt.Printf("\n\t\t Flashing Complete!\n")
+	fmt.Printf("\t\t Please insert your sd card into your %s\n", d.device)
+	fmt.Println("\t\t ssh to your board with the following credentials")
+	fmt.Printf("\t\t ssh username:"+dialogs.PrintColored("%s")+" password:"+dialogs.PrintColored("%s")+"\n",
 		d.devRepo.Image.User, d.devRepo.Image.Pass)
-	fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 
 	return nil
 }
