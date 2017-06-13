@@ -212,7 +212,7 @@ func (d *sdFlasher) Done() error {
 	fmt.Println("\t\t ssh to your board with the following credentials")
 	fmt.Printf("\t\t ssh username:"+dialogs.PrintColored("%s")+" password:"+dialogs.PrintColored("%s")+"\n",
 		d.devRepo.Image.User, d.devRepo.Image.Pass)
-	fmt.Println("\t\t If you have any issues or suggestions please see our help page at https://help.isaax.io/hc/ja or tweet us @isaax_iot\n\n")
+	fmt.Println("\t\t If you have any issues or suggestions please see our help page at https://help.isaax.io/hc/ja or tweet us @isaax_iot")
 
 	return nil
 }
