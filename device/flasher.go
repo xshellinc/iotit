@@ -3,7 +3,6 @@ package device
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -35,9 +34,42 @@ type flasher struct {
 	device string
 }
 
+// validates given image path and downloads image archive to os tmp folder
+func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
+	wg := &sync.WaitGroup{}
+	if !help.ValidURL(d.devRepo.Image.URL) {
+		// local file path given
+		filePath = d.devRepo.Image.URL
+		fileName = filepath.Base(filePath)
+		log.WithField("path", filePath).WithField("name", fileName).Info("Custom image")
+		if !help.Exists(filePath) {
+			fmt.Println("[-] Image location is neither valid URL nor existing file. Aborting.")
+			return "", "", errors.New("Invalid image location")
+		}
+		fmt.Println("[+] Using local image file for ", d.device)
+		return fileName, filePath, err
+	}
+	// download image over http
+	fmt.Println("[+] Starting download", d.device)
+	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
+	name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
+	if err != nil {
+		return "", "", err
+	}
+	fileName = name
+	filePath = filepath.Join(d.devRepo.Dir(), fileName)
+
+	bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
+	bar.Start()
+	wg.Wait()
+	bar.Finish()
+	time.Sleep(time.Second * 2)
+
+	return fileName, filePath, err
+}
+
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
 func (d *flasher) PrepareForFlashing() error {
-	wg := &sync.WaitGroup{}
 	job := help.NewBackgroundJob()
 
 	if err := vbox.CheckVBInstalled(); err != nil {
@@ -46,6 +78,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
+	log.Debug("Configuring virtual box")
 	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
 	d.vbox = vbox
 	if err != nil {
@@ -90,36 +123,18 @@ func (d *flasher) PrepareForFlashing() error {
 		time.Sleep(time.Second)
 	}
 
-	err = help.DeleteHost(filepath.Join((os.Getenv("HOME")), ".ssh", "known_hosts"), "localhost")
+	err = help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), "localhost")
 	if err != nil {
 		log.Error(err)
 	}
 	fileName := ""
 	filePath := ""
-	if !help.ValidURL(d.devRepo.Image.URL) {
-		filePath = d.devRepo.Image.URL
-		fileName = filepath.Base(filePath)
-		log.WithField("path", filePath).WithField("name", fileName).Info("Custom image")
-		if !help.Exists(filePath) {
-			fmt.Println("[-] Image location is neither valid URL nor existing file. Aborting.")
-			return errors.New("Invalid image location")
-		}
-		fmt.Println("[+] Using local image file for ", d.device)
-	} else {
-		fmt.Println("[+] Starting download", d.device)
-		log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
-		name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
-		if err != nil {
-			return err
-		}
-		fileName = name
-		filePath = filepath.Join(d.devRepo.Dir(), fileName)
 
-		bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
-		bar.Start()
-		wg.Wait()
-		bar.Finish()
-		time.Sleep(time.Second * 2)
+	if fn, fp, err := d.DownloadImage(); err == nil {
+		fileName = fn
+		filePath = fp
+	} else {
+		return err
 	}
 
 	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
@@ -139,8 +154,6 @@ func (d *flasher) PrepareForFlashing() error {
 				d.img = files[0].Name
 			}
 		}
-	} else {
-		d.img = fileName
 	}
 
 	if d.img == "" {
@@ -158,12 +171,19 @@ func (d *flasher) PrepareForFlashing() error {
 			s := strings.TrimSpace(raw)
 			if s != "" && strings.HasSuffix(s, ".img") {
 				d.img = s
+				return nil
 			}
 		}
-	}
-
-	if d.img == "" {
-		return errors.New("Image not found, please check if the repo is valid")
+		if out, _, err := d.conf.SSH.Run("ls -1 " + constants.TMP_DIR); err == nil && len(strings.TrimSpace(out)) > 0 {
+			log.Debug(out)
+			for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
+				s := strings.TrimSpace(raw)
+				if s != "" && strings.HasSuffix(s, ".img") {
+					d.img = s
+					return nil
+				}
+			}
+		}
 	}
 
 	return nil

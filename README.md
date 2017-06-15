@@ -29,11 +29,19 @@ The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/
 *Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
 ##### Windows specific
+
+**NOTE Windows build is still experimental and you may experience problems flashing on windows 7**
+
+**At this point we officaily do not support 32 bit windows (all versions)**
+
 You will need to install [git-for-windows](https://git-for-windows.github.io/)
 
 Upon installing, you will need to add both git and Unix tools to the system PATH [example screenshot](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
 
 Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be able to write on external drives.
+
+**When flashing `Intel® Edison` make sure to provide external power supply.**
+Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter unusable under macOS and vice versa [source](https://communities.intel.com/message/430384).
 
 #### Building
 
@@ -124,7 +132,7 @@ VirtualBox uses alpine virtualbox image with additional software installed
 bash
 libusb-dev 
 xz
-util-lixus
+util-linux
 dfu-util
 ```
 

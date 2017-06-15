@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"syscall"
 
 	"math"
 	"runtime"
@@ -45,11 +46,18 @@ func (w *windows) ListRemovableDisk() error {
 	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
 
-	stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})
+	// stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})
+	// ugly fix for windows 7 bug where `format:csv` is broken. Also go double escape quoted arguments.
+	cmd := exec.Command(`cmd`)
+	cmd.SysProcAttr = &syscall.SysProcAttr{}
+	cmd.SysProcAttr.CmdLine = `cmd /s /c "wmic diskdrive get DeviceID,index,InterfaceType,MediaType,Model,Size /format:"%WINDIR%\System32\wbem\en-US\csv""`
+	stdoutb, err := cmd.Output()
+	stdout := string(stdoutb)
 	log.Debug(stdout)
 	if err != nil {
 		stdout = ""
 	}
+
 	r := csv.NewReader(strings.NewReader(strings.TrimSpace(stdout)))
 	r.TrimLeadingSpace = true
 	r.Read() //skip the first line

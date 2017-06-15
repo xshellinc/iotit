@@ -34,49 +34,59 @@ type sdFlasher struct {
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
 	log.Debug("Attaching an image")
+
+	if d.img == "" {
+		return errors.New("Image not found, please check if the repo is valid")
+	}
+
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
 
 	log.Debug("Creating tmp folder")
 	command = fmt.Sprintf("mkdir -p %s", constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
-
 	if loopMount == "" {
 		command = fmt.Sprintf("ls /dev/loop0p*")
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
-		out, eut, err := d.conf.SSH.Run(command)
-		if err != nil {
-			log.Error("[-] Error when execute: ", command, eut)
+
+		out := ""
+		if err := d.execOverSSH(command, &out); err != nil {
 			return err
 		}
-		log.Debug(out, eut)
 		opts := compiler.FindAllString(out, -1)
 		if len(opts) == 0 {
 			return errors.New("Cannot find a mounting point")
 		}
-		loopMount = opts[dialogs.SelectOneDialog("Please select the correct mounting point: ", opts)]
-		loopMount = loopMount[5:]
+		unmount := fmt.Sprintf("umount %s", constants.MountDir)
+		for _, loop := range opts {
+			command = fmt.Sprintf("%s -o rw /dev/%s %s", constants.Mount, loop, constants.MountDir)
+			if err := d.execOverSSH(command, nil); err != nil {
+				return err
+			}
+			command = fmt.Sprintf("ls %s", constants.MountDir)
+			out := ""
+			if err := d.execOverSSH(command, &out); err != nil {
+				return err
+			}
+			if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
+				if err := d.execOverSSH(unmount, nil); err != nil {
+					return err
+				}
+			} else {
+				return nil
+			}
+		}
+		return errors.New("Can't find linux root partition inside that image")
 	}
-
-	log.Debug("Mounting tmp folder")
+	log.Debug("Mounting sd folder on", loopMount)
 	command = fmt.Sprintf("%s -o rw /dev/loop0%s %s", constants.Mount, loopMount, constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" || strings.TrimSpace(eut) != "" {
-		log.Debug(out, eut)
 	}
-
 	return nil
 }
 
@@ -84,20 +94,14 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 func (d *sdFlasher) UnmountImg() error {
 	log.Debug("Unmounting image folder")
 	command := fmt.Sprintf("umount %s", constants.MountDir)
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" {
-		log.Debug(strings.TrimSpace(out))
 	}
 
 	log.Debug("Detaching image loop device")
 	command = "losetup -D"
-	if out, eut, err := d.conf.SSH.Run(command); err != nil {
-		log.Error("[-] Error when execute: ", command, eut)
+	if err := d.execOverSSH(command, nil); err != nil {
 		return err
-	} else if strings.TrimSpace(out) != "" {
-		log.Debug(strings.TrimSpace(out))
 	}
 	return nil
 }
@@ -189,13 +193,39 @@ func (d *sdFlasher) Configure() error {
 
 // Done prints out final success message
 func (d *sdFlasher) Done() error {
-	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t SD CARD READY!")
-	fmt.Printf("*\t\t PLEASE INSERT YOUR SD CARD TO YOUR %s\n", d.device)
-	fmt.Println("*\t\t IF YOU HAVE NOT SET UP THE USB WIFI, PLEASE CONNECT TO ETHERNET")
-	fmt.Printf("*\t\t SSH USERNAME:"+dialogs.PrintColored("%s")+" PASSWORD:"+dialogs.PrintColored("%s")+"\n",
-		d.devRepo.Image.User, d.devRepo.Image.Pass)
-	fmt.Println(strings.Repeat("*", 100))
+	//fmt.Println(strings.Repeat("*", 100))
+	fmt.Println("\t\t ...                      .................    ..                ")
+	fmt.Println("\t\t ...                      .................   ....    ...        ")
+	fmt.Println("\t\t ...                             ....                 ...        ")
+	fmt.Println("\t\t ...          .....              ....                 ...        ")
+	fmt.Println("\t\t ...       ...........           ....         ...     .......... ")
+	fmt.Println("\t\t ...      ...       ...          ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ....       ....         ....         ...      ...       ")
+	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
+	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
 
+	fmt.Printf("\n\t\t Flashing Complete!\n")
+	fmt.Printf("\t\t Please insert your sd card into your %s\n", d.device)
+	fmt.Println("\t\t ssh to your board with the following credentials")
+	fmt.Printf("\t\t ssh username:"+dialogs.PrintColored("%s")+" password:"+dialogs.PrintColored("%s")+"\n",
+		d.devRepo.Image.User, d.devRepo.Image.Pass)
+	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+
+	return nil
+}
+
+func (d *sdFlasher) execOverSSH(command string, outp *string) error {
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error executing: ", command, eut)
+		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
+		if outp != nil {
+			*outp = strings.TrimSpace(out)
+		}
+	}
 	return nil
 }

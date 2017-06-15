@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -36,75 +37,168 @@ const (
 
 type edison struct {
 	*flasher
+	ip string
 }
 
 func (d *edison) PrepareForFlashing() error {
 	ack := dialogs.YesNoDialog("Would you like to flash your board? ")
-
-	if ack {
-		d.flasher.PrepareForFlashing()
-		for !dialogs.YesNoDialog("Please unplug your Edison board. Type yes once unpluged.") {
-		}
-
-		for {
-			script := "flashall.sh"
-			args := []string{
-				fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
-				"-p",
-				vbox.VBoxSSHPort,
-				constants.TMP_DIR + script,
-			}
-			if err := help.ExecStandardStd("ssh", args...); err != nil {
-				fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
-
-				if !dialogs.YesNoDialog("Type yes once connected.") {
-					fmt.Println("Exiting with exit status 2 ...")
-					os.Exit(2)
-				}
-				continue
-			}
-			break
-		}
-
-		if err := vbox.Stop(d.vbox.UUID); err != nil {
-			log.Error(err)
-		}
-
-		job := help.NewBackgroundJob()
-		go func() {
-			defer job.Close()
-			time.Sleep(120 * time.Second)
-		}()
-
-		help.WaitJobAndSpin("Configuring Edison", job)
+	if !ack {
+		return nil
 	}
 
+	if runtime.GOOS == windows {
+		return d.flashWindows()
+	}
+
+	d.flasher.PrepareForFlashing()
+	for !dialogs.YesNoDialog("Please unplug your Edison board. Type yes once unpluged.") {
+	}
+
+	for {
+		script := "flashall.sh"
+		args := []string{
+			fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
+			"-p",
+			vbox.VBoxSSHPort,
+			constants.TMP_DIR + script,
+		}
+		if err := help.ExecStandardStd("ssh", args...); err != nil {
+			fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
+
+			if !dialogs.YesNoDialog("Type yes once connected.") {
+				fmt.Println("Exiting with exit status 2 ...")
+				os.Exit(2)
+			}
+			continue
+		}
+		break
+	}
+
+	if err := vbox.Stop(d.vbox.UUID); err != nil {
+		log.Error(err)
+	}
+
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		time.Sleep(120 * time.Second)
+	}()
+
+	help.WaitJobAndSpin("Your Edison board is restarting...", job)
+	return nil
+}
+
+func (d *edison) flashWindows() error {
+	fileName := ""
+	filePath := ""
+	if fn, fp, err := d.flasher.DownloadImage(); err == nil {
+		fileName = fn
+		filePath = fp
+	} else {
+		return err
+	}
+
+	fmt.Printf("[+] Extracting %s \n", fileName)
+	if !strings.HasSuffix(fileName, ".zip") {
+		return nil
+	}
+	extractedPath := help.GetTempDir() + help.Separator() + strings.TrimSuffix(fileName, ".zip") + help.Separator()
+	command := "unzip"
+	args := []string{
+		"-o",
+		filePath,
+		"-d",
+		extractedPath,
+	}
+	log.WithField("args", args).Debug("Extracting an image...")
+	if out, err := exec.Command(command, args...).CombinedOutput(); err != nil {
+		log.WithField("out", out).Error(err)
+		fmt.Println("[-] Error extracting image!", out)
+		return err
+	}
+
+	d.getDFUUtil(extractedPath)
+
+	script := extractedPath + help.Separator() + "flashall.bat"
+	log.Debug("Running flashall... ", script)
+	cmd := exec.Command(script)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Dir = extractedPath
+	if err := cmd.Run(); err != nil {
+		fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
+		os.Exit(2)
+	}
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		time.Sleep(120 * time.Second)
+	}()
+
+	help.WaitJobAndSpin("Your Edison board is restarting...", job)
+	return nil
+}
+
+func (d *edison) getDFUUtil(dst string) error {
+	url := "https://cdn.isaax.io/isaax-distro/utilities/dfu-util/dfu-util-0.9-win64.zip"
+
+	if help.Exists(dst + "dfu-util.exe") {
+		return nil
+	}
+
+	wg := &sync.WaitGroup{}
+	fileName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
+	if err != nil {
+		return err
+	}
+
+	bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
+	bar.Start()
+	wg.Wait()
+	bar.Finish()
+	time.Sleep(time.Second)
+
+	log.WithField("dst", dst).Debug("Extracting")
+	if out, err := exec.Command("unzip", "-j", "-o", dst+"dfu-util-0.9-win64.zip", "-d", dst).CombinedOutput(); err != nil {
+		log.Debug(string(out))
+		return err
+	}
 	return nil
 }
 
 func (d *edison) Configure() error {
-	err := setConfig()
+	err := d.getIPAddress()
 	if err != nil {
 		log.Error(err)
 	}
 
-	fmt.Println(strings.Repeat("*", 100))
-	fmt.Println("*\t\t WARNNING!!  \t\t\t\t\t\t\t\t\t   *")
-	fmt.Println("*\t\t IF YOUR EDISON BOARD IS CONNECTED TO YOUR MACHINE, PLEASE DISCONNECT IT!  \t   *")
-	fmt.Println("*\t\t PLEASE FOLLOW THE INSTRUCTIONS! \t\t\t\t\t\t   *")
-	fmt.Println(strings.Repeat("*", 100))
+	if d.ip == "" {
+		fmt.Println("[-] Can't configure board without knowing it's IP")
+		return nil
+	}
+
+	fmt.Println("[+] Copying your id to the board using ssh-copy-id")
+	help.ExecStandardStd("ssh-copy-id", []string{"root@" + d.ip}...)
+	time.Sleep(time.Second * 4)
+
+	if err := d.setupInterface(); err != nil {
+		return err
+	}
+
+	d.configBoard()
+
+	fmt.Println("[+] Done")
 
 	return nil
 }
 
-func setConfig() error {
+func (d *edison) getIPAddress() error {
 	// get IP
-	var ip string
-
-	i := dialogs.SelectOneDialog("Choose Edison's interface to connect to: ", []string{"Select from a list of interfaces", "Enter IP manually"})
+	choice := dialogs.SelectOneDialog("Choose Edison's usb-ethernet interface: ", []string{"Select from the list of interfaces", "Enter Edison IP manually"})
 	fallback := false
 
-	if i == 0 {
+	if choice == 0 {
 		ifaces, err := help.LocalIfaces()
 
 		if err != nil || len(ifaces) == 0 {
@@ -120,24 +214,27 @@ func setConfig() error {
 			for i, iface := range ifaces {
 				arr[i] = iface.Name
 				arrSel[i] = iface.Name
-				if iface.Ipv4[:4] == "169." {
+				if iface.Ipv4[:4] == "169." || iface.Ipv4 == "192.168.2.2" {
 					if runtime.GOOS == windows {
-						arrSel[i] = "**" + iface.Name + "**"
+						arrSel[i] = "~" + iface.Name + "~ ip: " + iface.Ipv4
 					} else {
 						arrSel[i] = "\x1b[34m" + iface.Name + "\x1b[0m"
 					}
 				}
 			}
 
-			i = dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
+			i := dialogs.SelectOneDialog("Please chose correct interface: ", arrSel)
 			if runtime.GOOS == windows {
-				// it's either: netsh interface ipv4 add address “Local Area Connection” 192.168.1.2 255.255.255.0
-				// or: netsh int ipv4 set address "%interface%" static %IP% %MASK% %GATE% gwmetric=1
-				command := fmt.Sprintf(`netsh int ipv4 set address "%s" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`, arr[i])
-				fmt.Println("[+] NOTE: You need to run this tool as an administrator")
-				if out, err := exec.Command(command).CombinedOutput(); err != nil {
-					fmt.Println("[-] Error running '", command, "': ", out)
-					fallback = true
+				if ifaces[i].Ipv4[:4] == "169." {
+					command := fmt.Sprintf(`netsh int ipv4 set address "%s" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`, arr[i])
+					fmt.Println("[+] NOTE: You need to run this tool as an administrator")
+					if out, err := exec.Command(command).CombinedOutput(); err != nil {
+						fmt.Println("[-] Error running '", command, "': ", out)
+						fallback = true
+					}
+				} else {
+					fmt.Println("IP is already set to 192.168.2.2, skipping configuration")
+					fallback = false
 				}
 			} else {
 				fmt.Println("[+] NOTE: You might need to provide your sudo password")
@@ -148,38 +245,25 @@ func setConfig() error {
 
 			}
 
-			ip = "192.168.2.15"
+			d.ip = "192.168.2.15"
 		}
 	}
 
-	if i == 1 || fallback {
-		if runtime.GOOS == windows {
-			fmt.Println("NOTE: You might need to run `netsh interface ipv4 add address \"{interface}\" 192.168.2.2 255.255.255.0`")
-			fmt.Println("OR")
-			fmt.Println("`netsh int ipv4 set address \"{interface}\" static 192.168.2.2 255.255.255.0 192.168.2.1 gwmetric=1`")
-		} else {
+	if choice == 1 || fallback {
+		if runtime.GOOS != windows {
 			fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} " + dialogs.PrintColored("192.168.2.2") + "` in order to access Edison at " + dialogs.PrintColored("192.168.2.15"))
 		}
-		ip = dialogs.GetSingleAnswer("Input Edison board IP Address: ", dialogs.IpAddressValidator)
+		d.ip = dialogs.GetSingleAnswer("Input Edison board IP Address (default: 192.168.2.15): ", dialogs.IpAddressValidator)
 	}
 
-	if err := help.DeleteHost(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"), ip); err != nil {
+	if err := help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), d.ip); err != nil {
 		log.Error(err)
 	}
 
-	fmt.Println("[+] Copying board id")
-	help.ExecStandardStd("ssh-copy-id", []string{"root@" + ip}...)
-	time.Sleep(time.Second * 4)
-
-	if err := setUpInterface(ip); err != nil {
-		return err
-	}
-
-	return configBoard(ip)
-
+	return nil
 }
 
-func setUpInterface(ip string) error {
+func (d *edison) setupInterface() error {
 	var ifaces = config.Interfaces{
 		Address: "192.168.0.254",
 		Netmask: "255.255.255.0",
@@ -187,12 +271,12 @@ func setUpInterface(ip string) error {
 		DNS:     "192.168.0.1",
 	}
 
-	if err := setEdisonInterfaces(ifaces, ip); err != nil {
+	if err := setEdisonInterfaces(ifaces, d.ip); err != nil {
 		return err
 	}
-	fmt.Println("[+] Updating Edison help info")
+	fmt.Println("[+] Updating Edison help info") // no idea what this one does and why
 	args := []string{
-		"root@" + ip,
+		"root@" + d.ip,
 		"-t",
 		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
 	}
@@ -204,12 +288,18 @@ func setUpInterface(ip string) error {
 	return nil
 }
 
-func configBoard(ip string) error {
+func (d *edison) configBoard() error {
+	if dialogs.YesNoDialog("Would you like to configure WiFi on your board?") {
+		fmt.Println("[+] Updating WiFi configuration")
+		if err := help.ExecStandardStd("ssh", "root@"+d.ip, "-t", "configure_edison --wifi"); err != nil {
+			return err
+		}
+	}
 	base := filepath.Join(constants.TMP_DIR, baseConf)
 	baseConf := baseFeeds
 	help.WriteToFile(baseConf, base)
 	fmt.Println("[+] Uploading base configuration file")
-	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", d.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
 		return err
 	}
 	os.Remove(base)
@@ -218,13 +308,16 @@ func configBoard(ip string) error {
 	iotdkConf := intelIotdk
 	help.WriteToFile(iotdkConf, iotdk)
 	fmt.Println("[+] Uploading iot dk config file")
-	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
+	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", d.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
 		return err
 	}
 	os.Remove(iotdk)
-	fmt.Println("[+] Updating user password")
-	if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
-		return err
+
+	if dialogs.YesNoDialog("Would you like to enable SSH on the wireless interface?") {
+		fmt.Println("[+] Enabling SSH")
+		if err := help.ExecStandardStd("ssh", "root@"+d.ip, "-t", "configure_edison --password"); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -267,7 +360,6 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				"-t",
 				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.ResolveF),
 			}
-
 			ifaceDown := []string{
 				"root@" + ip,
 				"-t",
@@ -275,11 +367,12 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			}
 
 			ifaceUp := []string{
+				"-o",
+				"StrictHostKeyChecking=no",
 				"root@" + ip,
 				"-t",
 				fmt.Sprint("ifconfig wlan0 up"),
 			}
-
 			fmt.Println("[+] Updating network configuration")
 			if err := help.ExecStandardStd("ssh", args1...); err != nil {
 				return err
@@ -290,10 +383,6 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			}
 			fmt.Println("[+] Adding custom nameserver")
 			if err := help.ExecStandardStd("ssh", args3...); err != nil {
-				return err
-			}
-			fmt.Println("[+] Updating WiFi configuration")
-			if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
 				return err
 			}
 			fmt.Println("[+] Reloading interface settings")
@@ -308,7 +397,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			}
 			break
 		}
-
 	}
 	return nil
+
 }
