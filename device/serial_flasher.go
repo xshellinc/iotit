@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
+	"github.com/xshellinc/esp-flasher/common"
+	"github.com/xshellinc/esp-flasher/esp"
+	espFlasher "github.com/xshellinc/esp-flasher/esp/flasher"
+	"github.com/xshellinc/esp-flasher/serialport"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/vbox"
 	"github.com/xshellinc/tools/dialogs"
-	"github.com/xshellinc/tools/lib/help"
+	// "github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ssh_helper"
 	"strings"
 )
@@ -19,6 +23,9 @@ type serialFlasher struct {
 }
 
 var flashsh = `flash`
+
+func (d *serialFlasher) PrepareForFlashing() error {
+}
 
 // Configure method overrides generic flasher
 func (d *serialFlasher) Configure() error {
@@ -47,23 +54,50 @@ func (d *serialFlasher) Flash() error {
 	}
 
 	fmt.Println("[+] Enumerating serial ports...")
-	if err := d.getPort(); err != nil {
+	port, err := serialport.GetPort("auto")
+	if err != nil {
 		return err
 	}
+	d.port = port
+	// if err := d.getPort(); err != nil {
+	// 	return err
+	// }
 	fmt.Println("[+] Using ", dialogs.PrintColored(d.port))
-	args := []string{
-		fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
-		"-p",
-		vbox.VBoxSSHPort,
-		"flash32.sh",
-		d.port,
-		"/tmp/fw/bootloader.bin",
-		"/tmp/fw/isaax_firmata.bin",
-		"/tmp/fw/partitions_singleapp.bin",
-	}
-	if err := help.ExecStandardStd("ssh", args...); err != nil {
+	espFlashOpts := esp.FlashOpts{}
+	espFlashOpts.ControlPort = d.port
+	espFlashOpts.BaudRate = 460800
+	espFlashOpts.BootFirmware = true
+	espFlashOpts.MinimizeWrites = true
+
+	fw, err := common.NewZipFirmwareBundle(d.devRepo.Image.URL)
+	if err != nil {
 		return err
 	}
+
+	log.Infof("Loaded %s/%s version %s (%s)\n", fw.Name, fw.Platform, fw.Version, fw.BuildID)
+
+	switch strings.ToLower(fw.Platform) {
+	case "esp32":
+		err = espFlasher.Flash(esp.ChipESP32, fw, &espFlashOpts)
+	case "esp8266":
+		err = espFlasher.Flash(esp.ChipESP8266, fw, &espFlashOpts)
+	default:
+		err = fmt.Errorf("%s: unsupported platform '%s'", fw.Name, fw.Platform)
+	}
+
+	// args := []string{
+	// 	fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
+	// 	"-p",
+	// 	vbox.VBoxSSHPort,
+	// 	"flash32.sh",
+	// 	d.port,
+	// 	"/tmp/fw/bootloader.bin",
+	// 	"/tmp/fw/isaax_firmata.bin",
+	// 	"/tmp/fw/partitions_singleapp.bin",
+	// }
+	// if err := help.ExecStandardStd("ssh", args...); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
