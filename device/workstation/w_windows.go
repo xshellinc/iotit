@@ -20,7 +20,7 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-var cleanTemplate = `
+const cleanTemplate = `
 select disk %s
 clean
 create partition primary

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -18,7 +18,7 @@ import (
 // Linux specific workstation type
 type linux struct {
 	*workstation
-	*unix
+	folder string
 }
 
 // Initializes linux workstation with unix type
@@ -26,8 +26,7 @@ func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
 	w := &workstation{runtime.GOOS, true, m, ms}
-	ux := &unix{constants.UnixDD, constants.MountDir, constants.Umount, constants.Eject}
-	return &linux{workstation: w, unix: ux}
+	return &linux{workstation: w, folder: config.MountDir}
 }
 
 // Lists available mounts
@@ -107,9 +106,9 @@ func (l *linux) ListRemovableDisk() error {
 func (l *linux) Unmount() error {
 	if l.workstation.writable != false {
 		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
-		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, l.unix.unmount, l.workstation.mount.deviceName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.deviceName)
 		if err != nil {
-			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.unix.folder, err.Error(), stdout)
+			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.folder, err.Error(), stdout)
 		}
 	}
 	return nil
@@ -167,7 +166,7 @@ func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			defer job.Close()
 
 			args := []string{
-				l.unix.dd,
+				"dd",
 				fmt.Sprintf("if=%s", img),
 				fmt.Sprintf("of=%s", l.workstation.mount.diskName),
 				"bs=4M",
@@ -210,7 +209,7 @@ func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 func (l *linux) Eject() error {
 	if l.workstation.writable != false {
 		fmt.Printf("[+] Eject your sd card :%s\n", l.workstation.mount.diskName)
-		eut, err := help.ExecSudo(sudo.InputMaskedPassword, nil, l.unix.eject, l.workstation.mount.diskName)
+		eut, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "eject", l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", l.workstation.mount.diskName, eut)
 		}

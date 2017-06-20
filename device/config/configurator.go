@@ -6,22 +6,12 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ping"
 	"github.com/xshellinc/tools/lib/ssh_helper"
+	"github.com/xshellinc/tools/locale"
 	"sort"
-)
-
-// Default Configurator constants that are describe a specific configuration option
-const (
-	Locale    = "Locale"
-	Keymap    = "Keymap"
-	Wifi      = "Wifi"
-	Interface = "Interface"
-	DNS       = "DNS"
-	SSH       = "SSH"
 )
 
 type (
@@ -139,11 +129,11 @@ func (c *configurator) StoreValue(name string, value interface{}) {
 // SetLocale is a default method to with dialog to configure the locale
 func SetLocale(storage map[string]interface{}) error {
 
-	fmt.Println("[+] Default language: ", constants.DefaultLocale)
+	fmt.Println("[+] Default language: ", DefaultLocale)
 	if dialogs.YesNoDialog("Change default language?") {
-		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.CreateValidatorFn(constants.ValidateLocale))
+		inp := dialogs.GetSingleAnswer("New locale: ", dialogs.CreateValidatorFn(locale.ValidateLocale))
 
-		arr := constants.GetLocale(inp)
+		arr := locale.GetLocale(inp)
 
 		var l string
 		if len(arr) == 1 {
@@ -170,16 +160,16 @@ func SaveLocale(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, constants.LocaleF)
-	data := fmt.Sprintf(constants.Language+constants.LocaleLang, storage[Locale], storage[Locale])
+	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "locale.conf")
+	data := fmt.Sprintf("LANGUAGE=%s\nLANG=%s\n", storage[Locale], storage[Locale])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
 		return errors.New(err.Error() + ":" + eut)
 	}
 
-	fp = help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "environment")
-	data = fmt.Sprintf(constants.LocaleAll, storage[Locale])
+	fp = help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "environment")
+	data = fmt.Sprintf("LC_ALL=%s\n", storage[Locale])
 
 	_, eut, err = ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
@@ -192,23 +182,23 @@ func SaveLocale(storage map[string]interface{}) error {
 // SetKeyboard is a default method to with dialog to configure the keymap
 func SetKeyboard(storage map[string]interface{}) error {
 	var (
-		locale string
-		ok     bool
+		loc string
+		ok  bool
 	)
 
-	if locale, ok = storage[Locale].(string); ok {
-		if i := strings.IndexAny(locale, "_."); i >= 0 {
-			locale = locale[:i]
+	if loc, ok = storage[Locale].(string); ok {
+		if i := strings.IndexAny(loc, "_."); i >= 0 {
+			loc = loc[:i]
 		}
 	}
 
-	fmt.Println("[+] Default keyboard layout: ", constants.DefaultKeymap)
+	fmt.Println("[+] Default keyboard layout: us")
 
 	if dialogs.YesNoDialog("Change default keyboard layout?") {
 		inp := dialogs.GetSingleAnswer("New keyboard layout: ",
-			dialogs.CreateValidatorFn(func(layout string) error { return constants.ValidateLayout(locale, layout) }))
+			dialogs.CreateValidatorFn(func(layout string) error { return locale.ValidateLayout(loc, layout) }))
 
-		arr := constants.GetLayout(locale, inp)
+		arr := locale.GetLayout(loc, inp)
 
 		var l string
 		if len(arr) == 1 {
@@ -217,7 +207,7 @@ func SetKeyboard(storage map[string]interface{}) error {
 			l = arr[dialogs.SelectOneDialog("Please select a layout from a list: ", arr.Strings())].Layout
 		}
 
-		storage[Keymap] = fmt.Sprintf(constants.KeyMap, l)
+		storage[Keymap] = fmt.Sprintf("KEYMAP=%s\n", l)
 	}
 
 	return nil
@@ -235,7 +225,7 @@ func SaveKeyboard(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, constants.KeyboardF)
+	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "vconsole.conf")
 	data := storage[Keymap]
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -268,8 +258,8 @@ func SaveWifi(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "wpa_supplicant", constants.WPAsupplicant)
-	data := fmt.Sprintf(constants.WPAconf, storage[Wifi+"_name"], storage[Wifi+"_pass"])
+	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "wpa_supplicant", "wpa_supplicant.conf")
+	data := fmt.Sprintf(WPAconf, storage[Wifi+"_name"], storage[Wifi+"_pass"])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
 	if err != nil {
@@ -304,10 +294,10 @@ func SetInterface(storage map[string]interface{}) error {
 
 		switch device[num] {
 		case "eth0":
-			storage[Interface] = fmt.Sprintf(constants.InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
+			storage[Interface] = fmt.Sprintf(InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
 			fmt.Println("[+]  Ethernet interface configuration was updated")
 		case "wlan0":
-			storage[Interface] = fmt.Sprintf(constants.InterfaceWLAN, i.Address, i.Netmask, i.Gateway, i.DNS)
+			storage[Interface] = fmt.Sprintf(InterfaceWLAN, i.Address, i.Netmask, i.Gateway, i.DNS)
 			fmt.Println("[+]  wifi interface configuration was updated")
 		}
 
@@ -328,7 +318,7 @@ func SaveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "network", constants.InterfacesF)
+	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "network", "interfaces")
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, storage[Interface], fp))
 	if err != nil {
@@ -360,7 +350,7 @@ func SaveSecondaryDNS(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcp", "dhclient.conf")
+	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "dhcp", "dhclient.conf")
 	command := "append domain-name-servers 8.8.8.8, 8.8.4.4;"
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" >> %s`, command, fp))

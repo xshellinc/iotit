@@ -24,14 +24,6 @@ type workstation struct {
 	mounts   []*MountInfo
 }
 
-// shared type linux/darwin commands
-type unix struct {
-	dd      string
-	folder  string
-	unmount string
-	eject   string
-}
-
 // MountInfo contains mounted disks information
 type MountInfo struct {
 	deviceName  string

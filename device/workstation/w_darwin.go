@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -18,8 +17,6 @@ import (
 // that are used to perform operations on mounted disks
 type darwin struct {
 	*workstation
-	*unix
-	unMount  string
 	diskUtil string
 }
 
@@ -28,13 +25,11 @@ func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
 	w := &workstation{runtime.GOOS, true, m, ms}
-	ux := &unix{constants.UnixDD, constants.MountDir, constants.Umount, constants.Eject}
 
 	return &darwin{
 		workstation: w,
-		unix:        ux,
-		unMount:     constants.DarwinUmount,
-		diskUtil:    constants.DarwinDiskutil}
+		diskUtil:    "diskutil",
+	}
 }
 
 const diskSelectionTries = 3
@@ -91,7 +86,7 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 
 			args := []string{
 				d.diskUtil,
-				d.unMount,
+				"unmountDisk",
 				d.workstation.mount.diskName,
 			}
 
@@ -119,7 +114,7 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			}
 
 			args = []string{
-				d.unix.dd,
+				"dd",
 				fmt.Sprintf("if=%s", img),
 				fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
 				"bs=1048576",
@@ -230,7 +225,7 @@ func (d *darwin) ListRemovableDisk() error {
 func (d *darwin) Eject() error {
 	if d.workstation.writable {
 		fmt.Printf("[+] Eject your sd card :%s\n", d.workstation.mount.diskName)
-		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "eject", d.workstation.mount.diskName)
 
 		if err != nil {
 			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", d.workstation.mount.diskName, stdout)
@@ -245,7 +240,7 @@ func (d *darwin) Unmount() error {
 		fmt.Printf("[+] Unmounting your sd card :%s\n", d.workstation.mount.diskName)
 		stdout, err := help.ExecCmd(d.diskUtil,
 			[]string{
-				d.unMount,
+				"unmountDisk",
 				d.workstation.mount.deviceName,
 			})
 		if err != nil {

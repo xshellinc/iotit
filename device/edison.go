@@ -13,7 +13,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -60,7 +59,7 @@ func (d *edison) PrepareForFlashing() error {
 			fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
 			"-p",
 			vbox.VBoxSSHPort,
-			constants.TMP_DIR + script,
+			config.TMP_DIR + script,
 		}
 		if err := help.ExecStandardStd("ssh", args...); err != nil {
 			fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
@@ -295,7 +294,7 @@ func (d *edison) configBoard() error {
 			return err
 		}
 	}
-	base := filepath.Join(constants.TMP_DIR, baseConf)
+	base := filepath.Join(config.TMP_DIR, baseConf)
 	baseConf := baseFeeds
 	help.WriteToFile(baseConf, base)
 	fmt.Println("[+] Uploading base configuration file")
@@ -304,7 +303,7 @@ func (d *edison) configBoard() error {
 	}
 	os.Remove(base)
 
-	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
+	iotdk := filepath.Join(config.TMP_DIR, iotdkConf)
 	iotdkConf := intelIotdk
 	help.WriteToFile(iotdkConf, iotdk)
 	fmt.Println("[+] Uploading iot dk config file")
@@ -358,7 +357,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			args3 := []string{
 				"root@" + ip,
 				"-t",
-				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.ResolveF),
+				fmt.Sprintf("echo nameserver %s > /etc/resolv.conf", i.DNS),
 			}
 			ifaceDown := []string{
 				"root@" + ip,

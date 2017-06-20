@@ -5,7 +5,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -43,7 +42,7 @@ func (d *beagleBone) Configure() error {
 		return err
 	}
 	// why?
-	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", help.AddPathSuffix("unix", constants.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", help.AddPathSuffix("unix", config.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
 	log.WithField("command", command).Debug("Linking tmp folder")
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
