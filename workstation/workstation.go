@@ -34,7 +34,6 @@ type MountInfo struct {
 
 // NewWorkStation returns workstation depending on the OS
 func NewWorkStation() WorkStation {
-
 	return newWorkstation()
 }
 

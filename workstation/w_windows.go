@@ -35,6 +35,7 @@ type windows struct {
 	ddPath string
 }
 
+// Initializes windows workstation
 func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo

@@ -9,8 +9,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
-	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/repo"
+	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 
