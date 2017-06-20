@@ -1,10 +1,4 @@
-package repo
-
-const (
-	file = "mapping.json"
-
-	// example is used to create mapper.json file or used in case of absence of the file
-	example = `{
+{
   "Devices": [
     {
       "Name": "raspberry-pi",
@@ -209,8 +203,29 @@ const (
           "Pass": "temppwd"
         }
       ]
+    },
+    {
+	  "Name":"esp",
+	  "Sub":[
+	    {
+		    "Name":"ESP-32",
+	  	    "Images":[
+	  	    {
+  	  		  "URL":"https://cdn.isaax.io/isaax-distro/boards/esp/32/firmata.zip",
+	  		  "Title":"ESP-32 Firmata"
+	  	    }
+	      ]
+	    },
+	    {
+		    "Name":"ESP-8266",
+	  	    "Images":[
+	  	    {
+  	  		  "URL":"https://cdn.isaax.io/isaax-distro/boards/esp/8266/firmata.zip",
+	  		  "Title":"ESP-8266 Firmata"
+	  	    }
+	      ]
+	    }
+	  ]
     }
   ]
 }
-`
-)

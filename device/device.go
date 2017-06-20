@@ -10,11 +10,11 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-// BadRepoError is an error message
-const BadRepoError = "Bad repository "
+// badRepoError is an error message
+const badRepoError = "Bad repository "
 
 // CustomFlash custom method enum
-const CustomFlash = "custom board"
+const customFlash = "custom board"
 
 // devices is a list of currently supported devices
 var devices = [...]string{
@@ -22,13 +22,15 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
-	CustomFlash,
+	customFlash,
 }
 
 // Init starts init process, either by receiving `typeFlag` or providing a user to choose from a list
 func Init(typeFlag string) {
-	log.Info("DeviceInit")
-	log.Debug("Flag: ", typeFlag)
+	log.WithField("type", typeFlag).Info("DeviceInit")
+
+	//once in 24h update mapping json
+	repo.DownloadDevicesRepository()
 
 	var deviceType string
 
@@ -65,7 +67,7 @@ func Init(typeFlag string) {
 func New(device string) (Flasher, error) {
 	g := make([]string, 0)
 
-	if device == CustomFlash {
+	if device == customFlash {
 		r, err := repo.GetAllRepos()
 		if err != nil {
 			return nil, err
@@ -89,7 +91,7 @@ func New(device string) (Flasher, error) {
 
 	}
 	var r *repo.DeviceMapping
-	if device == CustomFlash && len(g) == 0 {
+	if device == customFlash && len(g) == 0 {
 		fmt.Println("[-] No custom boards defined")
 
 		url := dialogs.GetSingleAnswer("Please provide image URL or path: ", dialogs.EmptyStringValidator)
@@ -102,16 +104,11 @@ func New(device string) (Flasher, error) {
 		}
 
 		if r = selectImage(r); r == nil {
-			return nil, errors.New(BadRepoError + device)
+			return nil, errors.New(badRepoError + device)
 		}
 	}
 
 	switch device {
-	case constants.DEVICE_TYPE_NANOPI:
-		i := &nanoPi{&sdFlasher{flasher: &flasher{}}}
-		i.device = device
-		i.devRepo = r
-		return i, nil
 	case constants.DEVICE_TYPE_RASPBERRY:
 		i := &raspberryPi{&sdFlasher{flasher: &flasher{}}}
 		i.device = device
@@ -127,6 +124,8 @@ func New(device string) (Flasher, error) {
 		i.device = device
 		i.devRepo = r
 		return i, nil
+	case constants.DEVICE_TYPE_NANOPI:
+		fallthrough
 	default:
 		i := &sdFlasher{flasher: &flasher{}}
 		i.device = device

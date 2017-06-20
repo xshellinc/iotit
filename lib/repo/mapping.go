@@ -3,23 +3,14 @@ package repo
 import (
 	"encoding/json"
 	"errors"
+	log "github.com/Sirupsen/logrus"
+	"github.com/xshellinc/tools/lib/help"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 )
-
-const missingRepo = "Device repo is missing"
-
-var dm *deviceCollection
-var path string
-
-func init() {
-	path = filepath.Join(baseDir, file)
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		ioutil.WriteFile(path, []byte(example), 0644)
-	}
-}
 
 // DeviceImage contains url, title, username and password which are used after flashing
 type DeviceImage struct {
@@ -37,6 +28,23 @@ type DeviceMapping struct {
 
 	dir   string
 	Image DeviceImage
+}
+
+// deviceCollection is a starting point of the collection of images
+type deviceCollection struct {
+	Devices []*DeviceMapping `json:"Devices"`
+}
+
+const missingRepo = "Device repo is missing"
+
+// Images repository URL
+const imagesRepo = "https://cdn.isaax.io/iotit/mapping.json"
+
+var path string
+var dm *deviceCollection
+
+func init() {
+	path = filepath.Join(baseDir, "mapping.json")
 }
 
 // GetSubsNames returns array of Names within a `Sub`
@@ -64,11 +72,6 @@ func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
-// deviceCollection is a starting point of the collection of images
-type deviceCollection struct {
-	Devices []*DeviceMapping `json:"Devices"`
-}
-
 // findDevice searches device in the repo
 func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	for _, obj := range d.Devices {
@@ -80,6 +83,17 @@ func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	}
 
 	return nil, errors.New(missingRepo)
+}
+
+func DownloadDevicesRepository() {
+	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
+		wg := &sync.WaitGroup{}
+		_, _, err := help.DownloadFromUrlWithAttemptsAsync(imagesRepo, baseDir, 3, wg)
+		if err != nil {
+			log.Error(err.Error())
+		}
+		wg.Wait()
+	}
 }
 
 // SetPath of the mapping.json file
@@ -119,23 +133,13 @@ func GetDeviceRepo(device string) (*DeviceMapping, error) {
 func initDeviceCollection() error {
 	dm = &deviceCollection{}
 
-	if _, err := os.Stat(path); err != nil {
-		if os.IsExist(err) {
-			return err
-		}
+	d, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
 
-		if err := json.Unmarshal([]byte(example), dm); err != nil {
-			return err
-		}
-	} else {
-		d, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		if err := json.Unmarshal(d, dm); err != nil {
-			return err
-		}
+	if err := json.Unmarshal(d, dm); err != nil {
+		return err
 	}
 
 	return nil
@@ -143,14 +147,7 @@ func initDeviceCollection() error {
 
 // GenMappingFile generates mapping.json file
 func GenMappingFile() error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	f.WriteString(example)
-
+	DownloadDevicesRepository()
 	return nil
 }
 
