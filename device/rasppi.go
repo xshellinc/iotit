@@ -31,9 +31,9 @@ func (d *raspberryPi) Configure() error {
 	log.WithField("device", "raspi").Debug("Configure")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
-
-	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
-	c.AddConfigFn(config.NewCallbackFn(setupSSH, nil))
+	// replace default interface configuration with custom raspi configurator
+	c.SetConfigFn(config.Interface, config.NewCallbackFn(SetInterface, saveInterface))
+	c.AddConfigFn(config.SSH, config.NewCallbackFn(setupSSH, nil))
 
 	go func() {
 		defer job.Close()
@@ -47,9 +47,11 @@ func (d *raspberryPi) Configure() error {
 		}
 	}()
 
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
-		return err
+	if dialogs.YesNoDialog("Would you like to configure your board?") {
+		// setup while background process mounting img
+		if err := c.Setup(); err != nil {
+			return err
+		}
 	}
 
 	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
@@ -64,9 +66,11 @@ func (d *raspberryPi) Configure() error {
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
+
 	if err := d.UnmountBoot(); err != nil {
 		return err
 	}
+
 	if err := d.Flash(); err != nil {
 		return err
 	}
@@ -84,9 +88,9 @@ interface %s
 	static domain_name_servers=%s
 `
 
-// configInterface is a custom configInterface method uses interfaceConfig var
-func configInterface(storage map[string]interface{}) error {
-	log.WithField("type", "raspi").Debug("configInterface")
+// SetInterface is a custom SetInterface method uses interfaceConfig var
+func SetInterface(storage map[string]interface{}) error {
+	log.WithField("type", "raspi").Debug("SetInterface")
 	device := []string{"eth0", "wlan0"}
 	i := config.Interfaces{
 		Address: "192.168.0.254",
@@ -100,27 +104,24 @@ func configInterface(storage map[string]interface{}) error {
 		num := dialogs.SelectOneDialog("Please select a network interface: ", device)
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
-		for {
-			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-				i.Address, i.Gateway, i.Netmask, i.DNS)
+		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+			i.Address, i.Gateway, i.Netmask, i.DNS)
 
-			if dialogs.YesNoDialog("Change values?") {
-				config.SetInterfaces(&i)
-
-				mask, _ := net.IPMask(net.ParseIP(i.Netmask).To4()).Size()
-
-				storage[config.GetConstLiteral(config.Interface)] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+strconv.Itoa(mask), i.Gateway, i.DNS)
-
-				switch device[num] {
-				case "eth0":
-					fmt.Println("[+]  Ethernet interface configuration was updated")
-				case "wlan0":
-					fmt.Println("[+]  wifi interface configuration was updated")
-				}
-			} else {
-				break
-			}
+		if dialogs.YesNoDialog("Change values?") {
+			config.AskInterfaceParams(&i)
 		}
+
+		mask, _ := net.IPMask(net.ParseIP(i.Netmask).To4()).Size()
+
+		storage[config.Interface] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+strconv.Itoa(mask), i.Gateway, i.DNS)
+
+		switch device[num] {
+		case "eth0":
+			fmt.Println("[+]  Ethernet interface configuration was updated")
+		case "wlan0":
+			fmt.Println("[+]  wifi interface configuration was updated")
+		}
+
 	}
 
 	return nil
@@ -128,8 +129,9 @@ func configInterface(storage map[string]interface{}) error {
 
 // saveInterface is a custom method and it saves Interfaces value into /etc/dhcpcd.conf
 func saveInterface(storage map[string]interface{}) error {
+	log.WithField("type", "raspi").Debug("saveInterface")
 
-	if _, ok := storage[config.GetConstLiteral(config.Interface)]; !ok {
+	if _, ok := storage[config.Interface]; !ok {
 		return nil
 	}
 
@@ -139,13 +141,12 @@ func saveInterface(storage map[string]interface{}) error {
 	}
 
 	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
-	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.GetConstLiteral(config.Interface)], fp)
-
+	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.Interface], fp)
+	log.WithField("type", "raspi").WithField("command", command).Debug("save interface")
 	_, eut, err := ssh.Run(command)
 	if err != nil {
 		return errors.New(err.Error() + ":" + eut)
 	}
-
 	return nil
 }
 

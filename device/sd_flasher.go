@@ -108,7 +108,7 @@ func (d *sdFlasher) UnmountImg() error {
 
 // Flash method is used to flash image to the sdcard
 func (d *sdFlasher) Flash() error {
-	if !dialogs.YesNoDialog("Proceed to image burning?") {
+	if !dialogs.YesNoDialog("Proceed to image flashing?") {
 		log.Debug("Aborted")
 		return nil
 	}
@@ -171,19 +171,21 @@ func (d *sdFlasher) Configure() error {
 		return err
 	}
 
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
-		return err
-	}
+	if dialogs.YesNoDialog("Would you like to configure your board?") {
+		if err := c.Setup(); err != nil {
+			return err
+		}
 
-	// write configs that were setup above
-	if err := c.Write(); err != nil {
-		return err
+		// write configs that were setup above
+		if err := c.Write(); err != nil {
+			return err
+		}
 	}
 
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
+
 	if err := d.Flash(); err != nil {
 		return err
 	}
@@ -209,9 +211,11 @@ func (d *sdFlasher) Done() error {
 
 	fmt.Printf("\n\t\t Flashing Complete!\n")
 	fmt.Printf("\t\t Please insert your sd card into your %s\n", d.device)
-	fmt.Println("\t\t ssh to your board with the following credentials")
-	fmt.Printf("\t\t ssh username:"+dialogs.PrintColored("%s")+" password:"+dialogs.PrintColored("%s")+"\n",
-		d.devRepo.Image.User, d.devRepo.Image.Pass)
+	if d.devRepo.Image.User != "" {
+		fmt.Println("\t\t ssh to your board with the following credentials")
+		fmt.Printf("\t\t ssh username: "+dialogs.PrintColored("%s")+" password: "+dialogs.PrintColored("%s")+"\n",
+			d.devRepo.Image.User, d.devRepo.Image.Pass)
+	}
 	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 
 	return nil

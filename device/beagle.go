@@ -2,11 +2,11 @@ package device
 
 import (
 	"fmt"
-	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -32,23 +32,25 @@ func (d *beagleBone) Configure() error {
 		}
 	}()
 
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
-		return err
+	if dialogs.YesNoDialog("Would you like to configure your board?") {
+		// setup while background process mounting img
+		if err := c.Setup(); err != nil {
+			return err
+		}
 	}
 
 	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
 		return err
 	}
-
-	logrus.Debug("Linking tmp folder")
-	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	// why?
+	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", help.AddPathSuffix("unix", constants.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	log.WithField("command", command).Debug("Linking tmp folder")
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out, eut)
+	log.Debug(out, eut)
 
 	// write configs that were setup above
 	if err := c.Write(); err != nil {

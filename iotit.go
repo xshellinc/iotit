@@ -52,14 +52,24 @@ func main() {
 	app.Usage = "Flashing Tool for iot devices used by Isaax Cloud"
 
 	app.Action = func(c *cli.Context) error {
+		// TODO: launch gui by default
 		device.Init(c.Args().Get(0))
 		return nil
 	}
 
 	app.Commands = []cli.Command{
 		{
+			Name:    "flash",
+			Aliases: []string{"f"},
+			Usage:   "Flash image to the device",
+			Action: func(c *cli.Context) error {
+				device.Init(c.Args().Get(0))
+				return nil
+			},
+		},
+		{
 			Name:    "install",
-			Aliases: []string{"gl"},
+			Aliases: []string{"i"},
 			Usage:   "Install to global app environment",
 			Action: func(c *cli.Context) error {
 				log.Debug("Checking ", installPath, progName)
@@ -111,7 +121,7 @@ func main() {
 		{
 			Name:    "update",
 			Aliases: []string{"u"},
-			Usage:   "Update binary and images",
+			Usage:   "Self-update",
 			Action: func(c *cli.Context) error {
 				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
 					fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")

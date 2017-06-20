@@ -336,7 +336,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				i.Address, i.Gateway, i.Netmask, i.DNS)
 
 			if dialogs.YesNoDialog("Change values?") {
-				config.SetInterfaces(&i)
+				config.AskInterfaceParams(&i)
 			}
 
 			fmt.Println("[+] NOTE: You might need to enter your Edison board password")
