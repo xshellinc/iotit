@@ -1,7 +1,7 @@
 package config
 
+// Default Configurator constants that are describe a specific configuration option
 const (
-	// Default Configurator constants that are describe a specific configuration option
 	Locale    = "Locale"
 	Keymap    = "Keymap"
 	Wifi      = "Wifi"
@@ -17,8 +17,8 @@ const (
 
 	DefaultLocale = "en_US.UTF-8"
 
-	ISAAX_CONF_DIR = "/etc/"
-	TMP_DIR        = "/tmp/"
+	IsaaxConfDir = "/etc/"
+	TmpDir       = "/tmp/"
 
 	InterfaceWLAN string = "source-directory /etc/network/interfaces.d\n" +
 		"\n" +

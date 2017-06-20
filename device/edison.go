@@ -59,7 +59,7 @@ func (d *edison) PrepareForFlashing() error {
 			fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
 			"-p",
 			vbox.VBoxSSHPort,
-			config.TMP_DIR + script,
+			config.TmpDir + script,
 		}
 		if err := help.ExecStandardStd("ssh", args...); err != nil {
 			fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
@@ -294,7 +294,7 @@ func (d *edison) configBoard() error {
 			return err
 		}
 	}
-	base := filepath.Join(config.TMP_DIR, baseConf)
+	base := filepath.Join(config.TmpDir, baseConf)
 	baseConf := baseFeeds
 	help.WriteToFile(baseConf, base)
 	fmt.Println("[+] Uploading base configuration file")
@@ -303,7 +303,7 @@ func (d *edison) configBoard() error {
 	}
 	os.Remove(base)
 
-	iotdk := filepath.Join(config.TMP_DIR, iotdkConf)
+	iotdk := filepath.Join(config.TmpDir, iotdkConf)
 	iotdkConf := intelIotdk
 	help.WriteToFile(iotdkConf, iotdk)
 	fmt.Println("[+] Uploading iot dk config file")

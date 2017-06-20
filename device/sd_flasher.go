@@ -38,7 +38,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		return errors.New("Image not found, please check if the repo is valid")
 	}
 
-	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", config.TMP_DIR, d.img))
+	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", config.TmpDir, d.img))
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (d *sdFlasher) Flash() error {
 	job := help.NewBackgroundJob()
 	go func() {
 		defer job.Close()
-		if err := d.conf.SSH.ScpFrom(help.AddPathSuffix("unix", config.TMP_DIR, d.img), filepath.Join(help.GetTempDir(), d.img)); err != nil {
+		if err := d.conf.SSH.ScpFrom(help.AddPathSuffix("unix", config.TmpDir, d.img), filepath.Join(help.GetTempDir(), d.img)); err != nil {
 
 			job.Error(err)
 		}

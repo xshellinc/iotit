@@ -139,7 +139,7 @@ func saveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", config.MountDir, config.ISAAX_CONF_DIR, "dhcpcd.conf")
+	fp := help.AddPathSuffix("unix", config.MountDir, config.IsaaxConfDir, "dhcpcd.conf")
 	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.Interface], fp)
 	log.WithField("type", "raspi").WithField("command", command).Debug("save interface")
 	_, eut, err := ssh.Run(command)
@@ -169,7 +169,7 @@ func setupSSH(storage map[string]interface{}) error {
 func (d *raspberryPi) MountBoot() error {
 	log.Debug("Mounting boot partition")
 	//check if image is attached?
-	// command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
+	// command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TmpDir, d.img))
 	// log.WithField("cmd", command).Debug("Attaching image loop device")
 	// if err := d.exec(command); err != nil {
 	// 	return err

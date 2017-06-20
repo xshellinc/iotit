@@ -16,16 +16,16 @@ import (
 
 type (
 	// configurator is a container of a mutual storage and order of CallbackFn
-	configurator struct {
+	Configurator struct {
 		storage map[string]interface{}
-		order   map[string]*callbackFn
+		order   map[string]*CallbackFn
 	}
 
 	// cb is a function with an input parameter of configurator's `storage`
 	cb func(map[string]interface{}) error
 
 	// CallbackFn is an entity with Config and Apply function
-	callbackFn struct {
+	CallbackFn struct {
 		Config cb
 		Apply  cb
 	}
@@ -40,36 +40,35 @@ type (
 )
 
 // New creates an empty Configurator
-func New(ssh ssh_helper.Util) *configurator {
+func New(ssh ssh_helper.Util) *Configurator {
 	storage := make(map[string]interface{})
 
 	// default
-	order := make(map[string]*callbackFn)
+	order := make(map[string]*CallbackFn)
 
 	storage["ssh"] = ssh
 
-	return &configurator{storage, order}
+	return &Configurator{storage, order}
 }
 
 // NewDefault creates a default Configurator
-func NewDefault(ssh ssh_helper.Util) *configurator {
+func NewDefault(ssh ssh_helper.Util) *Configurator {
 	config := New(ssh)
-	// add default callbacks
-	config.order[Locale] = NewCallbackFn(SetLocale, SaveLocale)
-	config.order[Keymap] = NewCallbackFn(SetKeyboard, SaveKeyboard)
-	config.order[Wifi] = NewCallbackFn(SetWifi, SaveWifi)
-	config.order[Interface] = NewCallbackFn(SetInterface, SaveInterface)
-	config.order[DNS] = NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS)
+	config.AddConfigFn(Locale, NewCallbackFn(SetLocale, SaveLocale))
+	config.AddConfigFn(Keymap, NewCallbackFn(SetKeyboard, SaveKeyboard))
+	config.AddConfigFn(Wifi, NewCallbackFn(SetWifi, SaveWifi))
+	config.AddConfigFn(Interface, NewCallbackFn(SetInterface, SaveInterface))
+	config.AddConfigFn(DNS, NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS))
 	return config
 }
 
 // NewCallbackFn creates a new CallbackFn with 2 Function parameters
-func NewCallbackFn(config cb, apply cb) *callbackFn {
-	return &callbackFn{config, apply}
+func NewCallbackFn(config cb, apply cb) *CallbackFn {
+	return &CallbackFn{config, apply}
 }
 
 // Setup triggers all CallbackFn Config functions
-func (c *configurator) Setup() error {
+func (c *Configurator) Setup() error {
 	var keys []string
 	for k := range c.order {
 		keys = append(keys, k)
@@ -88,7 +87,7 @@ func (c *configurator) Setup() error {
 }
 
 // Write triggers all CallbackFn Apply functions
-func (c *configurator) Write() error {
+func (c *Configurator) Write() error {
 	for _, o := range c.order {
 		if (*o).Apply == nil {
 			continue
@@ -103,26 +102,26 @@ func (c *configurator) Write() error {
 }
 
 // AddConfigFn
-func (c *configurator) AddConfigFn(name string, ccf *callbackFn) {
+func (c *Configurator) AddConfigFn(name string, ccf *CallbackFn) {
 	c.order[name] = ccf
 }
 
 // SetConfigFn sets CallbackFn of the specified name
-func (c *configurator) SetConfigFn(name string, ccf *callbackFn) {
+func (c *Configurator) SetConfigFn(name string, ccf *CallbackFn) {
 	c.order[name] = ccf
 }
 
 // GetConfigFn returns configuration function by it's name
-func (c *configurator) GetConfigFn(name string) *callbackFn {
+func (c *Configurator) GetConfigFn(name string) *CallbackFn {
 	return c.order[name]
 }
 
 // RemoveConfigFn removes CallbackFn from order
-func (c *configurator) RemoveConfigFn(name string) {
+func (c *Configurator) RemoveConfigFn(name string) {
 	delete(c.order, name)
 }
 
-func (c *configurator) StoreValue(name string, value interface{}) {
+func (c *Configurator) StoreValue(name string, value interface{}) {
 	c.storage[name] = value
 }
 
@@ -160,7 +159,7 @@ func SaveLocale(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "locale.conf")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "locale.conf")
 	data := fmt.Sprintf("LANGUAGE=%s\nLANG=%s\n", storage[Locale], storage[Locale])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -168,7 +167,7 @@ func SaveLocale(storage map[string]interface{}) error {
 		return errors.New(err.Error() + ":" + eut)
 	}
 
-	fp = help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "environment")
+	fp = help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "environment")
 	data = fmt.Sprintf("LC_ALL=%s\n", storage[Locale])
 
 	_, eut, err = ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -225,7 +224,7 @@ func SaveKeyboard(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "vconsole.conf")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "vconsole.conf")
 	data := storage[Keymap]
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -258,7 +257,7 @@ func SaveWifi(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "wpa_supplicant", "wpa_supplicant.conf")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "wpa_supplicant", "wpa_supplicant.conf")
 	data := fmt.Sprintf(WPAconf, storage[Wifi+"_name"], storage[Wifi+"_pass"])
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, data, fp))
@@ -318,7 +317,7 @@ func SaveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "network", "interfaces")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, storage[Interface], fp))
 	if err != nil {
@@ -350,7 +349,7 @@ func SaveSecondaryDNS(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, ISAAX_CONF_DIR, "dhcp", "dhclient.conf")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "dhcp", "dhclient.conf")
 	command := "append domain-name-servers 8.8.8.8, 8.8.4.4;"
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" >> %s`, command, fp))
@@ -361,7 +360,7 @@ func SaveSecondaryDNS(storage map[string]interface{}) error {
 	return nil
 }
 
-// SetInterfaces is a set of dialog to set user `Interfaces`
+// AskInterfaceParams is a set of dialog to set user `Interfaces`
 func AskInterfaceParams(i *Interfaces) {
 	loop := true
 	retries := 5

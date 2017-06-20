@@ -85,6 +85,7 @@ func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	return nil, errors.New(missingRepo)
 }
 
+// DownloadDevicesRepository downloads new mapping.json from the cloud
 func DownloadDevicesRepository() {
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
 		wg := &sync.WaitGroup{}
