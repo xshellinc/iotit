@@ -1,9 +1,9 @@
 [![CircleCI](https://circleci.com/gh/xshellinc/iotit.svg?style=svg)](https://circleci.com/gh/xshellinc/iotit)
-# IoTit SBC flashing tool
-==========================
+# IoTit Flashing tool
 
 
-**IoTit** (written in Golang) is an open source command-line utility for flashing (initializing) Linux powered IoT devices.
+
+**IoTit** (written in Golang) is an open source command-line utility for flashing (initializing) IoT devices.
 
 `iotit` contains a VirtualBox wrapper [go-virtualbox](https://github.com/riobard/go-virtualbox), so it can run on OS that allows installation of VirtualBox.
 
@@ -15,6 +15,7 @@
 * [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
 * [BeagleBone](http://beagleboard.org/bone)
 * [ESP-32](http://esp32.net/)
+* [ESP-8266](http://esp8266.net/)
 
 
 ### REQUIREMENTS
@@ -44,11 +45,10 @@ Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be abl
 **When flashing `Intel® Edison` make sure to provide external power supply.**
 Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter unusable under macOS and vice versa [source](https://communities.intel.com/message/430384).
 
-##### USB-to-Serial drivers
+#### USB-to-Serial drivers
 
-Espressif ESP8266 Lolin/NodeMCU [CH340](https://wiki.wemos.cc/downloads) [[for macOS 10.12 take it here](https://github.com/adrianmihalko/ch340g-ch34g-ch34x-mac-os-x-driver)]
-
-Espressif ESP32 [CP210x](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
+- Espressif ESP8266 Lolin/NodeMCU [CH340](https://wiki.wemos.cc/downloads) [[for macOS 10.12 take it here](https://github.com/adrianmihalko/ch340g-ch34g-ch34x-mac-os-x-driver)]
+- Espressif ESP32 [CP210x](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
 
 #### Building
 
@@ -60,7 +60,7 @@ If you want to build binaries yourself, then follow the regular recommendations 
 go get ./...
 ```
 
-*Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison:
+*Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison.
 
 ### DEVELOPMENT ENVIRONMENT
 
@@ -73,28 +73,26 @@ To build and run with debug log use:
 ### COMMANDS
 --------
 
-To see available commands launch `iotit -h`
+To see available commands launch `iotit help`
 
 ```
 NAME:
-   iotit - Flashing Tool for iot devices used by Isaax Cloud
+   iotit - Flashing Tool for IoT devices used by Isaax Cloud
 
 USAGE:
-   iotit [global options] [commands]
-
-   options and commands are not mandatory
+   iotit [global options] command [command options] [arguments...]
 
 COMMANDS:
-   gl, global         install to global app environment
-   un, uninstall      uninstall this app
-   update             update binary and vbox images
-   v, version         display current version
-   h, help            display help
+     flash, f       Flash image to the device
+     install, i     Install to global app environment
+     uninstall, rm  Uninstall iotit
+     update, u      Self-update
+     log, l         Show log file location
+     help, h        Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   -dev [device-type]  executes iotit with specified deviceType
-   -help, -h           show help
-   -version, -v        print the version
+   --help, -h     show help
+   --version, -v  print the version
 ```
 
 #### VIRTUALBOX
@@ -124,15 +122,14 @@ Currently 3 workflows are supported:
 - run flashall.sh - to reflash edison
 - run edison_configure - to configure
 
-##### 2 Sd:
+##### 2 SD:
 - copy installation files into virtualbox
 - mount the image partition into loop via `losetup` and `mount`
 - write configuration files into the image
 - write image into sd-card via `dd` or `diskutil` on macos
 
-##### 3 ESP-32:
-- copy firmware files into virtualbox
-- run flash.sh - to flash it using esptool
+##### 3 ESP-32/8266:
+- upload firmware and bootloader binaries over serial connection
 - configure module parameters using serial connection
 
 VirtualBox uses alpine virtualbox image with additional software installed
@@ -142,8 +139,6 @@ libusb-dev
 xz
 util-linux
 dfu-util
-python2
-esptool2
 ```
 
 Edison device is additionally mapped to the usb ports
@@ -153,16 +148,9 @@ Intel USB download gadget [9999]
 FTDI FT232R USB UART [0600]
 ```
 
-Common ESP usb-serial adapters are additionally mapped to the usb ports
-```
-Silicon Labs CP2102 USB to UART Bridge Controller [0100]
-Silicon Labs CP2104 USB to UART Bridge Controller [0100]
-QinHeng Electronics USB2.0-Serial [0254]
-```
-
 #### CUSTOM BOARDS FLASHING:
 ----------------
-In order to flash a custom board, device info should be added into `~/.iotit/mapping.json`. This file should be created as soon as you start iotit but can also be generated witht the command `iotit --help`.
+Provide image url or path to flash it on SD card.
 
 
 #### STRUCTURE OF `mapping.json`:
