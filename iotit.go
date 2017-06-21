@@ -53,7 +53,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		device.Init(c.Args().Get(0))
+		device.Flash(c.Args().Get(0))
 		return nil
 	}
 
@@ -63,7 +63,7 @@ func main() {
 			Aliases: []string{"f"},
 			Usage:   "Flash image to the device",
 			Action: func(c *cli.Context) error {
-				device.Init(c.Args().Get(0))
+				device.Flash(c.Args().Get(0))
 				return nil
 			},
 		},

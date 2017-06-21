@@ -59,7 +59,22 @@ func (d *beagleBone) Configure() error {
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
-	if err := d.Flash(); err != nil {
+
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *beagleBone) Flash() error {
+
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+
+	if err := d.Configure(); err != nil {
+		return err
+	}
+
+	if err := d.Write(); err != nil {
 		return err
 	}
 

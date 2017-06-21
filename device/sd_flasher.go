@@ -17,14 +17,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-// SdFlasher interface defines all methods for sdFlasher
-type SdFlasher interface {
-	MountImg() error
-	UnmountImg() error
-	Flash() error
-	Done() error
-}
-
 // sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
 	*flasher
@@ -106,7 +98,7 @@ func (d *sdFlasher) UnmountImg() error {
 }
 
 // Flash method is used to flash image to the sdcard
-func (d *sdFlasher) Flash() error {
+func (d *sdFlasher) Write() error {
 	if !dialogs.YesNoDialog("Proceed to image flashing?") {
 		log.Debug("Aborted")
 		return nil
@@ -163,7 +155,6 @@ func (d *sdFlasher) Flash() error {
 
 // Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
-
 	c := config.NewDefault(d.conf.SSH)
 
 	if err := d.MountImg(fmt.Sprintf("")); err != nil {
@@ -185,7 +176,21 @@ func (d *sdFlasher) Configure() error {
 		return err
 	}
 
-	if err := d.Flash(); err != nil {
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *sdFlasher) Flash() error {
+
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+
+	if err := d.Configure(); err != nil {
+		return err
+	}
+
+	if err := d.Write(); err != nil {
 		return err
 	}
 
@@ -194,7 +199,6 @@ func (d *sdFlasher) Configure() error {
 
 // Done prints out final success message
 func (d *sdFlasher) Done() error {
-	//fmt.Println(strings.Repeat("*", 100))
 	fmt.Println("\t\t ...                      .................    ..                ")
 	fmt.Println("\t\t ...                      .................   ....    ...        ")
 	fmt.Println("\t\t ...                             ....                 ...        ")
@@ -208,7 +212,7 @@ func (d *sdFlasher) Done() error {
 	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
 	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
 
-	fmt.Printf("\n\t\t Flashing Complete!\n")
+	fmt.Println("\n\t\t Flashing Complete!")
 	fmt.Printf("\t\t Please insert your sd card into your %s\n", d.device)
 	if d.devRepo.Image.User != "" {
 		fmt.Println("\t\t ssh to your board with the following credentials")

@@ -121,6 +121,7 @@ func (c *Configurator) RemoveConfigFn(name string) {
 	delete(c.order, name)
 }
 
+// StoreValue stores value in storage
 func (c *Configurator) StoreValue(name string, value interface{}) {
 	c.storage[name] = value
 }

@@ -44,6 +44,12 @@ Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be abl
 **When flashing `Intel® Edison` make sure to provide external power supply.**
 Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter unusable under macOS and vice versa [source](https://communities.intel.com/message/430384).
 
+##### USB-to-Serial drivers
+
+Espressif ESP8266 Lolin/NodeMCU [CH340](https://wiki.wemos.cc/downloads) [[for macOS 10.12 take it here](https://github.com/adrianmihalko/ch340g-ch34g-ch34x-mac-os-x-driver)]
+
+Espressif ESP32 [CP210x](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
+
 #### Building
 
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)

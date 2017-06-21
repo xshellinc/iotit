@@ -26,8 +26,8 @@ var devices = [...]string{
 	customFlash,
 }
 
-// Init starts init process, either by receiving `typeFlag` or providing a user to choose from a list
-func Init(typeFlag string) {
+// Flash starts flashing process, either by receiving `typeFlag` or asking user to choose from a list
+func Flash(typeFlag string) {
 	log.WithField("type", typeFlag).Info("DeviceInit")
 
 	//once in 24h update mapping json
@@ -49,23 +49,20 @@ func Init(typeFlag string) {
 
 	fmt.Println("[+] Flashing", deviceType)
 
-	df, err := New(deviceType)
+	flasher, err := getFlasher(deviceType)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
 	}
-	if err := df.PrepareForFlashing(); err != nil {
-		fmt.Println("[-] Error: ", err)
-		return
-	}
-	if err := df.Configure(); err != nil {
+
+	if err := flasher.Flash(); err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
 	}
 }
 
-// New triggers select repository methods and initializes a new flasher
-func New(device string) (Flasher, error) {
+// getFlasher triggers select repository methods and initializes a new flasher
+func getFlasher(device string) (Flasher, error) {
 	g := make([]string, 0)
 
 	if device == customFlash {

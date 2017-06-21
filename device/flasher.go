@@ -20,8 +20,7 @@ import (
 
 // Flasher is an entity for flashing different devices
 type Flasher interface {
-	PrepareForFlashing() error
-	Configure() error
+	Flash() error
 }
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
@@ -69,7 +68,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 }
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
-func (d *flasher) PrepareForFlashing() error {
+func (d *flasher) Prepare() error {
 	job := help.NewBackgroundJob()
 
 	if err := vbox.CheckVBInstalled(); err != nil {
@@ -192,5 +191,39 @@ func (d *flasher) PrepareForFlashing() error {
 // Configure is a generic mock method
 func (d *flasher) Configure() error {
 	fmt.Println("Mock, nothing to configure")
+	return nil
+}
+
+// Write is a generic method
+func (d *flasher) Write() error {
+	fmt.Println("Mock, nothing to write")
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *flasher) Flash() error {
+	fmt.Println("Mock, nothing to flash")
+	return nil
+}
+
+// Done prints out final success message
+func (d *flasher) Done() error {
+	if err := vbox.Stop(d.vbox.UUID); err != nil {
+		log.Error(err)
+	}
+	fmt.Println("\t\t ...                      .................    ..                ")
+	fmt.Println("\t\t ...                      .................   ....    ...        ")
+	fmt.Println("\t\t ...                             ....                 ...        ")
+	fmt.Println("\t\t ...          .....              ....                 ...        ")
+	fmt.Println("\t\t ...       ...........           ....         ...     .......... ")
+	fmt.Println("\t\t ...      ...       ...          ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ....       ....         ....         ...      ...       ")
+	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
+	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
+	fmt.Println("\n\t\t Flashing Complete!")
+	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 	return nil
 }

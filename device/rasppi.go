@@ -31,8 +31,8 @@ func (d *raspberryPi) Configure() error {
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
 	// replace default interface configuration with custom raspi configurator
-	c.SetConfigFn(config.Interface, config.NewCallbackFn(SetInterface, saveInterface))
-	c.AddConfigFn(config.SSH, config.NewCallbackFn(setupSSH, nil))
+	c.SetConfigFn(config.Interface, config.NewCallbackFn(setInterface, saveInterface))
+	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiSSH, nil))
 
 	go func() {
 		defer job.Close()
@@ -70,7 +70,21 @@ func (d *raspberryPi) Configure() error {
 		return err
 	}
 
-	if err := d.Flash(); err != nil {
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *raspberryPi) Flash() error {
+
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+
+	if err := d.Configure(); err != nil {
+		return err
+	}
+
+	if err := d.Write(); err != nil {
 		return err
 	}
 
@@ -88,7 +102,7 @@ interface %s
 `
 
 // SetInterface is a custom SetInterface method uses interfaceConfig var
-func SetInterface(storage map[string]interface{}) error {
+func setInterface(storage map[string]interface{}) error {
 	log.WithField("type", "raspi").Debug("SetInterface")
 	device := []string{"eth0", "wlan0"}
 	i := config.Interfaces{
@@ -149,8 +163,8 @@ func saveInterface(storage map[string]interface{}) error {
 	return nil
 }
 
-// setupSSH is enabling ssh server on pi
-func setupSSH(storage map[string]interface{}) error {
+// enablePiSSH is enabling ssh server on pi
+func enablePiSSH(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Would you like to enable SSH server?") {
 		ssh, ok := storage["ssh"].(ssh_helper.Util)
 		if !ok {
