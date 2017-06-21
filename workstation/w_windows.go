@@ -20,7 +20,7 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-var cleanTemplate = `
+const cleanTemplate = `
 select disk %s
 clean
 create partition primary
@@ -35,6 +35,7 @@ type windows struct {
 	ddPath string
 }
 
+// Initializes windows workstation
 func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo

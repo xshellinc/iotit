@@ -11,9 +11,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
+	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/lib/repo"
 	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
@@ -137,9 +137,9 @@ func (d *flasher) PrepareForFlashing() error {
 		return err
 	}
 
-	if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
+	if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
 		fmt.Printf("[+] Uploading %s to virtual machine\n", fileName)
-		if err = d.conf.SSH.Scp(filePath, constants.TMP_DIR); err != nil {
+		if err = d.conf.SSH.Scp(filePath, config.TmpDir); err != nil {
 			return err
 		}
 	} else {
@@ -149,7 +149,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	if strings.HasSuffix(fileName, ".zip") {
 		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), fileName)); err == nil && len(files) == 1 {
-			if _, eut, err := d.conf.SSH.Run("ls " + constants.TMP_DIR + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
+			if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
 				log.Debug("Image file already extracted")
 				d.img = files[0].Name
 			}
@@ -158,7 +158,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	if d.img == "" {
 		fmt.Printf("[+] Extracting %s \n", fileName)
-		command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", constants.TMP_DIR, fileName), constants.TMP_DIR)
+		command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
 		log.Debug("Extracting an image... ", command)
 		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 		out, eut, err := d.conf.SSH.Run(command)
@@ -174,7 +174,7 @@ func (d *flasher) PrepareForFlashing() error {
 				return nil
 			}
 		}
-		if out, _, err := d.conf.SSH.Run("ls -1 " + constants.TMP_DIR); err == nil && len(strings.TrimSpace(out)) > 0 {
+		if out, _, err := d.conf.SSH.Run("ls -1 " + config.TmpDir); err == nil && len(strings.TrimSpace(out)) > 0 {
 			log.Debug(out)
 			for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
 				s := strings.TrimSpace(raw)

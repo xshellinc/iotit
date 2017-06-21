@@ -1,45 +1,24 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
-	"log"
+	stdlog "log"
 	"runtime"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
-	"github.com/xshellinc/iotit/device/workstation"
 	"github.com/xshellinc/iotit/lib/repo"
-	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/xshellinc/tools/dialogs"
+	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
+
+	"gopkg.in/urfave/cli.v1"
 )
 
 const progName = "iotit"
 const installPath = "/usr/local/bin/"
-
-const helpInfo = `
-NAME:
-   iotit - Flashing Tool for iot devices used by Isaax Cloud
-
-USAGE:
-   iotit [global options] [commands]
-
-   options and commands are not mandatory
-
-COMMANDS:
-   gl, global         install to global app environment
-   un, uninstall      uninstall this app
-   update             update binary and vbox images
-   v, version         display current version
-   h, help            display help
-
-GLOBAL OPTIONS:
-   -dev [device-type]  executes iotit with specified deviceType
-`
 
 // Version string came from linker
 var Version string
@@ -47,158 +26,156 @@ var Version string
 // Env string came from linker
 var Env = "dev"
 
-var commands = make(map[string]func())
+var logfile = ""
 
 func init() {
-	logrus.SetLevel(logrus.WarnLevel)
+	log.SetLevel(log.WarnLevel)
 	if Env == "dev" || runtime.GOOS == "windows" {
-		logrus.SetLevel(logrus.DebugLevel)
+		log.SetLevel(log.DebugLevel)
 	}
-	logfile := fmt.Sprintf(help.GetTempDir()+help.Separator()+"%s.log", progName)
+	logfile = fmt.Sprintf(help.GetTempDir()+help.Separator()+"%s.log", progName)
 
 	f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
-		logrus.Errorf("error opening file: %v", err)
+		log.Errorf("error opening file: %v", err)
 		return
 	}
 
-	fmt.Println("Log location:", logfile)
-	logrus.SetOutput(f)
 	log.SetOutput(f)
-
-	initCommands()
+	stdlog.SetOutput(f)
 }
 
 func main() {
-	deviceType := flag.String("dev", "", "")
+	app := cli.NewApp()
+	app.Version = Version
+	app.Name = progName
+	app.Usage = "Flashing Tool for iot devices used by Isaax Cloud"
 
-	flag.Parse()
-
-	if commandsHandler(flag.Args()) {
-		return
+	app.Action = func(c *cli.Context) error {
+		// TODO: launch gui by default
+		device.Init(c.Args().Get(0))
+		return nil
 	}
 
-	device.Init(*deviceType)
-}
+	app.Commands = []cli.Command{
+		{
+			Name:    "flash",
+			Aliases: []string{"f"},
+			Usage:   "Flash image to the device",
+			Action: func(c *cli.Context) error {
+				device.Init(c.Args().Get(0))
+				return nil
+			},
+		},
+		{
+			Name:    "install",
+			Aliases: []string{"i"},
+			Usage:   "Install to global app environment",
+			Action: func(c *cli.Context) error {
+				log.Debug("Checking ", installPath, progName)
+				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+					p, err := os.Executable()
+					if err != nil {
+						log.Fatal("[-] ", err)
+					}
 
-func commandsHandler(args []string) bool {
-	for _, arg := range args {
-		if c, ok := commands[arg]; ok {
-			c()
-			return true
-		}
+					fmt.Println("[+] You may need to enter your user password")
+					_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "cp", p, installPath+progName)
+					fmt.Println("[+] Copying", p, installPath+progName)
+					if err != nil {
+						fmt.Println("[-] Error: ", string(eut))
+						return nil
+					}
+
+					fmt.Println("[+] Done")
+					return nil
+				}
+
+				fmt.Println("[+] Software is already installed")
+				return nil
+			},
+		},
+		{
+			Name:    "uninstall",
+			Aliases: []string{"rm"},
+			Usage:   "Uninstall iotit",
+			Action: func(c *cli.Context) error {
+				log.Debug("Checking ", installPath, progName)
+				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+					fmt.Println("[+] Software is not installed")
+					return nil
+				}
+
+				fmt.Println("[+] You may need to enter your user password")
+				_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "rm", installPath+progName)
+				fmt.Println("[+] Removing", installPath+progName)
+				if err != nil {
+					fmt.Println("[-] Error: ", string(eut))
+					return nil
+				}
+
+				fmt.Println("[+] Done")
+				return nil
+			},
+		},
+		{
+			Name:    "update",
+			Aliases: []string{"u"},
+			Usage:   "Self-update",
+			Action: func(c *cli.Context) error {
+				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+					fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
+					return nil
+				}
+				fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
+				dir, err := repo.DownloadNewVersion(progName, Version, help.GetTempDir())
+
+				if err != nil {
+					fmt.Println("[-] Error:", err)
+					return nil
+				}
+
+				if dir == "" {
+					fmt.Println("[+] ", progName, " is up to date")
+				} else {
+					fmt.Println("[+] You may need to enter your user password")
+					if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
+						fmt.Println("[-] Error:", eut)
+						return nil
+					}
+					fmt.Println("[+]", progName, " is updated")
+				}
+
+				return nil
+			},
+		},
+		{
+			Name:    "log",
+			Aliases: []string{"l"},
+			Usage:   "Show log file location",
+			Action: func(c *cli.Context) error {
+				fmt.Println("Log location:", logfile)
+				return nil
+			},
+		},
 	}
 
-	return false
-}
-
-func initCommands() {
-	v := func() {
-		if Version == "" {
-			Version = "no version"
+	if runtime.GOOS == "windows" {
+		clean := cli.Command{
+			Name:  "clean",
+			Usage: "*Windows only* Clean SD card partition table",
+			Action: func(c *cli.Context) error {
+				w := workstation.NewWorkStation()
+				if err := w.CleanDisk(); err != nil {
+					fmt.Println("[-] Error:", err)
+					return nil
+				}
+				fmt.Println("[+] Disk formatted, now please reconnect the device.")
+				return nil
+			},
 		}
-
-		fmt.Println(progName, Version)
+		app.Commands = append(app.Commands, clean)
 	}
 
-	h := func() {
-		fmt.Println(helpInfo)
-	}
-
-	i := func() {
-		logrus.Debug("Checking ", installPath, progName)
-		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-			p, err := os.Executable()
-			if err != nil {
-				logrus.Fatal("[-] ", err)
-			}
-
-			fmt.Println("[+] You may need to enter your user password")
-			_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "cp", p, installPath+progName)
-			fmt.Println("[+] Copying", p, installPath+progName)
-			if err != nil {
-				fmt.Println("[-] Error: ", string(eut))
-				return
-			}
-
-			fmt.Println("[+] Done")
-
-			return
-		}
-
-		fmt.Println("[+] Software is already installed")
-	}
-
-	u := func() {
-		logrus.Debug("Checking ", installPath, progName)
-		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-			fmt.Println("[+] Software is not installed")
-			return
-		}
-
-		fmt.Println("[+] You may need to enter your user password")
-		_, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "rm", installPath+progName)
-		fmt.Println("[+] Removing", installPath+progName)
-		if err != nil {
-			fmt.Println("[-] Error: ", string(eut))
-			return
-		}
-
-		fmt.Println("[+] Done")
-	}
-
-	upd := func() {
-		if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-			fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
-			return
-		}
-
-		fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
-
-		dir, err := repo.DownloadNewVersion(progName, Version, help.GetTempDir())
-
-		if err != nil {
-			fmt.Println("[-] Error:", err)
-			return
-		}
-
-		if dir == "" {
-			fmt.Println("[+] ", progName, " is up to date")
-		} else {
-
-			fmt.Println("[+] You may need to enter your user password")
-
-			if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
-				fmt.Println("[-] Error:", eut)
-				return
-			}
-			fmt.Println("[+]", progName, " is updated")
-		}
-
-		if vbox.CheckUpdate() {
-			if dialogs.YesNoDialog("Would you like to update vbox?") {
-				vbox.Update()
-			}
-		}
-	}
-
-	clean := func() {
-		w := workstation.NewWorkStation()
-		if err := w.CleanDisk(); err != nil {
-			fmt.Println("[-] Error:", err)
-			return
-		}
-		fmt.Println("[+] Disk formatted, now please reconnect the device.")
-	}
-
-	commands["version"] = v
-	commands["v"] = v
-	commands["help"] = h
-	commands["h"] = h
-	commands["global"] = i
-	commands["gl"] = i
-	commands["uninstall"] = u
-	commands["un"] = u
-	commands["update"] = upd
-	commands["clean"] = clean
+	app.Run(os.Args)
 }

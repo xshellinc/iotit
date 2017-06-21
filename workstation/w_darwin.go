@@ -8,40 +8,26 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
 )
 
-// Darwing specific workstation type, contains unMount and diskUtil strings
-// that are used to perform operations on mounted disks
-type darwin struct {
-	*workstation
-	*unix
-	unMount  string
-	diskUtil string
-}
+const diskUtil = "diskutil"
 
-// Initializes darwing workstation with unix and darwin specific program names
+// Initializes default workstation
 func newWorkstation() WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
-	w := &workstation{runtime.GOOS, true, m, ms}
-	ux := &unix{constants.UnixDD, constants.MountDir, constants.Umount, constants.Eject}
 
-	return &darwin{
-		workstation: w,
-		unix:        ux,
-		unMount:     constants.DarwinUmount,
-		diskUtil:    constants.DarwinDiskutil}
+	return &workstation{runtime.GOOS, true, m, ms}
 }
 
 const diskSelectionTries = 3
 const writeAttempts = 3
 
-// Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
-func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
+// Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
+func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
@@ -55,12 +41,12 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 
 		fmt.Println("[+] Available mounts: ")
 
-		rng := make([]string, len(d.workstation.mounts))
-		for i, e := range d.workstation.mounts {
+		rng := make([]string, len(d.mounts))
+		for i, e := range d.mounts {
 			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
 		}
 		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
-		dev := d.workstation.mounts[num]
+		dev := d.mounts[num]
 
 		if ok, ferr := help.FileModeMask(dev.diskNameRaw, 0200); !ok || ferr != nil {
 			if ferr != nil {
@@ -71,7 +57,7 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				err = fmt.Errorf("your card seems locked")
 			}
 		} else {
-			d.workstation.mount = dev
+			d.mount = dev
 			break
 		}
 	}
@@ -81,7 +67,7 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	}
 
 	if dialogs.YesNoDialog("Are you sure? ") {
-		fmt.Printf("[+] Writing %s to %s\n", img, d.workstation.mount.diskName)
+		fmt.Printf("[+] Writing %s to %s\n", img, d.mount.diskName)
 		fmt.Println("[+] You may need to enter your OS X user password")
 
 		job = help.NewBackgroundJob()
@@ -90,9 +76,9 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			defer job.Close()
 
 			args := []string{
-				d.diskUtil,
-				d.unMount,
-				d.workstation.mount.diskName,
+				diskUtil,
+				"unmountDisk",
+				d.mount.diskName,
 			}
 
 			var err error
@@ -119,9 +105,9 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			}
 
 			args = []string{
-				d.unix.dd,
+				"dd",
 				fmt.Sprintf("if=%s", img),
-				fmt.Sprintf("of=%s", d.workstation.mount.diskNameRaw),
+				fmt.Sprintf("of=%s", d.mount.diskNameRaw),
 				"bs=1048576",
 			}
 
@@ -138,7 +124,7 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 					fmt.Println("\r[-] ", string(eut))
 				} else {
 					job.Active(false)
-					fmt.Printf("\r[+] Done writing %s to %s \n", img, d.workstation.mount.diskName)
+					fmt.Printf("\r[+] Done writing %s to %s \n", img, d.mount.diskName)
 					break
 				}
 			}
@@ -148,16 +134,16 @@ func (d *darwin) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			}
 		}()
 
-		d.workstation.writable = true
+		d.writable = true
 		return job, nil
 	}
 
-	d.workstation.writable = false
+	d.writable = false
 	return nil, nil
 }
 
 // Lists available mounts
-func (d *darwin) ListRemovableDisk() error {
+func (d *workstation) ListRemovableDisk() error {
 	regex := regexp.MustCompile("^disk([0-9]+)$")
 	var (
 		devDisks []string
@@ -176,7 +162,7 @@ func (d *darwin) ListRemovableDisk() error {
 		diskMap := make(map[string]string)
 		removable := true
 
-		stdout, err := help.ExecCmd(d.diskUtil, []string{"info", "/dev/" + devDisk})
+		stdout, err := help.ExecCmd(diskUtil, []string{"info", "/dev/" + devDisk})
 		if err != nil {
 			stdout = ""
 		}
@@ -222,40 +208,40 @@ func (d *darwin) ListRemovableDisk() error {
 		return fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
 	}
 
-	d.workstation.mounts = out
+	d.mounts = out
 	return nil
 }
 
 // Ejects the mounted disk
-func (d *darwin) Eject() error {
-	if d.workstation.writable {
-		fmt.Printf("[+] Eject your sd card :%s\n", d.workstation.mount.diskName)
-		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, d.unix.eject, d.workstation.mount.diskName)
+func (d *workstation) Eject() error {
+	if d.writable {
+		fmt.Printf("[+] Eject your sd card :%s\n", d.mount.diskName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "eject", d.mount.diskName)
 
 		if err != nil {
-			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", d.workstation.mount.diskName, stdout)
+			return fmt.Errorf("eject disk failed: %s\n[-] Cause: %s", d.mount.diskName, stdout)
 		}
 	}
 	return nil
 }
 
 // Unmounts the mounted disk
-func (d *darwin) Unmount() error {
-	if d.workstation.writable {
-		fmt.Printf("[+] Unmounting your sd card :%s\n", d.workstation.mount.diskName)
-		stdout, err := help.ExecCmd(d.diskUtil,
+func (d *workstation) Unmount() error {
+	if d.writable {
+		fmt.Printf("[+] Unmounting your sd card :%s\n", d.mount.diskName)
+		stdout, err := help.ExecCmd(diskUtil,
 			[]string{
-				d.unMount,
-				d.workstation.mount.deviceName,
+				"unmountDisk",
+				d.mount.deviceName,
 			})
 		if err != nil {
-			return fmt.Errorf("error unmounting disk: %s\n[-] Cause: %s", d.workstation.mount.diskName, stdout)
+			return fmt.Errorf("error unmounting disk: %s\n[-] Cause: %s", d.mount.diskName, stdout)
 		}
 	}
 	return nil
 }
 
 // CleanDisk does nothing on macOS
-func (d *darwin) CleanDisk() error {
+func (d *workstation) CleanDisk() error {
 	return nil
 }
