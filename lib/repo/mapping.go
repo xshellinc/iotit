@@ -15,6 +15,7 @@ import (
 // DeviceImage contains url, title, username and password which are used after flashing
 type DeviceImage struct {
 	URL   string `json:"URL"`
+	Alias string `json:"Alias,omitempty"`
 	Title string `json:"Title,omitempty"`
 	User  string `json:"User,omitempty"`
 	Pass  string `json:"Pass,omitempty"`
@@ -23,6 +24,7 @@ type DeviceImage struct {
 // DeviceMapping is a collection of device, it sub-types and sets of images for these devices
 type DeviceMapping struct {
 	Name   string           `json:"Name"`
+	Alias  string           `json:"Alias,omitempty"`
 	Sub    []*DeviceMapping `json:"Sub,omitempty"`
 	Images []DeviceImage    `json:"Images,omitempty"`
 
@@ -95,6 +97,7 @@ func DownloadDevicesRepository() {
 			log.Error(err)
 		}
 		wg.Wait()
+		// update file modification date so on the next run we don't try to download it again
 		if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
 			log.Error(err)
 		}
