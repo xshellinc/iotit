@@ -5,14 +5,14 @@
 			"Alias": "raspi",
 			"Images": [
 				{
-					"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-03-03/2017-03-02-raspbian-jessie-lite.zip",
+					"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-04-10/2017-04-10-raspbian-jessie-lite.zip",
 					"Title": "Raspbian Jessie Lite",
 					"Alias": "lite",
 					"User": "pi",
 					"Pass": "raspberry"
 				},
 				{
-					"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-03-03/2017-03-02-raspbian-jessie.zip",
+					"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-04-10/2017-04-10-raspbian-jessie.zip",
 					"Title": "Raspbian Jessie with PIXEL",
 					"Alias": "full",
 					"User": "pi",
