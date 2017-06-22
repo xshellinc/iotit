@@ -88,12 +88,16 @@ func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 // DownloadDevicesRepository downloads new mapping.json from the cloud
 func DownloadDevicesRepository() {
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
+		log.Info("Checking for mapping.json updates...")
 		wg := &sync.WaitGroup{}
 		_, _, err := help.DownloadFromUrlWithAttemptsAsync(imagesRepo, baseDir, 3, wg)
 		if err != nil {
-			log.Error(err.Error())
+			log.Error(err)
 		}
 		wg.Wait()
+		if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
+			log.Error(err)
+		}
 	}
 }
 
