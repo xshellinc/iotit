@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -76,9 +77,10 @@ func (d *DeviceMapping) Dir() string {
 
 // findDevice searches device in the repo
 func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
+	search := strings.ToLower(device)
 	for _, obj := range d.Devices {
 		obj.dir = obj.Name
-		if obj.Name == device || obj.Alias == device {
+		if strings.ToLower(obj.Name) == search || obj.Alias == search {
 			fillEmptyImages(&obj)
 			return &obj, nil
 		}

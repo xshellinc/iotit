@@ -11,9 +11,9 @@ import (
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
-
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -64,6 +64,19 @@ func main() {
 			Usage:   "Flash image to the device",
 			Action: func(c *cli.Context) error {
 				device.Flash(c.Args().Get(0))
+				return nil
+			},
+		},
+		{
+			Name:    "list",
+			Aliases: []string{"ls"},
+			Usage:   "List supported devices and images",
+			Action: func(c *cli.Context) error {
+				device.ListMapping()
+				fmt.Println(dialogs.PrintColored("Examples"))
+				fmt.Println("\tiotit flash raspi lite")
+				fmt.Println("\tiotit flash nanopi2 android")
+				fmt.Println("\tiotit flash esp32")
 				return nil
 			},
 		},

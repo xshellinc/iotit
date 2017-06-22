@@ -28,8 +28,7 @@
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/32/firmata.zip",
-							"Title": "ESP-32 Firmata",
-							"Alias": "firmata"
+							"Title": "Firmata"
 						}
 					]
 				},
@@ -38,8 +37,7 @@
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/8266/firmata.zip",
-							"Title": "ESP-8266 Firmata",
-							"Alias": "firmata"
+							"Title": "Firmata"
 						}
 					]
 				}
@@ -50,6 +48,7 @@
 			"Images": [
 				{
 					"URL": "http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",
+					"Title": "IoT DevKit 20160606",
 					"Alias": "default",
 					"User": "root"
 				}
@@ -91,14 +90,14 @@
 					"Alias": "nanopim1",
 					"Images": [
 						{
-							"URL": "http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+							"URL": "http://www.mediafire.com/file/g7lar5ejkk4r9cv/nanopi-m1_ubuntu-core-xenial_4.11.2_20170531.img.zip",
 							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
 						},
 						{
-							"URL": "http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+							"URL": "http://www.mediafire.com/file/c8caam1sy5ctavc/nanopi-m1_debian-jessie_4.11.2_20170531.img.zip",
 							"Title": "Debian",
 							"Alias": "debian",
 							"User": "root",
@@ -120,6 +119,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/hysi686cq89d9ll/nanopi-neo_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
@@ -132,6 +132,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/w2sp6pdwlj5l66j/nanopi-neo2_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
@@ -144,6 +145,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/i4jq7fqfp55bqhh/nanopi-neo-air_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"

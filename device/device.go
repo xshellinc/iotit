@@ -61,6 +61,53 @@ func Flash(typeFlag string) {
 	}
 }
 
+func ListMapping() {
+	fmt.Println("Name (" + dialogs.PrintColored("alias") + ")")
+	list := make(map[string]interface{})
+	devices := repo.GetRepo()
+	for _, device := range devices {
+		r, e := repo.GetDeviceRepo(device.Name)
+		if e != nil {
+			continue
+		}
+		// fmt.Println("Name\t\t\t\t" + dialogs.PrintColored("Alias"))
+		fmt.Print("Type: " + r.Name)
+		if len(r.Alias) > 0 {
+			fmt.Print(" (" + dialogs.PrintColored(r.Alias) + ")")
+		}
+		fmt.Println()
+		if len(r.Sub) == 0 {
+			fmt.Print("\tImages: ")
+			for _, i := range r.Images {
+				fmt.Print(i.Title)
+				if len(i.Alias) > 0 {
+					fmt.Print(" (" + dialogs.PrintColored(i.Alias) + ") ")
+				}
+			}
+			fmt.Println()
+		} else {
+			for _, sub := range r.Sub {
+				fmt.Print("\tModel: " + sub.Name)
+				if len(sub.Alias) > 0 {
+					fmt.Print(" (" + dialogs.PrintColored(sub.Alias) + ")")
+				}
+				fmt.Println()
+				fmt.Print("\t\tImages: ")
+				for _, i := range sub.Images {
+					fmt.Print(i.Title)
+					if len(i.Alias) > 0 {
+						fmt.Print(" (" + dialogs.PrintColored(i.Alias) + ") ")
+					}
+				}
+				fmt.Println()
+			}
+		}
+		list[device.Name+"["+dialogs.PrintColored(device.Alias)+"]"] = *r
+		//r.Name + "[" + dialogs.PrintColored(r.Alias) + "]"
+	}
+	// fmt.Println(list)
+}
+
 // getFlasher triggers select repository methods and initializes a new flasher
 func getFlasher(device string) (Flasher, error) {
 	var r *repo.DeviceMapping
