@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/xshellinc/iotit/lib/repo"
+	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"

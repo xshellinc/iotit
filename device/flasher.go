@@ -12,8 +12,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/riobard/go-virtualbox"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/iotit/lib/repo"
-	"github.com/xshellinc/iotit/lib/vbox"
+	"github.com/xshellinc/iotit/repo"
+	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )

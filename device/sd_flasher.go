@@ -11,7 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/iotit/lib/vbox"
+	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"

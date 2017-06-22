@@ -34,7 +34,7 @@ type DeviceMapping struct {
 
 // deviceCollection is a starting point of the collection of images
 type deviceCollection struct {
-	Devices []*DeviceMapping `json:"Devices"`
+	Devices []DeviceMapping `json:"Devices"`
 }
 
 const missingRepo = "Device repo is missing"
@@ -78,9 +78,9 @@ func (d *DeviceMapping) Dir() string {
 func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	for _, obj := range d.Devices {
 		obj.dir = obj.Name
-		if obj.Name == device {
-			fillEmptyImages(obj)
-			return obj, nil
+		if obj.Name == device || obj.Alias == device {
+			fillEmptyImages(&obj)
+			return &obj, nil
 		}
 	}
 
@@ -124,6 +124,15 @@ func GetAllRepos() ([]string, error) {
 	}
 
 	return str, nil
+}
+
+func GetRepo() []DeviceMapping {
+	if dm == nil {
+		if err := initDeviceCollection(); err != nil {
+			return []DeviceMapping{}
+		}
+	}
+	return dm.Devices
 }
 
 // GetDeviceRepo returns a devices repo. It checks the existence of mapping.json first then proceeds to the default variable

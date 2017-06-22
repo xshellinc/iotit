@@ -16,10 +16,17 @@ import (
 	log "github.com/Sirupsen/logrus"
 	pipeline "github.com/mattn/go-pipeline"
 	virtualbox "github.com/riobard/go-virtualbox"
-	"github.com/xshellinc/iotit/lib/repo"
+	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/cheggaaa/pb.v1"
+)
+
+// vbox types
+const (
+	VBoxTypeDefault = iota
+	VBoxTypeNew
+	VBoxTypeUser
 )
 
 // Stop stops VM
