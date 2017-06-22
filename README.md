@@ -107,8 +107,11 @@ which is applied to `iotit-box`
 ##### INTERNALS
 ----------------
 `$HOME/.iotit` - a directory containing iotit related files
+
 `$HOME/.iotit/mapping.json` - a file containing different device types and urls of images to be downloaded
+
 `$HOME/.iotit/virtualbox/{version}/iotit-box.zip` - a packed virtual box image
+
 `$HOME/.iotit/images/{device}/{image_pack}` - packed images grouped by device names
 
 `iotit` uses x64 virtualbox in order to flash and configure devices,
