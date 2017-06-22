@@ -94,7 +94,7 @@ func (d *serialFlasher) Write() error {
 		err = fmt.Errorf("%s: unsupported platform '%s'", fw.Name, fw.Platform)
 	}
 
-	return nil
+	return err
 }
 
 func setWifi(storage map[string]interface{}) error {

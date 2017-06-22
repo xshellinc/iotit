@@ -63,35 +63,9 @@ func Flash(typeFlag string) {
 
 // getFlasher triggers select repository methods and initializes a new flasher
 func getFlasher(device string) (Flasher, error) {
-	g := make([]string, 0)
+	var r *repo.DeviceMapping
 
 	if device == customFlash {
-		r, err := repo.GetAllRepos()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, s := range r {
-			c := true
-			for _, d := range devices {
-				if s == d {
-					c = false
-				}
-			}
-			if c {
-				g = append(g, s)
-			}
-		}
-
-		if len(g) != 0 {
-			device = g[dialogs.SelectOneDialog("Please select your custom board: ", g)]
-		}
-
-	}
-	var r *repo.DeviceMapping
-	if device == customFlash && len(g) == 0 {
-		fmt.Println("[-] No custom boards defined")
-
 		url := dialogs.GetSingleAnswer("Please provide image URL or path: ", dialogs.EmptyStringValidator)
 		r = &repo.DeviceMapping{Name: "Custom", Image: repo.DeviceImage{URL: url}}
 	} else {
