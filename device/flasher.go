@@ -20,8 +20,7 @@ import (
 
 // Flasher is an entity for flashing different devices
 type Flasher interface {
-	PrepareForFlashing() error
-	Configure() error
+	Flash() error
 }
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
@@ -69,9 +68,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 }
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
-func (d *flasher) PrepareForFlashing() error {
-	job := help.NewBackgroundJob()
-
+func (d *flasher) Prepare() error {
 	if err := vbox.CheckVBInstalled(); err != nil {
 		return err
 	}
@@ -89,44 +86,13 @@ func (d *flasher) PrepareForFlashing() error {
 		fmt.Printf(`[+] Selected virtual machine
 	Name - `+dialogs.PrintColored("%s")+`
 	Description - `+dialogs.PrintColored("%s")+"\n", name, description)
-
-		if err := d.vbox.Start(); err != nil {
+		if err := d.startVM(); err != nil {
 			return err
 		}
-
-		go func() {
-			ticker := time.NewTicker(15 * time.Second)
-			defer ticker.Stop()
-			defer job.Close()
-
-		Loop:
-			for {
-				select {
-				case <-ticker.C:
-					_, eut, err := d.conf.SSH.Run("whoami")
-					if err == nil && strings.TrimSpace(eut) == "" {
-						fmt.Println("success")
-						break Loop
-					} else if err != nil {
-						log.WithField("error", err).Debug("Connecting SSH")
-					}
-				case <-time.After(180 * time.Second):
-					job.Error(errors.New("Cannot connect to vbox via ssh"))
-				}
-			}
-		}()
-
-		if err := help.WaitJobAndSpin("Starting", job); err != nil {
-			return err
-		}
-
-		time.Sleep(time.Second)
 	}
 
-	err = help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), "localhost")
-	if err != nil {
-		log.Error(err)
-	}
+	help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), "localhost")
+
 	fileName := ""
 	filePath := ""
 
@@ -139,7 +105,7 @@ func (d *flasher) PrepareForFlashing() error {
 
 	if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
 		fmt.Printf("[+] Uploading %s to virtual machine\n", fileName)
-		if err = d.conf.SSH.Scp(filePath, config.TmpDir); err != nil {
+		if err := d.conf.SSH.Scp(filePath, config.TmpDir); err != nil {
 			return err
 		}
 	} else {
@@ -157,40 +123,112 @@ func (d *flasher) PrepareForFlashing() error {
 	}
 
 	if d.img == "" {
-		fmt.Printf("[+] Extracting %s \n", fileName)
-		command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
-		log.Debug("Extracting an image... ", command)
-		d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
-		out, eut, err := d.conf.SSH.Run(command)
-		if err != nil || len(strings.TrimSpace(eut)) > 0 {
-			fmt.Println("[-] ", eut)
+		if err := d.extractImage(fileName); err != nil {
 			return err
-		}
-		log.Debug(out)
-		for _, raw := range strings.Split(out, " ") {
-			s := strings.TrimSpace(raw)
-			if s != "" && strings.HasSuffix(s, ".img") {
-				d.img = s
-				return nil
-			}
-		}
-		if out, _, err := d.conf.SSH.Run("ls -1 " + config.TmpDir); err == nil && len(strings.TrimSpace(out)) > 0 {
-			log.Debug(out)
-			for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
-				s := strings.TrimSpace(raw)
-				if s != "" && strings.HasSuffix(s, ".img") {
-					d.img = s
-					return nil
-				}
-			}
 		}
 	}
 
 	return nil
 }
 
+func (d *flasher) startVM() error {
+	job := help.NewBackgroundJob()
+	if err := d.vbox.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		defer job.Close()
+		for {
+			select {
+			case <-ticker.C:
+				_, eut, err := d.conf.SSH.Run("whoami")
+				if err == nil && strings.TrimSpace(eut) == "" {
+					return
+				}
+			case <-time.After(180 * time.Second):
+				job.Error(errors.New("Cannot connect to vbox via ssh"))
+			}
+		}
+	}()
+
+	if err := help.WaitJobAndSpin("Starting", job); err != nil {
+		return err
+	}
+
+	time.Sleep(time.Second)
+	return nil
+}
+
+func (d *flasher) extractImage(fileName string) error {
+	fmt.Printf("[+] Extracting %s \n", fileName)
+	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
+	log.Debug("Extracting an image... ", command)
+	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
+	out, eut, err := d.conf.SSH.Run(command)
+	if err != nil || len(strings.TrimSpace(eut)) > 0 {
+		fmt.Println("[-] ", eut)
+		return err
+	}
+	log.Debug(out)
+	for _, raw := range strings.Split(out, " ") {
+		s := strings.TrimSpace(raw)
+		if s != "" && strings.HasSuffix(s, ".img") {
+			d.img = s
+			return nil
+		}
+	}
+	if out, _, err := d.conf.SSH.Run("ls -1 " + config.TmpDir); err == nil && len(strings.TrimSpace(out)) > 0 {
+		log.Debug(out)
+		for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
+			s := strings.TrimSpace(raw)
+			if s != "" && strings.HasSuffix(s, ".img") {
+				d.img = s
+				return nil
+			}
+		}
+	}
+	return nil
+}
+
 // Configure is a generic mock method
 func (d *flasher) Configure() error {
 	fmt.Println("Mock, nothing to configure")
+	return nil
+}
+
+// Write is a generic method
+func (d *flasher) Write() error {
+	fmt.Println("Mock, nothing to write")
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *flasher) Flash() error {
+	fmt.Println("Mock, nothing to flash")
+	return nil
+}
+
+// Done prints out final success message
+func (d *flasher) Done() error {
+	if err := vbox.Stop(d.vbox.UUID); err != nil {
+		log.Error(err)
+	}
+	fmt.Println("\t\t ...                      .................    ..                ")
+	fmt.Println("\t\t ...                      .................   ....    ...        ")
+	fmt.Println("\t\t ...                             ....                 ...        ")
+	fmt.Println("\t\t ...          .....              ....                 ...        ")
+	fmt.Println("\t\t ...       ...........           ....         ...     .......... ")
+	fmt.Println("\t\t ...      ...       ...          ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ....       ....         ....         ...      ...       ")
+	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
+	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
+	fmt.Println("\n\t\t Flashing Complete!")
+	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 	return nil
 }

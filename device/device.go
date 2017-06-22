@@ -22,11 +22,12 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
+	constants.DEVICE_TYPE_ESP,
 	customFlash,
 }
 
-// Init starts init process, either by receiving `typeFlag` or providing a user to choose from a list
-func Init(typeFlag string) {
+// Flash starts flashing process, either by receiving `typeFlag` or asking user to choose from a list
+func Flash(typeFlag string) {
 	log.WithField("type", typeFlag).Info("DeviceInit")
 
 	//once in 24h update mapping json
@@ -48,58 +49,30 @@ func Init(typeFlag string) {
 
 	fmt.Println("[+] Flashing", deviceType)
 
-	df, err := New(deviceType)
+	flasher, err := getFlasher(deviceType)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
 	}
-	if err := df.PrepareForFlashing(); err != nil {
-		fmt.Println("[-] Error: ", err)
-		return
-	}
-	if err := df.Configure(); err != nil {
+
+	if err := flasher.Flash(); err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
 	}
 }
 
-// New triggers select repository methods and initializes a new flasher
-func New(device string) (Flasher, error) {
-	g := make([]string, 0)
+// getFlasher triggers select repository methods and initializes a new flasher
+func getFlasher(device string) (Flasher, error) {
+	var r *repo.DeviceMapping
 
 	if device == customFlash {
-		r, err := repo.GetAllRepos()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, s := range r {
-			c := true
-			for _, d := range devices {
-				if s == d {
-					c = false
-				}
-			}
-			if c {
-				g = append(g, s)
-			}
-		}
-
-		if len(g) != 0 {
-			device = g[dialogs.SelectOneDialog("Please select your custom board: ", g)]
-		}
-
-	}
-	var r *repo.DeviceMapping
-	if device == customFlash && len(g) == 0 {
-		fmt.Println("[-] No custom boards defined")
-
 		url := dialogs.GetSingleAnswer("Please provide image URL or path: ", dialogs.EmptyStringValidator)
 		r = &repo.DeviceMapping{Name: "Custom", Image: repo.DeviceImage{URL: url}}
 	} else {
 		var e error
 		r, e = repo.GetDeviceRepo(device)
-		if e != nil && !repo.IsMissingRepoError(e) {
+
+		if e != nil {
 			return nil, e
 		}
 
@@ -124,6 +97,11 @@ func New(device string) (Flasher, error) {
 		i.device = device
 		i.devRepo = r
 		return i, nil
+	case constants.DEVICE_TYPE_ESP:
+		i := &serialFlasher{flasher: &flasher{}}
+		i.device = device
+		i.devRepo = r
+		return i, nil
 	case constants.DEVICE_TYPE_NANOPI:
 		fallthrough
 	default:
@@ -138,7 +116,7 @@ func New(device string) (Flasher, error) {
 func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	var selected *repo.DeviceMapping
 	if len(mapping.Sub) > 1 {
-		n := dialogs.SelectOneDialog("Please select a device type: ", mapping.GetSubsNames())
+		n := dialogs.SelectOneDialog("Please select device type: ", mapping.GetSubsNames())
 		selected = mapping.Sub[n]
 	} else if len(mapping.Sub) == 1 {
 		selected = mapping.Sub[0]
@@ -148,7 +126,7 @@ func selectDevice(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	return selectDevice(selected)
 }
 
-// selectImage is a dialog to select an image from the list if more than one, null is returned if nothing is to return
+// selectImage is a dialog to select an image from the list if more than one, nil is returned if nothing is to return
 func selectImage(mapping *repo.DeviceMapping) *repo.DeviceMapping {
 	selected := selectDevice(mapping)
 
