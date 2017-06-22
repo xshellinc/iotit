@@ -77,16 +77,19 @@ func (d *flasher) Prepare() error {
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
 	log.Debug("Configuring virtual box")
-	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
-	d.vbox = vbox
+	var err error
+	d.vbox, err = d.conf.GetVbox(d.device, d.Quiet)
+
 	if err != nil {
 		return err
 	}
+	log.WithField("name", d.vbox.Name).Info("Selected profile")
 
 	if d.vbox.State != virtualbox.Running {
 		fmt.Printf(`[+] Selected virtual machine
 	Name - `+dialogs.PrintColored("%s")+`
-	Description - `+dialogs.PrintColored("%s")+"\n", name, description)
+	Description - `+dialogs.PrintColored("%s")+"\n", d.vbox.Name, d.vbox.Description)
+
 		if err := d.startVM(); err != nil {
 			return err
 		}

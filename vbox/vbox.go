@@ -29,6 +29,13 @@ const (
 	VBoxConfFile = "iotit-vbox.json"
 )
 
+// vbox types
+const (
+	VBoxTypeDefault = iota
+	VBoxTypeNew
+	VBoxTypeUser
+)
+
 type (
 	// Config represents Vbox parameters with ssh and http configurations
 	Config struct {
@@ -315,23 +322,26 @@ func (vc *Config) USBDialog() {
 	}
 }
 
-// SetVbox creates custom virtualbox specs
-func SetVbox(vc *Config, device string) (*virtualbox.Machine, string, string, error) {
+// GetVbox applies default virtualbox specs or create new
+func (vc *Config) GetVbox(device string, quiet bool) (*virtualbox.Machine, error) {
 	conf := filepath.Join(repo.VboxDir, VBoxConfFile)
-	log.WithField("path", conf).Info("custom vbox config")
-	err := StopMachines()
+	log.WithField("path", conf).Debug("vbox config")
+	err := StopMachines(quiet)
 	help.ExitOnError(err)
 
 	a, err := virtualbox.GetMachine("iotit-box")
 
 	// Checks if the iotit box is running and skips setting section
 	if a.State == virtualbox.Running {
-		return a, a.Name, a.Description, err
+		return a, err
 	}
 
 	vboxs := vc.Enable(conf, VBoxName, device)
+	n := VBoxTypeDefault
 VBoxInit:
-	n := selectVboxPreset(conf, vboxs)
+	if !quiet {
+		n = selectVboxPreset(conf, vboxs)
+	}
 
 	switch n {
 	case VBoxTypeNew:
@@ -360,13 +370,13 @@ VBoxInit:
 
 		// get virtual machine
 		m, err := result.Machine()
-		return m, result.GetName(), result.GetDescription(), err
+		return m, err
 
 	default:
 		fallthrough
 	case VBoxTypeDefault:
 		m, err := virtualbox.GetMachine(VBoxName)
-		return m, m.Name, "", err
+		return m, err
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
-	"os"
+	"github.com/xshellinc/tools/lib/help"
 )
 
 // badRepoError is an error message
@@ -45,9 +45,7 @@ func Flash(args []string, quiet bool) {
 
 	if len(typeArg) > 0 {
 		if d, err := repo.GetDeviceRepo(typeArg); err != nil {
-			log.Error(err)
-			fmt.Println("[-]", typeArg, "device is not supported")
-			os.Exit(1)
+			help.ExitOnError(err)
 		} else {
 			deviceType = d.Name
 		}
@@ -132,9 +130,7 @@ func getFlasher(device, image string, quiet bool) (Flasher, error) {
 		}
 		if len(image) > 0 {
 			if err := r.FindImage(image); err != nil {
-				log.Error(err)
-				fmt.Println("[-]", image, "unknonwn image")
-				os.Exit(1)
+				help.ExitOnError(err)
 			}
 			fmt.Println("[+] Using", r.Image.Title)
 		}

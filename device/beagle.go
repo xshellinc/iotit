@@ -31,10 +31,12 @@ func (d *beagleBone) Configure() error {
 		}
 	}()
 
-	if dialogs.YesNoDialog("Would you like to configure your board?") {
-		// setup while background process mounting img
-		if err := c.Setup(); err != nil {
-			return err
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			// setup while background process mounting img
+			if err := c.Setup(); err != nil {
+				return err
+			}
 		}
 	}
 

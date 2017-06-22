@@ -63,7 +63,7 @@ func main() {
 			Aliases: []string{"f"},
 			Usage:   "Flash image to the device",
 			Flags: []cli.Flag{
-				cli.BoolFlag{Name: "quiet", Usage: "Suppress questions and assume default answers"},
+				cli.BoolFlag{Name: "quiet, unattended, q", Usage: "Suppress questions and assume default answers"},
 			},
 			ArgsUsage: "[device image]",
 			Action: func(c *cli.Context) error {

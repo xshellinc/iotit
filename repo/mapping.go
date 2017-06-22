@@ -38,8 +38,6 @@ type deviceCollection struct {
 	Devices []DeviceMapping `json:"Devices"`
 }
 
-const missingRepo = "Device repo is missing"
-
 // Images repository URL
 const imagesRepo = "https://cdn.isaax.io/iotit/mapping.json"
 
@@ -70,13 +68,13 @@ func (d *DeviceMapping) GetImageTitles() []string {
 	return r
 }
 
-// Dir returns directory of a local repo `.iotit/images/{name}`
+// Dir - returns directory of a local repo `.iotit/images/{name}`
 func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
-func (d *DeviceMapping) FindImage(name string) error {
-	search := strings.ToLower(name)
+func (d *DeviceMapping) FindImage(image string) error {
+	search := strings.ToLower(image)
 	for _, obj := range d.Images {
 		if strings.ToLower(obj.Title) == search || obj.Alias == search {
 			d.Image = obj
@@ -84,7 +82,7 @@ func (d *DeviceMapping) FindImage(name string) error {
 		}
 	}
 
-	return errors.New(missingRepo)
+	return errors.New(image + " unknown image")
 }
 
 // findDevice searches device in the repo
@@ -98,7 +96,7 @@ func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 		}
 	}
 
-	return nil, errors.New(missingRepo)
+	return nil, errors.New(device + " device is not supported")
 }
 
 // DownloadDevicesRepository downloads new mapping.json from the cloud
@@ -180,15 +178,6 @@ func initDeviceCollection() error {
 func GenMappingFile() error {
 	DownloadDevicesRepository()
 	return nil
-}
-
-// IsMissingRepoError checks error if error is caused by missingRepo
-func IsMissingRepoError(err error) bool {
-	if err.Error() == missingRepo {
-		return true
-	}
-
-	return false
 }
 
 // fillEmptyImages updates substructures' empty image arrays with the parent one

@@ -99,9 +99,11 @@ func (d *sdFlasher) UnmountImg() error {
 
 // Flash method is used to flash image to the sdcard
 func (d *sdFlasher) Write() error {
-	if !dialogs.YesNoDialog("Proceed to image flashing?") {
-		log.Debug("Aborted")
-		return nil
+	if !d.Quiet {
+		if !dialogs.YesNoDialog("Proceed to image flashing?") {
+			log.Debug("Aborted")
+			return nil
+		}
 	}
 
 	help.DeleteFile(filepath.Join(help.GetTempDir(), d.img))
@@ -160,15 +162,16 @@ func (d *sdFlasher) Configure() error {
 	if err := d.MountImg(fmt.Sprintf("")); err != nil {
 		return err
 	}
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			if err := c.Setup(); err != nil {
+				return err
+			}
 
-	if dialogs.YesNoDialog("Would you like to configure your board?") {
-		if err := c.Setup(); err != nil {
-			return err
-		}
-
-		// write configs that were setup above
-		if err := c.Write(); err != nil {
-			return err
+			// write configs that were setup above
+			if err := c.Write(); err != nil {
+				return err
+			}
 		}
 	}
 

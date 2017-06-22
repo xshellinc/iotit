@@ -67,9 +67,11 @@ func (d *serialFlasher) Configure() error {
 
 // Flash method is used to flash image to the sdcard
 func (d *serialFlasher) Write() error {
-	if !dialogs.YesNoDialog("Proceed to firmware flashing?") {
-		log.Debug("Flash aborted")
-		return nil
+	if !d.Quiet {
+		if !dialogs.YesNoDialog("Proceed to firmware flashing?") {
+			log.Debug("Flash aborted")
+			return nil
+		}
 	}
 
 	espFlashOpts := esp.FlashOpts{}
