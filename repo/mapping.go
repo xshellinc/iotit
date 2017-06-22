@@ -75,6 +75,18 @@ func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
+func (d *DeviceMapping) FindImage(name string) error {
+	search := strings.ToLower(name)
+	for _, obj := range d.Images {
+		if strings.ToLower(obj.Title) == search || obj.Alias == search {
+			d.Image = obj
+			return nil
+		}
+	}
+
+	return errors.New(missingRepo)
+}
+
 // findDevice searches device in the repo
 func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	search := strings.ToLower(device)

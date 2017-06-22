@@ -25,6 +25,7 @@ type Flasher interface {
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
 type flasher struct {
+	Quiet   bool
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
 	devRepo *repo.DeviceMapping

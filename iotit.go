@@ -53,7 +53,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		device.Flash(c.Args().Get(0))
+		device.Flash(c.Args()[:], true)
 		return nil
 	}
 
@@ -62,8 +62,13 @@ func main() {
 			Name:    "flash",
 			Aliases: []string{"f"},
 			Usage:   "Flash image to the device",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "quiet", Usage: "Suppress questions and assume default answers"},
+			},
+			ArgsUsage: "[device image]",
 			Action: func(c *cli.Context) error {
-				device.Flash(c.Args().Get(0))
+				// cli.ShowCommandHelp(c, "flash")
+				device.Flash(c.Args()[:], c.Bool("quiet"))
 				return nil
 			},
 		},
