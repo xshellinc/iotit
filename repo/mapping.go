@@ -74,6 +74,7 @@ func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
+// FindImage - searches image in the repo
 func (d *DeviceMapping) FindImage(image string) error {
 	search := strings.ToLower(image)
 	for _, obj := range d.Images {
@@ -149,6 +150,7 @@ func GetAllRepos() ([]string, error) {
 	return str, nil
 }
 
+// GetRepo returns devices collection
 func GetRepo() *DeviceCollection {
 	if dm == nil {
 		if err := initDeviceCollection(); err != nil {

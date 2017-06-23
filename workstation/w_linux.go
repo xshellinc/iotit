@@ -96,7 +96,7 @@ func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
 	}
 
 	if !(len(out) > 0) {
-		return nil, fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again\n")
+		return nil, fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again")
 	}
 	l.workstation.mounts = out
 	return out, nil
@@ -158,7 +158,7 @@ func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				return nil, ferr
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
-				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again\n")
+				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again")
 			}
 		} else {
 			l.workstation.mount = dev

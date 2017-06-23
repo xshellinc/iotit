@@ -64,6 +64,7 @@ func Flash(args []string, port string, quiet bool) {
 	}
 }
 
+// ListMapping - print supported devices from mapping.json file
 func ListMapping() {
 	list := make(map[string]interface{})
 	dm := repo.GetRepo()

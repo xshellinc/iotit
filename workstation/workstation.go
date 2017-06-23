@@ -47,7 +47,7 @@ func (m *MountInfo) String() string {
 
 func (w *workstation) printDisks(ws WorkStation) {
 	var err error
-	disks := []*MountInfo{}
+	var disks []*MountInfo
 	if disks, err = ws.ListRemovableDisk(); err != nil {
 		fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 		return

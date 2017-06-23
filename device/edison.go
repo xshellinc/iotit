@@ -71,10 +71,9 @@ func (d *edison) Configure() error {
 	if d.IP == "" {
 		fmt.Println("[-] Can't configure board without knowing it's IP")
 		return nil
-	} else {
-		fmt.Println("[+] Using ", dialogs.PrintColored(d.IP))
 	}
 
+	fmt.Println("[+] Using ", dialogs.PrintColored(d.IP))
 	c.StoreValue("ip", d.IP)
 
 	fmt.Println("[+] Copying your id to the board using ssh-copy-id")
