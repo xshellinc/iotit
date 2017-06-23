@@ -70,13 +70,13 @@ func Flash(args []string, quiet bool) {
 func ListMapping() {
 	fmt.Println("Name (" + dialogs.PrintColored("alias") + ")")
 	list := make(map[string]interface{})
-	devices := repo.GetRepo()
-	for _, device := range devices {
+	dm := repo.GetRepo()
+	fmt.Println("File version:", dm.Version)
+	for _, device := range dm.Devices {
 		r, e := repo.GetDeviceRepo(device.Name)
 		if e != nil {
 			continue
 		}
-		// fmt.Println("Name\t\t\t\t" + dialogs.PrintColored("Alias"))
 		fmt.Print("Type: " + r.Name)
 		if len(r.Alias) > 0 {
 			fmt.Print(" (" + dialogs.PrintColored(r.Alias) + ")")
@@ -109,9 +109,7 @@ func ListMapping() {
 			}
 		}
 		list[device.Name+"["+dialogs.PrintColored(device.Alias)+"]"] = *r
-		//r.Name + "[" + dialogs.PrintColored(r.Alias) + "]"
 	}
-	// fmt.Println(list)
 }
 
 // getFlasher triggers select repository methods and initializes a new flasher
@@ -141,7 +139,7 @@ func getFlasher(device, image string, quiet bool) (Flasher, error) {
 		}
 	}
 
-	switch device {
+	switch r.Type {
 	case constants.DEVICE_TYPE_RASPBERRY:
 		i := &raspberryPi{&sdFlasher{flasher: &flasher{Quiet: quiet}}}
 		i.device = device

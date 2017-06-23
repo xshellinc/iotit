@@ -32,6 +32,7 @@ func (d *serialFlasher) Prepare() error {
 
 // Flash - override default flash
 func (d *serialFlasher) Flash() error {
+	log.Debug("Serial flasher")
 
 	if err := d.Prepare(); err != nil {
 		return err

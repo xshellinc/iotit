@@ -28,21 +28,23 @@ type DeviceMapping struct {
 	Alias  string           `json:"Alias,omitempty"`
 	Sub    []*DeviceMapping `json:"Sub,omitempty"`
 	Images []DeviceImage    `json:"Images,omitempty"`
+	Type   string
 
 	dir   string
 	Image DeviceImage
 }
 
 // deviceCollection is a starting point of the collection of images
-type deviceCollection struct {
+type DeviceCollection struct {
 	Devices []DeviceMapping `json:"Devices"`
+	Version string          `json:"Version,omitempty"`
 }
 
 // Images repository URL
 const imagesRepo = "https://cdn.isaax.io/iotit/mapping.json"
 
 var path string
-var dm *deviceCollection
+var dm *DeviceCollection
 
 func init() {
 	path = filepath.Join(baseDir, "mapping.json")
@@ -86,13 +88,23 @@ func (d *DeviceMapping) FindImage(image string) error {
 }
 
 // findDevice searches device in the repo
-func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
+func (d *DeviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	search := strings.ToLower(device)
 	for _, obj := range d.Devices {
 		obj.dir = obj.Name
+		obj.Type = obj.Name
 		if strings.ToLower(obj.Name) == search || obj.Alias == search {
 			fillEmptyImages(&obj)
 			return &obj, nil
+		}
+		if len(obj.Sub) > 0 {
+			for _, sub := range obj.Sub {
+				sub.dir = obj.Name
+				sub.Type = obj.Name
+				if strings.ToLower(sub.Name) == search || sub.Alias == search {
+					return sub, nil
+				}
+			}
 		}
 	}
 
@@ -138,13 +150,13 @@ func GetAllRepos() ([]string, error) {
 	return str, nil
 }
 
-func GetRepo() []DeviceMapping {
+func GetRepo() *DeviceCollection {
 	if dm == nil {
 		if err := initDeviceCollection(); err != nil {
-			return []DeviceMapping{}
+			return &DeviceCollection{}
 		}
 	}
-	return dm.Devices
+	return dm
 }
 
 // GetDeviceRepo returns a devices repo. It checks the existence of mapping.json first then proceeds to the default variable
@@ -160,7 +172,7 @@ func GetDeviceRepo(device string) (*DeviceMapping, error) {
 
 // initDeviceCollection initializes deviceCollection from file, alternatively from the internal constant
 func initDeviceCollection() error {
-	dm = &deviceCollection{}
+	dm = &DeviceCollection{}
 
 	d, err := ioutil.ReadFile(path)
 	if err != nil {

@@ -184,6 +184,7 @@ func (d *sdFlasher) Configure() error {
 
 // Flash configures and flashes image
 func (d *sdFlasher) Flash() error {
+	log.Debug("SD flasher")
 
 	if err := d.Prepare(); err != nil {
 		return err
