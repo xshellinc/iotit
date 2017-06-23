@@ -33,7 +33,7 @@ const (
 
 type edison struct {
 	*flasher
-	ip string
+	IP string
 }
 
 // Flash - override default flasher cause configure happens after flashing for edison
@@ -62,19 +62,23 @@ func (d *edison) Configure() error {
 	c.AddConfigFn(config.Interface, config.NewCallbackFn(setupInterface, nil))
 	c.AddConfigFn("xIotit", config.NewCallbackFn(setupIotit, nil))
 
-	if err := d.getIPAddress(); err != nil {
-		log.Error(err)
+	if len(d.IP) == 0 {
+		if err := d.getIPAddress(); err != nil {
+			log.Error(err)
+		}
 	}
 
-	if d.ip == "" {
+	if d.IP == "" {
 		fmt.Println("[-] Can't configure board without knowing it's IP")
 		return nil
+	} else {
+		fmt.Println("[+] Using ", dialogs.PrintColored(d.IP))
 	}
 
-	c.StoreValue("ip", d.ip)
+	c.StoreValue("ip", d.IP)
 
 	fmt.Println("[+] Copying your id to the board using ssh-copy-id")
-	help.ExecStandardStd("ssh-copy-id", []string{"root@" + d.ip}...)
+	help.ExecStandardStd("ssh-copy-id", []string{"root@" + d.IP}...)
 	time.Sleep(time.Second * 4)
 
 	if err := c.Setup(); err != nil {
@@ -140,7 +144,7 @@ func (d *edison) getIPAddress() error {
 
 			}
 
-			d.ip = "192.168.2.15"
+			d.IP = "192.168.2.15"
 		}
 	}
 
@@ -148,10 +152,10 @@ func (d *edison) getIPAddress() error {
 		if runtime.GOOS != windows {
 			fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} " + dialogs.PrintColored("192.168.2.2") + "` in order to access Edison at " + dialogs.PrintColored("192.168.2.15"))
 		}
-		d.ip = dialogs.GetSingleAnswer("Input Edison board IP Address (default: 192.168.2.15): ", dialogs.IpAddressValidator)
+		d.IP = dialogs.GetSingleAnswer("Input Edison board IP Address (default: 192.168.2.15): ", dialogs.IpAddressValidator)
 	}
 
-	if err := help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), d.ip); err != nil {
+	if err := help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), d.IP); err != nil {
 		log.Error(err)
 	}
 

@@ -27,7 +27,7 @@ var devices = [...]string{
 }
 
 // Flash starts flashing process
-func Flash(args []string, quiet bool) {
+func Flash(args []string, port string, quiet bool) {
 	log.WithField("args", args).Info("DeviceInit")
 	typeArg := ""
 	imgArg := ""
@@ -55,7 +55,7 @@ func Flash(args []string, quiet bool) {
 
 	fmt.Println("[+] Flashing", deviceType)
 
-	flasher, err := getFlasher(deviceType, imgArg, quiet)
+	flasher, err := getFlasher(deviceType, imgArg, port, quiet)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
@@ -113,7 +113,7 @@ func ListMapping() {
 }
 
 // getFlasher triggers select repository methods and initializes a new flasher
-func getFlasher(device, image string, quiet bool) (Flasher, error) {
+func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 	var r *repo.DeviceMapping
 
 	if device == customFlash {
@@ -141,29 +141,29 @@ func getFlasher(device, image string, quiet bool) (Flasher, error) {
 
 	switch r.Type {
 	case constants.DEVICE_TYPE_RASPBERRY:
-		i := &raspberryPi{&sdFlasher{flasher: &flasher{Quiet: quiet}}}
+		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet}, port}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_BEAGLEBONE:
-		i := &beagleBone{&sdFlasher{flasher: &flasher{Quiet: quiet}}}
+		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet}, port}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{flasher: &flasher{Quiet: quiet}}
+		i := &edison{flasher: &flasher{Quiet: quiet}, IP: port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_ESP:
-		i := &serialFlasher{flasher: &flasher{Quiet: quiet}}
+		i := &serialFlasher{&flasher{Quiet: quiet}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_NANOPI:
 		fallthrough
 	default:
-		i := &sdFlasher{flasher: &flasher{Quiet: quiet}}
+		i := &sdFlasher{&flasher{Quiet: quiet}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil

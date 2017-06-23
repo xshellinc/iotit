@@ -16,11 +16,11 @@ import (
 const diskUtil = "diskutil"
 
 // Initializes default workstation
-func newWorkstation() WorkStation {
+func newWorkstation(disk string) WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
 
-	return &workstation{runtime.GOOS, true, m, ms}
+	return &workstation{disk, runtime.GOOS, true, m, ms}
 }
 
 const diskSelectionTries = 3
@@ -38,23 +38,35 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 			fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
 			continue
 		}
+		var dev *MountInfo
+		if len(d.Disk) == 0 {
+			fmt.Println("[+] Available mounts: ")
 
-		fmt.Println("[+] Available mounts: ")
-
-		rng := make([]string, len(d.mounts))
-		for i, e := range d.mounts {
-			rng[i] = fmt.Sprintf("\x1b[34m%s\x1b[0m - \x1b[34m%s\x1b[0m", e.deviceName, e.diskName)
+			rng := make([]string, len(d.mounts))
+			for i, e := range d.mounts {
+				rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), e.deviceName, e.diskName)
+			}
+			num := dialogs.SelectOneDialog("Select mount to format: ", rng)
+			dev = d.mounts[num]
+		} else {
+			for _, e := range d.mounts {
+				if e.diskName == d.Disk {
+					dev = e
+					break
+				}
+			}
+			if dev == nil {
+				return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+			}
 		}
-		num := dialogs.SelectOneDialog("Select mount to format: ", rng)
-		dev := d.mounts[num]
 
 		if ok, ferr := help.FileModeMask(dev.diskNameRaw, 0200); !ok || ferr != nil {
 			if ferr != nil {
 				log.Error(ferr)
-				break
+				return nil, ferr
 			} else {
 				fmt.Println("[-] Your card seems locked. Please unlock your SD card")
-				err = fmt.Errorf("your card seems locked")
+				err = fmt.Errorf("[-] Your card seems locked.\n[-]  Please unlock your SD card and start command again\n")
 			}
 		} else {
 			d.mount = dev
@@ -66,80 +78,80 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 		return nil, err
 	}
 
-	if dialogs.YesNoDialog("Are you sure? ") {
-		fmt.Printf("[+] Writing %s to %s\n", img, d.mount.diskName)
-		fmt.Println("[+] You may need to enter your OS X user password")
-
-		job = help.NewBackgroundJob()
-
-		go func() {
-			defer job.Close()
-
-			args := []string{
-				diskUtil,
-				"unmountDisk",
-				d.mount.diskName,
-			}
-
-			var err error
-			for attempt := 0; attempt < writeAttempts; attempt++ {
-				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
-					break
-				}
-				job.Active(true)
-
-				var eut []byte
-				if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-
-					job.Active(false)
-					fmt.Println("\r[-] Can't unmount disk. Please make sure your password is correct and press Enter to retry")
-					fmt.Print("\r[-] ", string(eut))
-				} else {
-					break
-				}
-			}
-
-			if err != nil {
-				job.Error(err)
-				return
-			}
-
-			args = []string{
-				"dd",
-				fmt.Sprintf("if=%s", img),
-				fmt.Sprintf("of=%s", d.mount.diskNameRaw),
-				"bs=1048576",
-			}
-
-			for attempt := 0; attempt < writeAttempts; attempt++ {
-				if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
-					break
-				}
-				job.Active(true)
-
-				var eut []byte
-				if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-					job.Active(false)
-					fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct")
-					fmt.Println("\r[-] ", string(eut))
-				} else {
-					job.Active(false)
-					fmt.Printf("\r[+] Done writing %s to %s \n", img, d.mount.diskName)
-					break
-				}
-			}
-
-			if err != nil {
-				job.Error(err)
-			}
-		}()
-
-		d.writable = true
-		return job, nil
+	if len(d.Disk) == 0 && !dialogs.YesNoDialog("Are you sure? ") {
+		d.writable = false
+		return nil, nil
 	}
 
-	d.writable = false
-	return nil, nil
+	fmt.Printf("[+] Writing %s to %s\n", img, d.mount.diskName)
+	fmt.Println("[+] You may need to enter your OS X user password")
+
+	job = help.NewBackgroundJob()
+
+	go func() {
+		defer job.Close()
+
+		args := []string{
+			diskUtil,
+			"unmountDisk",
+			d.mount.diskName,
+		}
+
+		var err error
+		for attempt := 0; attempt < writeAttempts; attempt++ {
+			if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+				break
+			}
+			job.Active(true)
+
+			var eut []byte
+			if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+
+				job.Active(false)
+				fmt.Println("\r[-] Can't unmount disk. Please make sure your password is correct and press Enter to retry")
+				fmt.Print("\r[-] ", string(eut))
+			} else {
+				break
+			}
+		}
+
+		if err != nil {
+			job.Error(err)
+			return
+		}
+
+		args = []string{
+			"dd",
+			fmt.Sprintf("if=%s", img),
+			fmt.Sprintf("of=%s", d.mount.diskNameRaw),
+			"bs=1048576",
+		}
+
+		for attempt := 0; attempt < writeAttempts; attempt++ {
+			if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+				break
+			}
+			job.Active(true)
+
+			var eut []byte
+			if _, eut, err = sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+				job.Active(false)
+				fmt.Println("\r[-] Can't write to disk. Please make sure your password is correct")
+				fmt.Println("\r[-] ", string(eut))
+			} else {
+				job.Active(false)
+				fmt.Printf("\r[+] Done writing %s to %s \n", img, d.mount.diskName)
+				break
+			}
+		}
+
+		if err != nil {
+			job.Error(err)
+		}
+	}()
+
+	d.writable = true
+	return job, nil
 }
 
 // Lists available mounts
@@ -244,4 +256,8 @@ func (d *workstation) Unmount() error {
 // CleanDisk does nothing on macOS
 func (d *workstation) CleanDisk() error {
 	return nil
+}
+
+func (d *workstation) PrintDisks() {
+	d.printDisks(d)
 }

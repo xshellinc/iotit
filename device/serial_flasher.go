@@ -16,17 +16,19 @@ import (
 // serialFlasher is used for esp modules
 type serialFlasher struct {
 	*flasher
-	port string
+	Port string
 }
 
 func (d *serialFlasher) Prepare() error {
-	fmt.Println("[+] Enumerating serial ports...")
-	port, err := serialport.GetPort("auto")
-	if err != nil {
-		return err
+	if len(d.Port) == 0 {
+		fmt.Println("[+] Enumerating serial ports...")
+		port, err := serialport.GetPort("auto")
+		if err != nil {
+			return err
+		}
+		d.Port = port
 	}
-	d.port = port
-	fmt.Println("[+] Using ", dialogs.PrintColored(d.port))
+	fmt.Println("[+] Using ", dialogs.PrintColored(d.Port))
 	return nil
 }
 
@@ -51,16 +53,21 @@ func (d *serialFlasher) Flash() error {
 
 // Configure method overrides generic flasher
 func (d *serialFlasher) Configure() error {
-	c := config.New(d.conf.SSH)
-	c.StoreValue("port", d.port)
-	c.AddConfigFn(config.Wifi, config.NewCallbackFn(setWifi, saveWifi))
+	log.WithField("device", "serial").Debug("Configure")
+	fmt.Println("[+] Configuring...")
 
-	if err := c.Setup(); err != nil {
-		return err
-	}
+	if !d.Quiet {
+		c := config.New(d.conf.SSH)
+		c.StoreValue("port", d.Port)
+		c.AddConfigFn(config.Wifi, config.NewCallbackFn(setWifi, saveWifi))
 
-	if err := c.Write(); err != nil {
-		return err
+		if err := c.Setup(); err != nil {
+			return err
+		}
+
+		if err := c.Write(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -76,7 +83,7 @@ func (d *serialFlasher) Write() error {
 	}
 
 	espFlashOpts := esp.FlashOpts{}
-	espFlashOpts.ControlPort = d.port
+	espFlashOpts.ControlPort = d.Port
 	espFlashOpts.BaudRate = 460800
 	espFlashOpts.BootFirmware = true
 	espFlashOpts.MinimizeWrites = true

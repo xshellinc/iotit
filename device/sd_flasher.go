@@ -20,6 +20,7 @@ import (
 // sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
 	*flasher
+	Disk string
 }
 
 // MountImg is a method to attach image to loop and mount it
@@ -124,7 +125,7 @@ func (d *sdFlasher) Write() error {
 	}
 
 	fmt.Println("[+] Listing available disks...")
-	w := workstation.NewWorkStation()
+	w := workstation.NewWorkStation(d.Disk)
 	img := filepath.Join(help.GetTempDir(), d.img)
 
 	log.WithField("img", img).Debug("Writing image to disk")
