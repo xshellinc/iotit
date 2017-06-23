@@ -11,7 +11,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -149,7 +148,7 @@ func (d *sdFlasher) Write() error {
 		log.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
+	if err := d.conf.Stop(d.Quiet); err != nil {
 		log.Error(err)
 	}
 
@@ -224,7 +223,7 @@ func (d *sdFlasher) Done() error {
 		fmt.Printf("\t\t ssh username: "+dialogs.PrintColored("%s")+" password: "+dialogs.PrintColored("%s")+"\n",
 			d.devRepo.Image.User, d.devRepo.Image.Pass)
 	}
-	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 
 	return nil
 }

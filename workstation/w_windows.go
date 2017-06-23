@@ -43,7 +43,7 @@ func newWorkstation(disk string) WorkStation {
 }
 
 // Lists available mounts
-func (w *windows) ListRemovableDisk() error {
+func (w *windows) ListRemovableDisk() []*MountInfo {
 	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
 
@@ -85,7 +85,7 @@ func (w *windows) ListRemovableDisk() error {
 		return fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
 	}
 	w.workstation.mounts = out
-	return nil
+	return out
 }
 
 // Unmounts the disk
@@ -180,7 +180,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 				log.WithField("out", sout).Debug("dd finished")
 				if strings.Contains(sout, "Error ") {
 					if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
-						fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
+						fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You may need to run this tool with `clean` argument to clean your disk partition table before applying image.")
 						if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
 							if derr := w.CleanDisk(); derr != nil {
 								fmt.Println("[-] Disk cleaning failed:", derr)

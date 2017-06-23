@@ -33,11 +33,8 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 			break
 		}
 
-		err = d.ListRemovableDisk()
-		if err != nil {
-			fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
-			continue
-		}
+		d.ListRemovableDisk()
+
 		var dev *MountInfo
 		if len(d.Disk) == 0 {
 			fmt.Println("[+] Available mounts: ")
@@ -155,7 +152,7 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 }
 
 // Lists available mounts
-func (d *workstation) ListRemovableDisk() error {
+func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
 	regex := regexp.MustCompile("^disk([0-9]+)$")
 	var (
 		devDisks []string
@@ -217,11 +214,11 @@ func (d *workstation) ListRemovableDisk() error {
 	}
 
 	if !(len(out) > 0) {
-		return fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
+		return nil, fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
 	}
 
 	d.mounts = out
-	return nil
+	return out, nil
 }
 
 // Ejects the mounted disk

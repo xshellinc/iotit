@@ -30,7 +30,7 @@ func newWorkstation(disk string) WorkStation {
 }
 
 // Lists available mounts
-func (l *linux) ListRemovableDisk() error {
+func (l *linux) ListRemovableDisk() []*MountInfo {
 	regex := regexp.MustCompile(`(sd[a-z])$`)
 	regexMmcblk := regexp.MustCompile(`(mmcblk[0-9])$`)
 	var (
@@ -99,7 +99,7 @@ func (l *linux) ListRemovableDisk() error {
 		return fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again\n")
 	}
 	l.workstation.mounts = out
-	return nil
+	return out
 }
 
 // Unmounts the disk

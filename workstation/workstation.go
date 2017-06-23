@@ -3,13 +3,12 @@ package workstation
 import (
 	"fmt"
 
-	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
 // WorkStation is your computer's Operating System, which should perform specific actions
 type WorkStation interface {
-	ListRemovableDisk() error
+	ListRemovableDisk() ([]*MountInfo, error)
 	Unmount() error
 	WriteToDisk(img string) (job *help.BackgroundJob, err error)
 	Eject() error
@@ -42,22 +41,18 @@ func NewWorkStation(disk string) WorkStation {
 
 // Stringer method
 func (m *MountInfo) String() string {
-	return fmt.Sprintf("DiskName=%s\n\tdeviceName=%s\n\tdiskNameRaw=%s\n\tdeviceSize=%s",
-		m.diskName, m.deviceName, m.diskNameRaw, m.deviceSize)
-}
-
-func (w *workstation) GetAvailableDisks(ws WorkStation) []*MountInfo {
-	if len(w.mounts) == 0 {
-		if err := ws.ListRemovableDisk(); err != nil {
-			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
-			return []*MountInfo{}
-		}
-	}
-	return w.mounts
+	return fmt.Sprintf("DeviceName=%s\nDiskName=%s\nDiskNameRaw=%s\nDeviceSize=%s",
+		m.deviceName, m.diskName, m.diskNameRaw, m.deviceSize)
 }
 
 func (w *workstation) printDisks(ws WorkStation) {
-	for _, disk := range w.GetAvailableDisks(ws) {
-		fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), disk.deviceName, disk.diskName, disk.diskNameRaw)
+	var err error
+	disks := []*MountInfo{}
+	if disks, err = ws.ListRemovableDisk(); err != nil {
+		fmt.Println("[-] SD card not found, please insert an unlocked SD card")
+		return
+	}
+	for _, disk := range disks {
+		fmt.Println(disk.String())
 	}
 }

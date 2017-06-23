@@ -22,23 +22,6 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-// Stop stops VM
-func Stop(name string) error {
-	m, err := virtualbox.GetMachine(name)
-	if err != nil {
-		return err
-	}
-
-	if dialogs.YesNoDialog("Would you like to stop the virtual machine?") {
-		fmt.Println("[+] Stopping virtual machine")
-		if err := m.Poweroff(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // CheckMachine checks if any vbox is running with the ability to power-off
 // After that imports and runs the vbox image according to the selected device type
 func CheckMachine(machine string) error {

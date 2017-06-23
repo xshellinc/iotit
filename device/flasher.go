@@ -217,7 +217,7 @@ func (d *flasher) Flash() error {
 
 // Done prints out final success message
 func (d *flasher) Done() error {
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
+	if err := d.conf.Stop(d.Quiet); err != nil {
 		log.Error(err)
 	}
 	fmt.Println("\t\t ...                      .................    ..                ")
@@ -233,6 +233,6 @@ func (d *flasher) Done() error {
 	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
 	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
 	fmt.Println("\n\t\t Flashing Complete!")
-	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 	return nil
 }

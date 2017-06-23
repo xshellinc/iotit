@@ -247,6 +247,25 @@ func (vc *Config) GetUSBs() (usb, ehci, xhci OnOff) {
 	return vc.Option.USB.USB, vc.Option.USB.USBType.EHCI, vc.Option.USB.USBType.XHCI
 }
 
+// Stop stops VM
+func (vc *Config) Stop(quiet bool) error {
+	m, err := virtualbox.GetMachine(vc.UUID)
+	if err != nil {
+		return err
+	}
+
+	if !quiet && !dialogs.YesNoDialog("Would you like to stop the virtual machine?") {
+		return nil
+	}
+
+	fmt.Println("[+] Stopping virtual machine")
+	if err := m.Poweroff(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Virtualbox dialogs
 func onoff() OnOff {
 	var a = []string{"on", "off"}
