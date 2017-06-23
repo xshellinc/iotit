@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -102,6 +101,9 @@ func (d *DeviceCollection) findDevice(device string) (*DeviceMapping, error) {
 				sub.dir = obj.Name
 				sub.Type = obj.Name
 				if strings.ToLower(sub.Name) == search || sub.Alias == search {
+					if len(sub.Images) == 0 {
+						sub.Images = obj.Images
+					}
 					return sub, nil
 				}
 			}
@@ -115,12 +117,9 @@ func (d *DeviceCollection) findDevice(device string) (*DeviceMapping, error) {
 func DownloadDevicesRepository() {
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
 		log.Info("Checking for mapping.json updates...")
-		wg := &sync.WaitGroup{}
-		_, _, err := help.DownloadFromUrlWithAttemptsAsync(imagesRepo, baseDir, 3, wg)
-		if err != nil {
+		if err := help.DownloadFile(path, imagesRepo); err != nil {
 			log.Error(err)
 		}
-		wg.Wait()
 		// update file modification date so on the next run we don't try to download it again
 		if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
 			log.Error(err)

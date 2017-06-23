@@ -10,9 +10,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-// badRepoError is an error message
-const badRepoError = "Bad repository "
-
 // CustomFlash custom method enum
 const customFlash = "custom board"
 
@@ -68,10 +65,10 @@ func Flash(args []string, port string, quiet bool) {
 }
 
 func ListMapping() {
-	fmt.Println("Name (" + dialogs.PrintColored("alias") + ")")
 	list := make(map[string]interface{})
 	dm := repo.GetRepo()
-	fmt.Println("File version:", dm.Version)
+	fmt.Println("mapping.json version:", dm.Version)
+	fmt.Println("Devices and images listed as \"name (" + dialogs.PrintColored("alias") + ")\"")
 	for _, device := range dm.Devices {
 		r, e := repo.GetDeviceRepo(device.Name)
 		if e != nil {
@@ -130,13 +127,13 @@ func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 			if err := r.FindImage(image); err != nil {
 				help.ExitOnError(err)
 			}
-			fmt.Println("[+] Using", r.Image.Title)
 		}
 		if len(r.Image.URL) == 0 {
 			if r = selectImage(r); r == nil {
-				return nil, errors.New(badRepoError + device)
+				return nil, errors.New("Empty repository for " + device)
 			}
 		}
+		fmt.Println("[+] Using", r.Image.Title)
 	}
 
 	switch r.Type {

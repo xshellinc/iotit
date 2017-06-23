@@ -212,7 +212,7 @@
 			"Sub": [
 				{
 					"Name": "BeagleBone (*,*Black,*Blue,*Green,*Wireless)",
-					"Alias": "beaglebone",
+					"Alias": "bb",
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
@@ -232,7 +232,7 @@
 				},
 				{
 					"Name": "BeagleBoard-X15",
-					"Alias": "beagleboardx15",
+					"Alias": "bbx15",
 					"Images": [
 						{
 							"URL": "https://debian.beagleboard.org/images/bbx15-debian-8.6-lxqt-4gb-armhf-2016-11-06-4gb.img.xz",
@@ -245,7 +245,7 @@
 				},
 				{
 					"Name": "BeagleBoard-xM",
-					"Alias": "beagleboardxm",
+					"Alias": "bbxm",
 					"Images": [
 						{
 							"URL": "https://debian.beagleboard.org/images/bbxm-debian-8.6-lxqt-xm-4gb-armhf-2016-11-06-4gb.img.xz",
