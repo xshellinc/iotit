@@ -30,7 +30,7 @@ func newWorkstation(disk string) WorkStation {
 }
 
 // Lists available mounts
-func (l *linux) ListRemovableDisk() []*MountInfo {
+func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
 	regex := regexp.MustCompile(`(sd[a-z])$`)
 	regexMmcblk := regexp.MustCompile(`(mmcblk[0-9])$`)
 	var (
@@ -96,10 +96,10 @@ func (l *linux) ListRemovableDisk() []*MountInfo {
 	}
 
 	if !(len(out) > 0) {
-		return fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again\n")
+		return nil, fmt.Errorf("[-] No mounts found.\n[-] Please insert your SD card and start command again\n")
 	}
 	l.workstation.mounts = out
-	return out
+	return out, nil
 }
 
 // Unmounts the disk
@@ -124,11 +124,12 @@ func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			break
 		}
 
-		err = l.ListRemovableDisk()
+		_, err = l.ListRemovableDisk()
 		if err != nil {
 			fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
 			continue
 		}
+
 		var dev *MountInfo
 		if len(l.Disk) == 0 {
 			fmt.Println("[+] Available mounts: ")

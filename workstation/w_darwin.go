@@ -33,7 +33,11 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 			break
 		}
 
-		d.ListRemovableDisk()
+		_, err = d.ListRemovableDisk()
+		if err != nil {
+			fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+			continue
+		}
 
 		var dev *MountInfo
 		if len(d.Disk) == 0 {

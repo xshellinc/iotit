@@ -43,7 +43,7 @@ func newWorkstation(disk string) WorkStation {
 }
 
 // Lists available mounts
-func (w *windows) ListRemovableDisk() []*MountInfo {
+func (w *windows) ListRemovableDisk() ([]*MountInfo, error) {
 	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
 
@@ -82,10 +82,10 @@ func (w *windows) ListRemovableDisk() []*MountInfo {
 	}
 	log.WithField("out", out).Debug("got drives")
 	if !(len(out) > 0) {
-		return fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
+		return nil, fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
 	}
 	w.workstation.mounts = out
-	return out
+	return out, nil
 }
 
 // Unmounts the disk
@@ -108,7 +108,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 			break
 		}
 
-		err = w.ListRemovableDisk()
+		_, err = w.ListRemovableDisk()
 		if err != nil {
 			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 			continue
@@ -251,7 +251,7 @@ func (w *windows) CleanDisk() error {
 			break
 		}
 
-		if err := w.ListRemovableDisk(); err != nil {
+		if _, err := w.ListRemovableDisk(); err != nil {
 			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 			last = err
 			continue
