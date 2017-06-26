@@ -92,7 +92,41 @@ func main() {
 					Name:  "devices",
 					Usage: "List supported devices and images",
 					Action: func(c *cli.Context) error {
-						device.ListMapping()
+						list := device.ListMapping()
+						fmt.Println("Devices and images listed as \"name (" + dialogs.PrintColored("alias") + ")\"")
+						for _, item := range list {
+							fmt.Print("Type: " + item.Title)
+							if len(item.Alias) > 0 {
+								fmt.Print(" (" + dialogs.PrintColored(item.Alias) + ")")
+							}
+							fmt.Println()
+							if len(item.Models) == 0 {
+								fmt.Print("\tImages: ")
+								for title, alias := range item.Images {
+									fmt.Print(title)
+									if len(alias) > 0 {
+										fmt.Print(" (" + dialogs.PrintColored(alias) + ") ")
+									}
+								}
+								fmt.Println()
+							} else {
+								for _, sub := range item.Models {
+									fmt.Print("\tModel: " + sub.Title)
+									if len(sub.Alias) > 0 {
+										fmt.Print(" (" + dialogs.PrintColored(sub.Alias) + ")")
+									}
+									fmt.Println()
+									fmt.Print("\t\tImages: ")
+									for title, alias := range sub.Images {
+										fmt.Print(title)
+										if len(alias) > 0 {
+											fmt.Print(" (" + dialogs.PrintColored(alias) + ") ")
+										}
+									}
+									fmt.Println()
+								}
+							}
+						}
 						fmt.Println(dialogs.PrintColored("Examples"))
 						fmt.Println("\tiotit flash raspi lite")
 						fmt.Println("\tiotit flash nanopi2 android")

@@ -64,50 +64,51 @@ func Flash(args []string, port string, quiet bool) {
 	}
 }
 
+// ListItem is an item in supported devices list
+type ListItem struct {
+	Title  string
+	Alias  string
+	Images map[string]string
+	Models []ListItem
+}
+
 // ListMapping - print supported devices from mapping.json file
-func ListMapping() {
-	list := make(map[string]interface{})
+func ListMapping() []*ListItem {
+	list := []*ListItem{}
 	dm := repo.GetRepo()
 	fmt.Println("mapping.json version:", dm.Version)
-	fmt.Println("Devices and images listed as \"name (" + dialogs.PrintColored("alias") + ")\"")
 	for _, device := range dm.Devices {
 		r, e := repo.GetDeviceRepo(device.Name)
 		if e != nil {
 			continue
 		}
-		fmt.Print("Type: " + r.Name)
+		item := ListItem{}
+		item.Title = r.Name
 		if len(r.Alias) > 0 {
-			fmt.Print(" (" + dialogs.PrintColored(r.Alias) + ")")
+			item.Alias = r.Alias
 		}
-		fmt.Println()
 		if len(r.Sub) == 0 {
-			fmt.Print("\tImages: ")
+			item.Images = make(map[string]string)
 			for _, i := range r.Images {
-				fmt.Print(i.Title)
-				if len(i.Alias) > 0 {
-					fmt.Print(" (" + dialogs.PrintColored(i.Alias) + ") ")
-				}
+				item.Images[i.Title] = i.Alias
 			}
-			fmt.Println()
 		} else {
 			for _, sub := range r.Sub {
-				fmt.Print("\tModel: " + sub.Name)
+				model := ListItem{}
+				model.Title = sub.Name
 				if len(sub.Alias) > 0 {
-					fmt.Print(" (" + dialogs.PrintColored(sub.Alias) + ")")
+					model.Alias = sub.Alias
 				}
-				fmt.Println()
-				fmt.Print("\t\tImages: ")
+				model.Images = make(map[string]string)
 				for _, i := range sub.Images {
-					fmt.Print(i.Title)
-					if len(i.Alias) > 0 {
-						fmt.Print(" (" + dialogs.PrintColored(i.Alias) + ") ")
-					}
+					model.Images[i.Title] = i.Alias
 				}
-				fmt.Println()
+				item.Models = append(item.Models, model)
 			}
 		}
-		list[device.Name+"["+dialogs.PrintColored(device.Alias)+"]"] = *r
+		list = append(list, &item)
 	}
+	return list
 }
 
 // getFlasher triggers select repository methods and initializes a new flasher
