@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sync"
+	"strings"
 	"time"
 )
 
@@ -27,23 +27,23 @@ type DeviceMapping struct {
 	Alias  string           `json:"Alias,omitempty"`
 	Sub    []*DeviceMapping `json:"Sub,omitempty"`
 	Images []DeviceImage    `json:"Images,omitempty"`
+	Type   string
 
 	dir   string
 	Image DeviceImage
 }
 
 // deviceCollection is a starting point of the collection of images
-type deviceCollection struct {
+type DeviceCollection struct {
 	Devices []DeviceMapping `json:"Devices"`
+	Version string          `json:"Version,omitempty"`
 }
-
-const missingRepo = "Device repo is missing"
 
 // Images repository URL
 const imagesRepo = "https://cdn.isaax.io/iotit/mapping.json"
 
 var path string
-var dm *deviceCollection
+var dm *DeviceCollection
 
 func init() {
 	path = filepath.Join(baseDir, "mapping.json")
@@ -69,34 +69,58 @@ func (d *DeviceMapping) GetImageTitles() []string {
 	return r
 }
 
-// Dir returns directory of a local repo `.iotit/images/{name}`
+// Dir - returns directory of a local repo `.iotit/images/{name}`
 func (d *DeviceMapping) Dir() string {
 	return filepath.Join(ImageDir, d.dir)
 }
 
-// findDevice searches device in the repo
-func (d *deviceCollection) findDevice(device string) (*DeviceMapping, error) {
-	for _, obj := range d.Devices {
-		obj.dir = obj.Name
-		if obj.Name == device || obj.Alias == device {
-			fillEmptyImages(&obj)
-			return &obj, nil
+// FindImage - searches image in the repo
+func (d *DeviceMapping) FindImage(image string) error {
+	search := strings.ToLower(image)
+	for _, obj := range d.Images {
+		if strings.ToLower(obj.Title) == search || obj.Alias == search {
+			d.Image = obj
+			return nil
 		}
 	}
 
-	return nil, errors.New(missingRepo)
+	return errors.New(image + " unknown image")
+}
+
+// findDevice searches device in the repo
+func (d *DeviceCollection) findDevice(device string) (*DeviceMapping, error) {
+	search := strings.ToLower(device)
+	for _, obj := range d.Devices {
+		obj.dir = obj.Name
+		obj.Type = obj.Name
+		if strings.ToLower(obj.Name) == search || obj.Alias == search {
+			fillEmptyImages(&obj)
+			return &obj, nil
+		}
+		if len(obj.Sub) > 0 {
+			for _, sub := range obj.Sub {
+				sub.dir = obj.Name
+				sub.Type = obj.Name
+				if strings.ToLower(sub.Name) == search || sub.Alias == search {
+					if len(sub.Images) == 0 {
+						sub.Images = obj.Images
+					}
+					return sub, nil
+				}
+			}
+		}
+	}
+
+	return nil, errors.New(device + " device is not supported")
 }
 
 // DownloadDevicesRepository downloads new mapping.json from the cloud
 func DownloadDevicesRepository() {
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
 		log.Info("Checking for mapping.json updates...")
-		wg := &sync.WaitGroup{}
-		_, _, err := help.DownloadFromUrlWithAttemptsAsync(imagesRepo, baseDir, 3, wg)
-		if err != nil {
+		if err := help.DownloadFile(path, imagesRepo); err != nil {
 			log.Error(err)
 		}
-		wg.Wait()
 		// update file modification date so on the next run we don't try to download it again
 		if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
 			log.Error(err)
@@ -126,13 +150,14 @@ func GetAllRepos() ([]string, error) {
 	return str, nil
 }
 
-func GetRepo() []DeviceMapping {
+// GetRepo returns devices collection
+func GetRepo() *DeviceCollection {
 	if dm == nil {
 		if err := initDeviceCollection(); err != nil {
-			return []DeviceMapping{}
+			return &DeviceCollection{}
 		}
 	}
-	return dm.Devices
+	return dm
 }
 
 // GetDeviceRepo returns a devices repo. It checks the existence of mapping.json first then proceeds to the default variable
@@ -148,7 +173,7 @@ func GetDeviceRepo(device string) (*DeviceMapping, error) {
 
 // initDeviceCollection initializes deviceCollection from file, alternatively from the internal constant
 func initDeviceCollection() error {
-	dm = &deviceCollection{}
+	dm = &DeviceCollection{}
 
 	d, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -166,15 +191,6 @@ func initDeviceCollection() error {
 func GenMappingFile() error {
 	DownloadDevicesRepository()
 	return nil
-}
-
-// IsMissingRepoError checks error if error is caused by missingRepo
-func IsMissingRepoError(err error) bool {
-	if err.Error() == missingRepo {
-		return true
-	}
-
-	return false
 }
 
 // fillEmptyImages updates substructures' empty image arrays with the parent one

@@ -1,4 +1,5 @@
 {
+	"Version": "2017-06-23-11:11:11",
 	"Devices": [
 		{
 			"Name": "raspberry-pi",
@@ -25,21 +26,21 @@
 			"Sub": [
 				{
 					"Name": "esp-32",
+					"Alias": "esp32",
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/32/firmata.zip",
-							"Title": "ESP-32 Firmata",
-							"Alias": "firmata"
+							"Title": "Firmata"
 						}
 					]
 				},
 				{
 					"Name": "esp-8266",
+					"Alias": "esp8266",
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/8266/firmata.zip",
-							"Title": "ESP-8266 Firmata",
-							"Alias": "firmata"
+							"Title": "Firmata"
 						}
 					]
 				}
@@ -50,6 +51,7 @@
 			"Images": [
 				{
 					"URL": "http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",
+					"Title": "IoT DevKit 20160606",
 					"Alias": "default",
 					"User": "root"
 				}
@@ -91,14 +93,14 @@
 					"Alias": "nanopim1",
 					"Images": [
 						{
-							"URL": "http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+							"URL": "http://www.mediafire.com/file/g7lar5ejkk4r9cv/nanopi-m1_ubuntu-core-xenial_4.11.2_20170531.img.zip",
 							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
 						},
 						{
-							"URL": "http://www.mediafire.com/file/kfihz987rf6s87d/nanopi-m1-debian-sd4g-20170204.img.zip",
+							"URL": "http://www.mediafire.com/file/c8caam1sy5ctavc/nanopi-m1_debian-jessie_4.11.2_20170531.img.zip",
 							"Title": "Debian",
 							"Alias": "debian",
 							"User": "root",
@@ -120,6 +122,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/hysi686cq89d9ll/nanopi-neo_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
@@ -132,6 +135,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/w2sp6pdwlj5l66j/nanopi-neo2_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
@@ -144,6 +148,7 @@
 					"Images": [
 						{
 							"URL": "http://www.mediafire.com/file/i4jq7fqfp55bqhh/nanopi-neo-air_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
 							"Alias": "ubuntu",
 							"User": "root",
 							"Pass": "fa"
@@ -207,7 +212,7 @@
 			"Sub": [
 				{
 					"Name": "BeagleBone (*,*Black,*Blue,*Green,*Wireless)",
-					"Alias": "beaglebone",
+					"Alias": "bb",
 					"Images": [
 						{
 							"URL": "https://cdn.isaax.io/isaax-distro/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
@@ -227,7 +232,7 @@
 				},
 				{
 					"Name": "BeagleBoard-X15",
-					"Alias": "beagleboardx15",
+					"Alias": "bbx15",
 					"Images": [
 						{
 							"URL": "https://debian.beagleboard.org/images/bbx15-debian-8.6-lxqt-4gb-armhf-2016-11-06-4gb.img.xz",
@@ -240,7 +245,7 @@
 				},
 				{
 					"Name": "BeagleBoard-xM",
-					"Alias": "beagleboardxm",
+					"Alias": "bbxm",
 					"Images": [
 						{
 							"URL": "https://debian.beagleboard.org/images/bbxm-debian-8.6-lxqt-xm-4gb-armhf-2016-11-06-4gb.img.xz",

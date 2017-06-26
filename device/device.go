@@ -10,9 +10,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-// badRepoError is an error message
-const badRepoError = "Bad repository "
-
 // CustomFlash custom method enum
 const customFlash = "custom board"
 
@@ -26,30 +23,36 @@ var devices = [...]string{
 	customFlash,
 }
 
-// Flash starts flashing process, either by receiving `typeFlag` or asking user to choose from a list
-func Flash(typeFlag string) {
-	log.WithField("type", typeFlag).Info("DeviceInit")
+// Flash starts flashing process
+func Flash(args []string, port string, quiet bool) {
+	log.WithField("args", args).Info("DeviceInit")
+	typeArg := ""
+	imgArg := ""
+	if len(args) > 0 {
+		typeArg = args[0]
+	}
+	if len(args) > 1 {
+		imgArg = args[1]
+	}
 
 	//once in 24h update mapping json
 	repo.DownloadDevicesRepository()
 
 	var deviceType string
 
-	if typeFlag != "" {
-		if help.StringToSlice(typeFlag, devices[:]) {
-			deviceType = typeFlag
+	if len(typeArg) > 0 {
+		if d, err := repo.GetDeviceRepo(typeArg); err != nil {
+			help.ExitOnError(err)
 		} else {
-			fmt.Println("[-]", typeFlag, "device is not supported")
+			deviceType = d.Name
 		}
-	}
-
-	if deviceType == "" {
+	} else {
 		deviceType = devices[dialogs.SelectOneDialog("Select device type: ", devices[:])]
 	}
 
 	fmt.Println("[+] Flashing", deviceType)
 
-	flasher, err := getFlasher(deviceType)
+	flasher, err := getFlasher(deviceType, imgArg, port, quiet)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
 		return
@@ -61,8 +64,55 @@ func Flash(typeFlag string) {
 	}
 }
 
+// ListItem is an item in supported devices list
+type ListItem struct {
+	Title  string
+	Alias  string
+	Images map[string]string
+	Models []ListItem
+}
+
+// ListMapping - print supported devices from mapping.json file
+func ListMapping() []*ListItem {
+	list := []*ListItem{}
+	dm := repo.GetRepo()
+	fmt.Println("mapping.json version:", dm.Version)
+	for _, device := range dm.Devices {
+		r, e := repo.GetDeviceRepo(device.Name)
+		if e != nil {
+			continue
+		}
+		item := ListItem{}
+		item.Title = r.Name
+		if len(r.Alias) > 0 {
+			item.Alias = r.Alias
+		}
+		if len(r.Sub) == 0 {
+			item.Images = make(map[string]string)
+			for _, i := range r.Images {
+				item.Images[i.Title] = i.Alias
+			}
+		} else {
+			for _, sub := range r.Sub {
+				model := ListItem{}
+				model.Title = sub.Name
+				if len(sub.Alias) > 0 {
+					model.Alias = sub.Alias
+				}
+				model.Images = make(map[string]string)
+				for _, i := range sub.Images {
+					model.Images[i.Title] = i.Alias
+				}
+				item.Models = append(item.Models, model)
+			}
+		}
+		list = append(list, &item)
+	}
+	return list
+}
+
 // getFlasher triggers select repository methods and initializes a new flasher
-func getFlasher(device string) (Flasher, error) {
+func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 	var r *repo.DeviceMapping
 
 	if device == customFlash {
@@ -75,37 +125,44 @@ func getFlasher(device string) (Flasher, error) {
 		if e != nil {
 			return nil, e
 		}
-
-		if r = selectImage(r); r == nil {
-			return nil, errors.New(badRepoError + device)
+		if len(image) > 0 {
+			if err := r.FindImage(image); err != nil {
+				help.ExitOnError(err)
+			}
 		}
+		if len(r.Image.URL) == 0 {
+			if r = selectImage(r); r == nil {
+				return nil, errors.New("Empty repository for " + device)
+			}
+		}
+		fmt.Println("[+] Using", r.Image.Title)
 	}
 
-	switch device {
+	switch r.Type {
 	case constants.DEVICE_TYPE_RASPBERRY:
-		i := &raspberryPi{&sdFlasher{flasher: &flasher{}}}
+		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet}, port}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_BEAGLEBONE:
-		i := &beagleBone{&sdFlasher{flasher: &flasher{}}}
+		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet}, port}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{flasher: &flasher{}}
+		i := &edison{flasher: &flasher{Quiet: quiet}, IP: port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_ESP:
-		i := &serialFlasher{flasher: &flasher{}}
+		i := &serialFlasher{&flasher{Quiet: quiet}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_NANOPI:
 		fallthrough
 	default:
-		i := &sdFlasher{flasher: &flasher{}}
+		i := &sdFlasher{&flasher{Quiet: quiet}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil

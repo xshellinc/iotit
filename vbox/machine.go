@@ -22,30 +22,6 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
-// vbox types
-const (
-	VBoxTypeDefault = iota
-	VBoxTypeNew
-	VBoxTypeUser
-)
-
-// Stop stops VM
-func Stop(name string) error {
-	m, err := virtualbox.GetMachine(name)
-	if err != nil {
-		return err
-	}
-
-	if dialogs.YesNoDialog("Would you like to stop the virtual machine?") {
-		fmt.Println("[+] Stopping virtual machine")
-		if err := m.Poweroff(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // CheckMachine checks if any vbox is running with the ability to power-off
 // After that imports and runs the vbox image according to the selected device type
 func CheckMachine(machine string) error {
@@ -111,7 +87,6 @@ func CheckMachine(machine string) error {
 		}
 		fmt.Println("[+] Done")
 	}
-	fmt.Println("[+] No problem!")
 	return nil
 }
 
@@ -343,12 +318,12 @@ func CheckUpdate() bool {
 }
 
 // StopMachines stops running machines
-func StopMachines() error {
+func StopMachines(quiet bool) error {
 	machines, err := virtualbox.ListMachines()
 	if err != nil {
 		return err
 	}
-	fmt.Println("[+] Checking running virtual machine")
+	log.Debug("Checking running virtual machine")
 	for _, m := range machines {
 		if m.State == virtualbox.Running {
 			var nameStr string
@@ -357,10 +332,11 @@ func StopMachines() error {
 			} else {
 				nameStr = "default"
 			}
-
-			if dialogs.YesNoDialog(fmt.Sprintf(dialogs.PrintColored("%s (%s)")+" is running, would like you stop this virtual machine?", m.Name, nameStr)) {
-				if err = m.Poweroff(); err != nil {
-					return err
+			if !quiet {
+				if dialogs.YesNoDialog(fmt.Sprintf(dialogs.PrintColored("%s (%s)")+" is running, would like you stop this virtual machine?", m.Name, nameStr)) {
+					if err = m.Poweroff(); err != nil {
+						return err
+					}
 				}
 			}
 		}

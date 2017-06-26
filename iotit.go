@@ -11,9 +11,9 @@ import (
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
-
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -53,7 +53,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		device.Flash(c.Args().Get(0))
+		device.Flash(c.Args()[:], "", true)
 		return nil
 	}
 
@@ -62,9 +62,87 @@ func main() {
 			Name:    "flash",
 			Aliases: []string{"f"},
 			Usage:   "Flash image to the device",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "quiet, unattended, q", Usage: "Suppress questions and assume default answers"},
+				cli.StringFlag{Name: "disk, d", Usage: "External disk or usb device"},
+				cli.StringFlag{Name: "port, p", Usage: "Serial port for connected device. " +
+					"If set to 'auto' first port will be used."},
+			},
+			ArgsUsage: "[device image]",
 			Action: func(c *cli.Context) error {
-				device.Flash(c.Args().Get(0))
+				if c.Args().Get(0) == "help" {
+					cli.ShowCommandHelp(c, "flash")
+					return nil
+				}
+				port := c.String("port")
+				disk := c.String("disk")
+				if len(disk) > 0 {
+					port = disk
+				}
+				device.Flash(c.Args()[:], port, c.Bool("quiet"))
 				return nil
+			},
+		},
+		{
+			Name:    "list",
+			Aliases: []string{"ls"},
+			Usage:   "List images, disks, ports",
+			Subcommands: []cli.Command{
+				{
+					Name:  "devices",
+					Usage: "List supported devices and images",
+					Action: func(c *cli.Context) error {
+						list := device.ListMapping()
+						fmt.Println("Devices and images listed as \"name (" + dialogs.PrintColored("alias") + ")\"")
+						for _, item := range list {
+							fmt.Print("Type: " + item.Title)
+							if len(item.Alias) > 0 {
+								fmt.Print(" (" + dialogs.PrintColored(item.Alias) + ")")
+							}
+							fmt.Println()
+							if len(item.Models) == 0 {
+								fmt.Print("\tImages: ")
+								for title, alias := range item.Images {
+									fmt.Print(title)
+									if len(alias) > 0 {
+										fmt.Print(" (" + dialogs.PrintColored(alias) + ") ")
+									}
+								}
+								fmt.Println()
+							} else {
+								for _, sub := range item.Models {
+									fmt.Print("\tModel: " + sub.Title)
+									if len(sub.Alias) > 0 {
+										fmt.Print(" (" + dialogs.PrintColored(sub.Alias) + ")")
+									}
+									fmt.Println()
+									fmt.Print("\t\tImages: ")
+									for title, alias := range sub.Images {
+										fmt.Print(title)
+										if len(alias) > 0 {
+											fmt.Print(" (" + dialogs.PrintColored(alias) + ") ")
+										}
+									}
+									fmt.Println()
+								}
+							}
+						}
+						fmt.Println(dialogs.PrintColored("Examples"))
+						fmt.Println("\tiotit flash raspi lite")
+						fmt.Println("\tiotit flash nanopi2 android")
+						fmt.Println("\tiotit flash esp32")
+						return nil
+					},
+				},
+				{
+					Name:  "disks",
+					Usage: "List external disks",
+					Action: func(c *cli.Context) error {
+						w := workstation.NewWorkStation("")
+						w.PrintDisks()
+						return nil
+					},
+				},
 			},
 		},
 		{
@@ -165,7 +243,7 @@ func main() {
 			Name:  "clean",
 			Usage: "*Windows only* Clean SD card partition table",
 			Action: func(c *cli.Context) error {
-				w := workstation.NewWorkStation()
+				w := workstation.NewWorkStation("")
 				if err := w.CleanDisk(); err != nil {
 					fmt.Println("[-] Error:", err)
 					return nil

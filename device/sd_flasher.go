@@ -11,7 +11,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -20,6 +19,7 @@ import (
 // sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
 	*flasher
+	Disk string
 }
 
 // MountImg is a method to attach image to loop and mount it
@@ -99,9 +99,11 @@ func (d *sdFlasher) UnmountImg() error {
 
 // Flash method is used to flash image to the sdcard
 func (d *sdFlasher) Write() error {
-	if !dialogs.YesNoDialog("Proceed to image flashing?") {
-		log.Debug("Aborted")
-		return nil
+	if !d.Quiet {
+		if !dialogs.YesNoDialog("Proceed to image flashing?") {
+			log.Debug("Aborted")
+			return nil
+		}
 	}
 
 	help.DeleteFile(filepath.Join(help.GetTempDir(), d.img))
@@ -122,7 +124,7 @@ func (d *sdFlasher) Write() error {
 	}
 
 	fmt.Println("[+] Listing available disks...")
-	w := workstation.NewWorkStation()
+	w := workstation.NewWorkStation(d.Disk)
 	img := filepath.Join(help.GetTempDir(), d.img)
 
 	log.WithField("img", img).Debug("Writing image to disk")
@@ -146,7 +148,7 @@ func (d *sdFlasher) Write() error {
 		log.Error("Error parsing mount option ", "error msg:", err.Error())
 	}
 
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
+	if err := d.conf.Stop(d.Quiet); err != nil {
 		log.Error(err)
 	}
 
@@ -160,15 +162,16 @@ func (d *sdFlasher) Configure() error {
 	if err := d.MountImg(fmt.Sprintf("")); err != nil {
 		return err
 	}
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			if err := c.Setup(); err != nil {
+				return err
+			}
 
-	if dialogs.YesNoDialog("Would you like to configure your board?") {
-		if err := c.Setup(); err != nil {
-			return err
-		}
-
-		// write configs that were setup above
-		if err := c.Write(); err != nil {
-			return err
+			// write configs that were setup above
+			if err := c.Write(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -181,6 +184,7 @@ func (d *sdFlasher) Configure() error {
 
 // Flash configures and flashes image
 func (d *sdFlasher) Flash() error {
+	log.Debug("SD flasher")
 
 	if err := d.Prepare(); err != nil {
 		return err
@@ -219,7 +223,7 @@ func (d *sdFlasher) Done() error {
 		fmt.Printf("\t\t ssh username: "+dialogs.PrintColored("%s")+" password: "+dialogs.PrintColored("%s")+"\n",
 			d.devRepo.Image.User, d.devRepo.Image.Pass)
 	}
-	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 
 	return nil
 }

@@ -28,6 +28,7 @@ type raspberryPi struct {
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
 	log.WithField("device", "raspi").Debug("Configure")
+	fmt.Println("[+] Configuring...")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
 	// replace default interface configuration with custom raspi configurator
@@ -46,10 +47,16 @@ func (d *raspberryPi) Configure() error {
 		}
 	}()
 
-	if dialogs.YesNoDialog("Would you like to configure your board?") {
-		// setup while background process mounting img
-		if err := c.Setup(); err != nil {
-			return err
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			// setup while background process mounting img
+			if err := c.Setup(); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := touchSSH(d.conf.SSH); err != nil {
+			fmt.Println("[-] Error:", err.Error())
 		}
 	}
 
@@ -170,30 +177,29 @@ func enablePiSSH(storage map[string]interface{}) error {
 		if !ok {
 			return errors.New("Cannot get ssh config")
 		}
-		command := fmt.Sprintf("touch %sssh", bootMount)
-		log.WithField("cmd", command).Debug("Enabling SSH")
-		if _, eut, err := ssh.Run(command); err != nil {
-			return errors.New(err.Error() + ":" + eut)
-		}
+		return touchSSH(ssh)
+	}
+	return nil
+}
+
+func touchSSH(ssh ssh_helper.Util) error {
+	fmt.Println("[+] Enabled SSH server.")
+	command := fmt.Sprintf("touch %sssh", bootMount)
+	log.WithField("cmd", command).Debug("Enabling SSH")
+	if _, eut, err := ssh.Run(command); err != nil {
+		return errors.New(err.Error() + ":" + eut)
 	}
 	return nil
 }
 
 // MountImg is a method to attach image to loop and mount it
 func (d *raspberryPi) MountBoot() error {
-	log.Debug("Mounting boot partition")
-	//check if image is attached?
-	// command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TmpDir, d.img))
-	// log.WithField("cmd", command).Debug("Attaching image loop device")
-	// if err := d.exec(command); err != nil {
-	// 	return err
-	// }
-
 	log.Debug("Creating tmp folder")
 	if err := d.exec(fmt.Sprintf("mkdir -p %s", bootMount)); err != nil {
 		return err
 	}
 
+	log.Debug("Mounting boot partition")
 	command := fmt.Sprintf("mount -o rw /dev/loop0%s %s", raspiBoot, bootMount)
 	log.WithField("cmd", command).Debug("Mounting boot folder")
 	if err := d.exec(command); err != nil {

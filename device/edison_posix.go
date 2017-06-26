@@ -45,7 +45,7 @@ func (d *edison) Write() error {
 		break
 	}
 
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
+	if err := d.conf.Stop(d.Quiet); err != nil {
 		log.Error(err)
 	}
 

@@ -36,19 +36,19 @@ type windows struct {
 }
 
 // Initializes windows workstation
-func newWorkstation() WorkStation {
+func newWorkstation(disk string) WorkStation {
 	m := new(MountInfo)
 	var ms []*MountInfo
-	return &windows{&workstation{runtime.GOOS, true, m, ms}, ""}
+	return &windows{&workstation{disk, runtime.GOOS, true, m, ms}, ""}
 }
 
 // Lists available mounts
-func (w *windows) ListRemovableDisk() error {
+func (w *windows) ListRemovableDisk() ([]*MountInfo, error) {
 	log.Debug("Listing disks...")
 	var out = []*MountInfo{}
 
 	// stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})
-	// ugly fix for windows 7 bug where `format:csv` is broken. Also go double escape quoted arguments.
+	// ugly fix for windows 7 bug where `format:csv` is broken. Also GO double escaping quoted arguments.
 	cmd := exec.Command(`cmd`)
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
 	cmd.SysProcAttr.CmdLine = `cmd /s /c "wmic diskdrive get DeviceID,index,InterfaceType,MediaType,Model,Size /format:"%WINDIR%\System32\wbem\en-US\csv""`
@@ -82,10 +82,10 @@ func (w *windows) ListRemovableDisk() error {
 	}
 	log.WithField("out", out).Debug("got drives")
 	if !(len(out) > 0) {
-		return fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
+		return nil, fmt.Errorf("[-] No removable disks found, please insert your SD card and try again.\n[-] Please remember to run this tool as an administrator.")
 	}
 	w.workstation.mounts = out
-	return nil
+	return out, nil
 }
 
 // Unmounts the disk
@@ -101,26 +101,37 @@ func (w *windows) Eject() error {
 const diskSelectionTries = 3
 const writeAttempts = 5
 
-// Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
+// WriteToDisk notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			break
 		}
 
-		err = w.ListRemovableDisk()
+		_, err = w.ListRemovableDisk()
 		if err != nil {
 			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 			continue
 		}
+		if len(w.Disk) == 0 {
+			rng := make([]string, len(w.workstation.mounts))
+			for i, e := range w.workstation.mounts {
+				rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), e.deviceName, e.diskName)
+			}
+			num := dialogs.SelectOneDialog("Select disk to use: ", rng)
 
-		rng := make([]string, len(w.workstation.mounts))
-		for i, e := range w.workstation.mounts {
-			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s"), e.deviceName, e.diskName)
+			w.workstation.mount = w.workstation.mounts[num]
+		} else {
+			for _, e := range w.workstation.mounts {
+				if e.diskName == w.Disk || e.diskNameRaw == w.Disk {
+					w.workstation.mount = e
+					break
+				}
+			}
+			if w.workstation.mount == nil {
+				return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+			}
 		}
-		num := dialogs.SelectOneDialog("Select disk to use: ", rng)
-
-		w.workstation.mount = w.workstation.mounts[num]
 		break
 	}
 
@@ -136,67 +147,68 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 		}
 	}
 
-	if dialogs.YesNoDialog("Are you sure? ") {
-		fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
+	if len(w.Disk) == 0 && !dialogs.YesNoDialog("Are you sure? ") {
+		return nil, nil
+	}
 
-		job = help.NewBackgroundJob()
+	fmt.Printf("[+] Writing %s to %s\n", img, w.workstation.mount.deviceName)
 
-		go func() {
-			defer job.Close()
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
 
-			var err error
-			// may be save state here? So if user canceled operation or error happened he wouldn't need to start the process from the beginning
-			for attempt := 0; attempt < writeAttempts; attempt++ {
-				if attempt > 0 {
-					if !dialogs.YesNoDialog("Retry flashing?") {
-						break
-					}
+		var err error
+		for attempt := 0; attempt < writeAttempts; attempt++ {
+			if attempt > 0 {
+				if !dialogs.YesNoDialog("Retry flashing?") {
+					break
 				}
-				job.Active(true)
-				var out []byte
-				if out, err = exec.Command(w.ddPath,
-					"--filter=removable",
-					fmt.Sprintf("if=%s", img),
-					fmt.Sprintf("of=%s", w.workstation.mount.diskName),
-					"bs=1M").CombinedOutput(); err != nil {
-					log.WithField("out", string(out)).Error("Error while executing: `", w.ddPath)
-					job.Active(false)
-					fmt.Println("\r[-] Can't write to disk.")
-				} else {
-					sout := string(out)
-					job.Active(false)
-					log.WithField("out", sout).Debug("dd finished")
-					if strings.Contains(sout, "Error ") {
-						if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
-							fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You can run this tool with `clean` to clean your disk before applying image.")
-							if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
-								if derr := w.CleanDisk(); derr != nil {
-									fmt.Println("[-] Disk cleaning failed:", derr)
-									continue
-								} else {
-									for !dialogs.YesNoDialog("[+] Disk formatted, now please reconnect the device. Type yes once you've done it.") {
-									}
+			}
+			job.Active(true)
+			var out []byte
+			if out, err = exec.Command(w.ddPath,
+				"--filter=removable",
+				fmt.Sprintf("if=%s", img),
+				fmt.Sprintf("of=%s", w.workstation.mount.diskName),
+				"bs=1M").CombinedOutput(); err != nil {
+				log.WithField("out", string(out)).Error("Error while executing: `", w.ddPath)
+				job.Active(false)
+				fmt.Println("\r[-] Can't write to disk.")
+			} else {
+				sout := string(out)
+				job.Active(false)
+				log.WithField("out", sout).Debug("dd finished")
+				if strings.Contains(sout, "Error ") {
+					if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
+						fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You may need to run this tool with `clean` argument to clean your disk partition table before applying image.")
+						if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
+							if derr := w.CleanDisk(); derr != nil {
+								fmt.Println("[-] Disk cleaning failed:", derr)
+								continue
+							} else {
+								for !dialogs.YesNoDialog("[+] Disk formatted, now please reconnect the device. Type yes once you've done it.") {
 								}
 							}
-							continue
-						} else {
-							fmt.Println(sout)
-							continue
 						}
+						continue
+					} else {
+						fmt.Println(sout)
+						continue
 					}
-					fmt.Printf("\r[+] Done writing %s to %s \n", img, w.workstation.mount.diskName)
-					return
 				}
+				fmt.Printf("\r[+] Done writing %s to %s \n", img, w.workstation.mount.diskName)
+				return
 			}
+		}
 
-			if err != nil {
-				job.Error(err)
-			}
-			job.Error(fmt.Errorf("Image wasn't flashed"))
-		}()
-		return job, nil
-	}
-	return nil, nil
+		if err != nil {
+			job.Error(err)
+		}
+
+		job.Error(fmt.Errorf("Image wasn't flashed"))
+	}()
+
+	return job, nil
 }
 
 func (w *windows) getDDBinary() error {
@@ -239,7 +251,7 @@ func (w *windows) CleanDisk() error {
 			break
 		}
 
-		if err := w.ListRemovableDisk(); err != nil {
+		if _, err := w.ListRemovableDisk(); err != nil {
 			fmt.Println("[-] SD card not found, please insert an unlocked SD card")
 			last = err
 			continue
@@ -276,4 +288,8 @@ func (w *windows) CleanDisk() error {
 		}
 	}
 	return nil
+}
+
+func (w *windows) PrintDisks() {
+	w.workstation.printDisks(w)
 }

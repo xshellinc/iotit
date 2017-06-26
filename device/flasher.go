@@ -25,6 +25,7 @@ type Flasher interface {
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
 type flasher struct {
+	Quiet   bool
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
 	devRepo *repo.DeviceMapping
@@ -76,16 +77,19 @@ func (d *flasher) Prepare() error {
 	d.conf = vbox.NewConfig(d.device)
 	// @todo change name and description
 	log.Debug("Configuring virtual box")
-	vbox, name, description, err := vbox.SetVbox(d.conf, d.device)
-	d.vbox = vbox
+	var err error
+	d.vbox, err = d.conf.GetVbox(d.device, d.Quiet)
+
 	if err != nil {
 		return err
 	}
+	log.WithField("name", d.vbox.Name).Info("Selected profile")
 
 	if d.vbox.State != virtualbox.Running {
 		fmt.Printf(`[+] Selected virtual machine
 	Name - `+dialogs.PrintColored("%s")+`
-	Description - `+dialogs.PrintColored("%s")+"\n", name, description)
+	Description - `+dialogs.PrintColored("%s")+"\n", d.vbox.Name, d.vbox.Description)
+
 		if err := d.startVM(); err != nil {
 			return err
 		}
@@ -213,7 +217,7 @@ func (d *flasher) Flash() error {
 
 // Done prints out final success message
 func (d *flasher) Done() error {
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
+	if err := d.conf.Stop(d.Quiet); err != nil {
 		log.Error(err)
 	}
 	fmt.Println("\t\t ...                      .................    ..                ")
@@ -229,6 +233,6 @@ func (d *flasher) Done() error {
 	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
 	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
 	fmt.Println("\n\t\t Flashing Complete!")
-	fmt.Println("\t\t If you have any question or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
 	return nil
 }
