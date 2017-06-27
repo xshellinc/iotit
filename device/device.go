@@ -23,8 +23,8 @@ var devices = [...]string{
 	customFlash,
 }
 
-// Flash starts flashing process
-func Flash(args []string, port string, quiet bool) {
+// New returns new Flasher instance
+func New(args []string, port string, quiet bool) Flasher {
 	log.WithField("args", args).Info("DeviceInit")
 	typeArg := ""
 	imgArg := ""
@@ -55,13 +55,9 @@ func Flash(args []string, port string, quiet bool) {
 	flasher, err := getFlasher(deviceType, imgArg, port, quiet)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
-		return
+		return nil
 	}
-
-	if err := flasher.Flash(); err != nil {
-		fmt.Println("[-] Error: ", err)
-		return
-	}
+	return flasher
 }
 
 // ListItem is an item in supported devices list

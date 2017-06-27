@@ -20,6 +20,10 @@ type beagleBone struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *beagleBone) Configure() error {
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+	log.WithField("device", "beaglebone").Debug("Configure")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
@@ -67,10 +71,6 @@ func (d *beagleBone) Configure() error {
 
 // Flash configures and flashes image
 func (d *beagleBone) Flash() error {
-
-	if err := d.Prepare(); err != nil {
-		return err
-	}
 
 	if err := d.Configure(); err != nil {
 		return err

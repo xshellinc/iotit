@@ -53,7 +53,14 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		device.Flash(c.Args()[:], "", true)
+		flasher := device.New(c.Args()[:], "", false)
+		if flasher == nil {
+			return nil
+		}
+		if err := flasher.Flash(); err != nil {
+			fmt.Println("[-] Error: ", err)
+			return err
+		}
 		return nil
 	}
 
@@ -79,7 +86,39 @@ func main() {
 				if len(disk) > 0 {
 					port = disk
 				}
-				device.Flash(c.Args()[:], port, c.Bool("quiet"))
+				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				if flasher == nil {
+					return nil
+				}
+				if err := flasher.Flash(); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:    "configure",
+			Aliases: []string{"c"},
+			Usage:   "Configure image or device",
+			Flags: []cli.Flag{
+				cli.StringFlag{Name: "disk, d", Usage: "External disk or usb device"},
+				cli.StringFlag{Name: "port, p", Usage: "Serial port for connected device. " +
+					"If set to 'auto' first port will be used."},
+			},
+			ArgsUsage: "[device image]",
+			Action: func(c *cli.Context) error {
+				port := c.String("port")
+				disk := c.String("disk")
+				if len(disk) > 0 {
+					port = disk
+				}
+				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				if flasher == nil {
+					return nil
+				}
+				if err := flasher.Configure(); err != nil {
+					return err
+				}
 				return nil
 			},
 		},

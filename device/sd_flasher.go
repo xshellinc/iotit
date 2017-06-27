@@ -157,6 +157,11 @@ func (d *sdFlasher) Write() error {
 
 // Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+
+	log.WithField("device", "SD").Debug("Configure")
 	c := config.NewDefault(d.conf.SSH)
 
 	if err := d.MountImg(fmt.Sprintf("")); err != nil {
@@ -185,10 +190,6 @@ func (d *sdFlasher) Configure() error {
 // Flash configures and flashes image
 func (d *sdFlasher) Flash() error {
 	log.Debug("SD flasher")
-
-	if err := d.Prepare(); err != nil {
-		return err
-	}
 
 	if err := d.Configure(); err != nil {
 		return err

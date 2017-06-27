@@ -21,6 +21,7 @@ import (
 // Flasher is an entity for flashing different devices
 type Flasher interface {
 	Flash() error
+	Configure() error
 }
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
@@ -70,6 +71,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 
 // PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
 func (d *flasher) Prepare() error {
+	log.Debug("Prepare")
 	if err := vbox.CheckVBInstalled(); err != nil {
 		return err
 	}

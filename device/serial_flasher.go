@@ -7,10 +7,12 @@ import (
 	"github.com/xshellinc/esp-flasher/esp"
 	espFlasher "github.com/xshellinc/esp-flasher/esp/flasher"
 	"github.com/xshellinc/esp-flasher/serialport"
+	"github.com/xshellinc/go-serial"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/dialogs"
-	"os/exec"
+	"github.com/xshellinc/tools/lib/ssh_helper"
 	"strings"
+	"time"
 )
 
 // serialFlasher is used for esp modules
@@ -20,6 +22,7 @@ type serialFlasher struct {
 }
 
 func (d *serialFlasher) Prepare() error {
+	log.Debug("Prepare")
 	if len(d.Port) == 0 {
 		fmt.Println("[+] Enumerating serial ports...")
 		port, err := serialport.GetPort("auto")
@@ -43,7 +46,7 @@ func (d *serialFlasher) Flash() error {
 	if err := d.Write(); err != nil {
 		return err
 	}
-
+	time.Sleep(time.Second * 3) // wait for the module to boot
 	if err := d.Configure(); err != nil {
 		return err
 	}
@@ -56,9 +59,27 @@ func (d *serialFlasher) Configure() error {
 	log.WithField("device", "serial").Debug("Configure")
 	fmt.Println("[+] Configuring...")
 
+	if len(d.Port) == 0 {
+		d.Prepare()
+	}
+
 	if !d.Quiet {
-		c := config.New(d.conf.SSH)
-		c.StoreValue("port", d.Port)
+		c := config.New(ssh_helper.New("", "", "", ""))
+		commonOpts := serial.OpenOptions{
+			BaudRate:              115200,
+			DataBits:              8,
+			ParityMode:            serial.PARITY_NONE,
+			StopBits:              1,
+			InterCharacterTimeout: 200.0,
+			PortName:              d.Port,
+		}
+		sc, err := serial.Open(commonOpts)
+		if err != nil {
+			return err
+		}
+		defer sc.Close()
+
+		c.StoreValue("port", sc)
 		c.AddConfigFn(config.Wifi, config.NewCallbackFn(setWifi, saveWifi))
 
 		if err := c.Setup(); err != nil {
@@ -68,6 +89,7 @@ func (d *serialFlasher) Configure() error {
 		if err := c.Write(); err != nil {
 			return err
 		}
+		fmt.Println("[+] Module configured")
 	}
 
 	return nil
@@ -115,27 +137,41 @@ func setWifi(storage map[string]interface{}) error {
 
 // SaveWifi is a default method to save wpa_supplicant for the wifi connection
 func saveWifi(storage map[string]interface{}) error {
-	port := storage["port"].(string)
+	port := storage["port"].(serial.Serial)
 
 	if _, ok := storage[config.Wifi+"_name"]; !ok {
 		return nil
 	}
 
-	command := fmt.Sprintf("stty -F %s 115200", port)
-	if err := exec.Command(command).Run(); err != nil {
+	if n, err := port.Write([]byte(fmt.Sprintf("wifi set ssid %s\r\n", storage[config.Wifi+"_name"]))); err != nil {
+		return err
+	} else {
+		log.Debug("Written:", n)
+	}
+	data := make([]byte, 10000)
+	if _, err := port.Read(data); err != nil {
 		return err
 	}
-
-	command = fmt.Sprintf("echo \"wifi set ssid %s\" > %s", port, storage[config.Wifi+"_name"])
-
-	if err := exec.Command(command).Run(); err != nil {
+	//  else {
+	// 	log.WithField("data", string(data)).Debug("Response")
+	// }
+	if n, err := port.Write([]byte(fmt.Sprintf("wifi set password %s\r\n", storage[config.Wifi+"_pass"]))); err != nil {
+		return err
+	} else {
+		log.Debug("Written:", n)
+	}
+	data = make([]byte, 10000)
+	if _, err := port.Read(data); err != nil {
 		return err
 	}
-
-	command = fmt.Sprintf("echo \"wifi set password %s\" > %s", port, storage[config.Wifi+"_pass"])
-	if err := exec.Command(command).Run(); err != nil {
+	if n, err := port.Write([]byte("wifi start\r\n")); err != nil {
+		return err
+	} else {
+		log.Debug("Written:", n)
+	}
+	data = make([]byte, 10000)
+	if _, err := port.Read(data); err != nil {
 		return err
 	}
-
 	return nil
 }

@@ -27,8 +27,13 @@ type raspberryPi struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+
 	log.WithField("device", "raspi").Debug("Configure")
 	fmt.Println("[+] Configuring...")
+
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
 	// replace default interface configuration with custom raspi configurator
@@ -77,15 +82,12 @@ func (d *raspberryPi) Configure() error {
 		return err
 	}
 
+	fmt.Println("[+] Image configured")
 	return nil
 }
 
 // Flash configures and flashes image
 func (d *raspberryPi) Flash() error {
-
-	if err := d.Prepare(); err != nil {
-		return err
-	}
 
 	if err := d.Configure(); err != nil {
 		return err

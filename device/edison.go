@@ -56,6 +56,7 @@ func (d *edison) Flash() error {
 
 // Configure method overrides generic flasher
 func (d *edison) Configure() error {
+	log.WithField("device", "edison").Debug("Configure")
 	c := config.New(d.conf.SSH)
 	c.AddConfigFn(config.Wifi, config.NewCallbackFn(setupWiFi, nil))
 	c.AddConfigFn(config.SSH, config.NewCallbackFn(enableEdisonSSH, nil))
