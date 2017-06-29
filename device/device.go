@@ -133,7 +133,9 @@ func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 		}
 		fmt.Println("[+] Using", r.Image.Title)
 	}
-
+	if r.Type == "" {
+		r.Type = device
+	}
 	switch r.Type {
 	case constants.DEVICE_TYPE_RASPBERRY:
 		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet}, port}}

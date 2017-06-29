@@ -129,6 +129,25 @@ func (d *serialFlasher) Write() error {
 	return err
 }
 
+// Done prints out final success message
+func (d *serialFlasher) Done() error {
+	fmt.Println("\t\t ...                      .................    ..                ")
+	fmt.Println("\t\t ...                      .................   ....    ...        ")
+	fmt.Println("\t\t ...                             ....                 ...        ")
+	fmt.Println("\t\t ...          .....              ....                 ...        ")
+	fmt.Println("\t\t ...       ...........           ....         ...     .......... ")
+	fmt.Println("\t\t ...      ...       ...          ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ...         ...         ....         ...     ...        ")
+	fmt.Println("\t\t ...     ....       ....         ....         ...      ...       ")
+	fmt.Println("\t\t ...      .....   .....          ....         ...      ....   .. ")
+	fmt.Println("\t\t ...         .......             ....         ...        ....... ")
+	fmt.Println("\n\t\t Flashing Complete!")
+	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+	return nil
+}
+
 func setWifi(storage map[string]interface{}) error {
 	storage[config.Wifi+"_name"] = dialogs.GetSingleAnswer("WiFi SSID name: ", dialogs.EmptyStringValidator)
 	storage[config.Wifi+"_pass"] = []byte(dialogs.WiFiPassword())
