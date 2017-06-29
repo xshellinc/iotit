@@ -1,0 +1,36 @@
+package: github.com/xshellinc/iotit
+import:
+- package: github.com/Sirupsen/logrus
+  version: ^1.0.0
+- package: github.com/mattn/go-pipeline
+- package: github.com/pborman/uuid
+  version: ^1.0.0
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/xshellinc/go-virtualbox
+  version: ^1.0.0
+- package: github.com/xshellinc/esp-flasher
+  subpackages:
+  - common
+  - esp
+  - esp/flasher
+  - serialport
+- package: github.com/xshellinc/go-serial
+- package: github.com/xshellinc/tools
+  subpackages:
+  - constants
+  - dialogs
+  - lib/help
+  - lib/ping
+  - lib/ssh_helper
+  - lib/sudo
+  - locale
+- package: gopkg.in/cheggaaa/pb.v1
+  version: ^1.0.14
+- package: gopkg.in/urfave/cli.v1
+  version: ^1.19.1
+testImport:
+- package: github.com/stretchr/testify
+  version: ^1.1.4
+  subpackages:
+  - assert

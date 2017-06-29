@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/pborman/uuid"
-	virtualbox "github.com/riobard/go-virtualbox"
+	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"

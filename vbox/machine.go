@@ -15,7 +15,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	pipeline "github.com/mattn/go-pipeline"
-	virtualbox "github.com/riobard/go-virtualbox"
+	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"

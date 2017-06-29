@@ -10,7 +10,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/riobard/go-virtualbox"
+	"github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/vbox"
