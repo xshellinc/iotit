@@ -21,7 +21,7 @@ const progName = "iotit"
 const installPath = "/usr/local/bin/"
 
 // Version string came from linker
-var Version string
+var version string
 
 // Env string came from linker
 var Env = "dev"
@@ -47,7 +47,7 @@ func init() {
 
 func main() {
 	app := cli.NewApp()
-	app.Version = Version
+	app.Version = version
 	app.Name = progName
 	app.Usage = "Flashing Tool for IoT devices used by Isaax Cloud"
 
@@ -245,7 +245,7 @@ func main() {
 					return nil
 				}
 				fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
-				dir, err := repo.DownloadNewVersion(progName, Version, help.GetTempDir())
+				dir, err := repo.DownloadNewVersion(progName, version, help.GetTempDir())
 
 				if err != nil {
 					fmt.Println("[-] Error:", err)

@@ -5,5 +5,5 @@ release:
 		-pv=$(VERSION) \
 		-resources-exclude=README* \
 		-tasks-=validate \
-		-build-ldflags="-X main.VERSION=$(VERSION)" \
+		-build-ldflags="-X main.version=$(VERSION)" \
 		-q=true
