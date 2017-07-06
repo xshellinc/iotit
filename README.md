@@ -21,12 +21,19 @@
 ### REQUIREMENTS
 ------------
 golang >= 1.8
+
 virtualbox >= 5.0
 
 ### INSTALLATION
 ------------
 
 The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/downloads/) and download a precompiled binary that matches your OS.
+
+On macOS you can install `IoTit` from homebrew:
+
+```
+brew tap xshellinc/iotit && brew install iotit
+```
 
 *Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
