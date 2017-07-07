@@ -1,0 +1,29 @@
+builds:
+  - main: iotit.go
+    binary: iotit
+    goos:
+      - windows
+      - darwin
+      - linux
+
+archive:
+  format: tar.gz
+  replacements:
+    darwin: macos
+
+brew:
+  github:
+    owner: xshellinc
+    name: homebrew-iotit
+  homepage: "https://github.com/xshellinc/iotit"
+  description: "Go Language's command-line flashing tool for SBCs."
+
+fpm:
+  vendor: xshellinc
+  homepage: "https://github.com/xshellinc/iotit"
+  description: Go Language's command-line flashing tool for SBCs.
+  license: Apache 2.0
+  formats:
+    - deb
+    - rpm
+
