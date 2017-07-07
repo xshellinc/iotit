@@ -6,14 +6,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/iotit/lib/vbox"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -37,158 +33,61 @@ const (
 
 type edison struct {
 	*flasher
-	ip string
+	IP string
 }
 
-func (d *edison) PrepareForFlashing() error {
-	ack := dialogs.YesNoDialog("Would you like to flash your board? ")
-	if !ack {
-		return nil
-	}
+// Flash - override default flasher cause configure happens after flashing for edison
+func (d *edison) Flash() error {
 
-	if runtime.GOOS == windows {
-		return d.flashWindows()
-	}
-
-	d.flasher.PrepareForFlashing()
-	for !dialogs.YesNoDialog("Please unplug your Edison board. Type yes once unpluged.") {
-	}
-
-	for {
-		script := "flashall.sh"
-		args := []string{
-			fmt.Sprintf("%s@%s", vbox.VBoxUser, vbox.VBoxIP),
-			"-p",
-			vbox.VBoxSSHPort,
-			constants.TMP_DIR + script,
-		}
-		if err := help.ExecStandardStd("ssh", args...); err != nil {
-			fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
-
-			if !dialogs.YesNoDialog("Type yes once connected.") {
-				fmt.Println("Exiting with exit status 2 ...")
-				os.Exit(2)
-			}
-			continue
-		}
-		break
-	}
-
-	if err := vbox.Stop(d.vbox.UUID); err != nil {
-		log.Error(err)
-	}
-
-	job := help.NewBackgroundJob()
-	go func() {
-		defer job.Close()
-		time.Sleep(120 * time.Second)
-	}()
-
-	help.WaitJobAndSpin("Your Edison board is restarting...", job)
-	return nil
-}
-
-func (d *edison) flashWindows() error {
-	fileName := ""
-	filePath := ""
-	if fn, fp, err := d.flasher.DownloadImage(); err == nil {
-		fileName = fn
-		filePath = fp
-	} else {
+	if err := d.Prepare(); err != nil {
 		return err
 	}
 
-	fmt.Printf("[+] Extracting %s \n", fileName)
-	if !strings.HasSuffix(fileName, ".zip") {
-		return nil
-	}
-	extractedPath := help.GetTempDir() + help.Separator() + strings.TrimSuffix(fileName, ".zip") + help.Separator()
-	command := "unzip"
-	args := []string{
-		"-o",
-		filePath,
-		"-d",
-		extractedPath,
-	}
-	log.WithField("args", args).Debug("Extracting an image...")
-	if out, err := exec.Command(command, args...).CombinedOutput(); err != nil {
-		log.WithField("out", out).Error(err)
-		fmt.Println("[-] Error extracting image!", out)
+	if err := d.Write(); err != nil {
 		return err
 	}
 
-	d.getDFUUtil(extractedPath)
-
-	script := extractedPath + help.Separator() + "flashall.bat"
-	log.Debug("Running flashall... ", script)
-	cmd := exec.Command(script)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Dir = extractedPath
-	if err := cmd.Run(); err != nil {
-		fmt.Println("[-] Can't find Intel Edison board, please try to re-connect it")
-		os.Exit(2)
+	if err := d.Configure(); err != nil {
+		return err
 	}
-	job := help.NewBackgroundJob()
-	go func() {
-		defer job.Close()
-		time.Sleep(120 * time.Second)
-	}()
 
-	help.WaitJobAndSpin("Your Edison board is restarting...", job)
-	return nil
+	return d.Done()
 }
 
-func (d *edison) getDFUUtil(dst string) error {
-	url := "https://cdn.isaax.io/isaax-distro/utilities/dfu-util/dfu-util-0.9-win64.zip"
-
-	if help.Exists(dst + "dfu-util.exe") {
-		return nil
-	}
-
-	wg := &sync.WaitGroup{}
-	fileName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
-	if err != nil {
-		return err
-	}
-
-	bar.Prefix(fmt.Sprintf("[+] Download %-15s", fileName))
-	bar.Start()
-	wg.Wait()
-	bar.Finish()
-	time.Sleep(time.Second)
-
-	log.WithField("dst", dst).Debug("Extracting")
-	if out, err := exec.Command("unzip", "-j", "-o", dst+"dfu-util-0.9-win64.zip", "-d", dst).CombinedOutput(); err != nil {
-		log.Debug(string(out))
-		return err
-	}
-	return nil
-}
-
+// Configure method overrides generic flasher
 func (d *edison) Configure() error {
-	err := d.getIPAddress()
-	if err != nil {
-		log.Error(err)
+	log.WithField("device", "edison").Debug("Configure")
+	c := config.New(d.conf.SSH)
+	c.AddConfigFn(config.Wifi, config.NewCallbackFn(setupWiFi, nil))
+	c.AddConfigFn(config.SSH, config.NewCallbackFn(enableEdisonSSH, nil))
+	c.AddConfigFn(config.Interface, config.NewCallbackFn(setupInterface, nil))
+	c.AddConfigFn("xIotit", config.NewCallbackFn(setupIotit, nil))
+
+	if len(d.IP) == 0 {
+		if err := d.getIPAddress(); err != nil {
+			log.Error(err)
+		}
 	}
 
-	if d.ip == "" {
+	if d.IP == "" {
 		fmt.Println("[-] Can't configure board without knowing it's IP")
 		return nil
 	}
 
+	fmt.Println("[+] Using ", dialogs.PrintColored(d.IP))
+	c.StoreValue("ip", d.IP)
+
 	fmt.Println("[+] Copying your id to the board using ssh-copy-id")
-	help.ExecStandardStd("ssh-copy-id", []string{"root@" + d.ip}...)
+	help.ExecStandardStd("ssh-copy-id", []string{"root@" + d.IP}...)
 	time.Sleep(time.Second * 4)
 
-	if err := d.setupInterface(); err != nil {
+	if err := c.Setup(); err != nil {
 		return err
 	}
 
-	d.configBoard()
-
-	fmt.Println("[+] Done")
+	if err := c.Write(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -245,7 +144,7 @@ func (d *edison) getIPAddress() error {
 
 			}
 
-			d.ip = "192.168.2.15"
+			d.IP = "192.168.2.15"
 		}
 	}
 
@@ -253,17 +152,18 @@ func (d *edison) getIPAddress() error {
 		if runtime.GOOS != windows {
 			fmt.Println("NOTE: You might need to run `sudo ifconfig {interface} " + dialogs.PrintColored("192.168.2.2") + "` in order to access Edison at " + dialogs.PrintColored("192.168.2.15"))
 		}
-		d.ip = dialogs.GetSingleAnswer("Input Edison board IP Address (default: 192.168.2.15): ", dialogs.IpAddressValidator)
+		d.IP = dialogs.GetSingleAnswer("Input Edison board IP Address (default: 192.168.2.15): ", dialogs.IpAddressValidator)
 	}
 
-	if err := help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), d.ip); err != nil {
+	if err := help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), d.IP); err != nil {
 		log.Error(err)
 	}
 
 	return nil
 }
 
-func (d *edison) setupInterface() error {
+func setupInterface(storage map[string]interface{}) error {
+	ip := storage["ip"].(string)
 	var ifaces = config.Interfaces{
 		Address: "192.168.0.254",
 		Netmask: "255.255.255.0",
@@ -271,53 +171,19 @@ func (d *edison) setupInterface() error {
 		DNS:     "192.168.0.1",
 	}
 
-	if err := setEdisonInterfaces(ifaces, d.ip); err != nil {
+	if err := setEdisonInterfaces(ifaces, ip); err != nil {
 		return err
 	}
+
 	fmt.Println("[+] Updating Edison help info") // no idea what this one does and why
 	args := []string{
-		"root@" + d.ip,
+		"root@" + ip,
 		"-t",
 		"sed -i.bak 's/wireless run configure_edison --password first/wireless run `device config user` first/g' /usr/bin/configure_edison",
 	}
 
 	if err := help.ExecStandardStd("ssh", args...); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (d *edison) configBoard() error {
-	if dialogs.YesNoDialog("Would you like to configure WiFi on your board?") {
-		fmt.Println("[+] Updating WiFi configuration")
-		if err := help.ExecStandardStd("ssh", "root@"+d.ip, "-t", "configure_edison --wifi"); err != nil {
-			return err
-		}
-	}
-	base := filepath.Join(constants.TMP_DIR, baseConf)
-	baseConf := baseFeeds
-	help.WriteToFile(baseConf, base)
-	fmt.Println("[+] Uploading base configuration file")
-	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", d.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
-		return err
-	}
-	os.Remove(base)
-
-	iotdk := filepath.Join(constants.TMP_DIR, iotdkConf)
-	iotdkConf := intelIotdk
-	help.WriteToFile(iotdkConf, iotdk)
-	fmt.Println("[+] Uploading iot dk config file")
-	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", d.ip, filepath.Join("/etc", "opkg"))).Run(); err != nil {
-		return err
-	}
-	os.Remove(iotdk)
-
-	if dialogs.YesNoDialog("Would you like to enable SSH on the wireless interface?") {
-		fmt.Println("[+] Enabling SSH")
-		if err := help.ExecStandardStd("ssh", "root@"+d.ip, "-t", "configure_edison --password"); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -336,7 +202,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 				i.Address, i.Gateway, i.Netmask, i.DNS)
 
 			if dialogs.YesNoDialog("Change values?") {
-				config.SetInterfaces(&i)
+				config.AskInterfaceParams(&i)
 			}
 
 			fmt.Println("[+] NOTE: You might need to enter your Edison board password")
@@ -358,7 +224,7 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 			args3 := []string{
 				"root@" + ip,
 				"-t",
-				fmt.Sprintf("echo nameserver %s > /etc/%s", i.DNS, constants.ResolveF),
+				fmt.Sprintf("echo nameserver %s > /etc/resolv.conf", i.DNS),
 			}
 			ifaceDown := []string{
 				"root@" + ip,
@@ -400,4 +266,49 @@ func setEdisonInterfaces(i config.Interfaces, ip string) error {
 	}
 	return nil
 
+}
+
+// enableEdisonSSH is enabling ssh server on edison
+func enableEdisonSSH(storage map[string]interface{}) error {
+	ip := storage["ip"].(string)
+	if dialogs.YesNoDialog("Would you like to enable SSH on the wireless interface?") {
+		fmt.Println("[+] Enabling SSH")
+		if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --password"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func setupWiFi(storage map[string]interface{}) error {
+	ip := storage["ip"].(string)
+	if dialogs.YesNoDialog("Would you like to configure WiFi on your board?") {
+		fmt.Println("[+] Updating WiFi configuration")
+		if err := help.ExecStandardStd("ssh", "root@"+ip, "-t", "configure_edison --wifi"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func setupIotit(storage map[string]interface{}) error {
+	ip := storage["ip"].(string)
+	base := filepath.Join(config.TmpDir, baseConf)
+	baseConf := baseFeeds
+	help.WriteToFile(baseConf, base)
+	fmt.Println("[+] Uploading base configuration file")
+	if err := exec.Command("scp", base, fmt.Sprintf("root@%s:%s", ip, help.AddPathSuffix("unix", "/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(base)
+
+	iotdk := filepath.Join(config.TmpDir, iotdkConf)
+	iotdkConf := intelIotdk
+	help.WriteToFile(iotdkConf, iotdk)
+	fmt.Println("[+] Uploading iot dk config file")
+	if err := exec.Command("scp", iotdk, fmt.Sprintf("root@%s:%s", ip, help.AddPathSuffix("unix", "/etc", "opkg"))).Run(); err != nil {
+		return err
+	}
+	os.Remove(iotdk)
+	return nil
 }

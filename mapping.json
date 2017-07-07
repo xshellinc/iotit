@@ -1,0 +1,262 @@
+{
+	"Version": "2017-06-23-11:11:11",
+	"Devices": [
+		{
+			"Name": "raspberry-pi",
+			"Alias": "raspi",
+			"Images": [
+				{
+					"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-04-10/2017-04-10-raspbian-jessie-lite.zip",
+					"Title": "Raspbian Jessie Lite",
+					"Alias": "lite",
+					"User": "pi",
+					"Pass": "raspberry"
+				},
+				{
+					"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-04-10/2017-04-10-raspbian-jessie.zip",
+					"Title": "Raspbian Jessie with PIXEL",
+					"Alias": "full",
+					"User": "pi",
+					"Pass": "raspberry"
+				}
+			]
+		},
+		{
+			"Name": "esp",
+			"Sub": [
+				{
+					"Name": "esp-32",
+					"Alias": "esp32",
+					"Images": [
+						{
+							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/32/firmata.zip",
+							"Title": "Firmata"
+						}
+					]
+				},
+				{
+					"Name": "esp-8266",
+					"Alias": "esp8266",
+					"Images": [
+						{
+							"URL": "https://cdn.isaax.io/isaax-distro/boards/esp/8266/firmata.zip",
+							"Title": "Firmata"
+						}
+					]
+				}
+			]
+		},
+		{
+			"Name": "edison",
+			"Images": [
+				{
+					"URL": "http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",
+					"Title": "IoT DevKit 20160606",
+					"Alias": "default",
+					"User": "root"
+				}
+			]
+		},
+		{
+			"Name": "nano-pi",
+			"Sub": [
+				{
+					"Name": "NanoPi 2",
+					"Alias": "nanopi2"
+				},
+				{
+					"Name": "NanoPi 2 Fire",
+					"Alias": "nanopi2fire"
+				},
+				{
+					"Name": "NanoPi M1 Plus",
+					"Alias": "nanopim1plus",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/cn292j2nxpz6j69/nanopi-m1-plus_ubuntu-core-xenial_4.11.2_20170531.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "ubuntu",
+							"User": "root",
+							"Pass": "fa"
+						},
+						{
+							"URL": "http://www.mediafire.com/file/ddquv7vfrkucb27/nanopi-m1-plus_debian-jessie_4.11.2_20170531.img.zip",
+							"Title": "Debian Jessie",
+							"Alias": "debian",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				},
+				{
+					"Name": "NanoPi M1",
+					"Alias": "nanopim1",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/g7lar5ejkk4r9cv/nanopi-m1_ubuntu-core-xenial_4.11.2_20170531.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "ubuntu",
+							"User": "root",
+							"Pass": "fa"
+						},
+						{
+							"URL": "http://www.mediafire.com/file/c8caam1sy5ctavc/nanopi-m1_debian-jessie_4.11.2_20170531.img.zip",
+							"Title": "Debian",
+							"Alias": "debian",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				},
+				{
+					"Name": "NanoPi M2",
+					"Alias": "nanopim2"
+				},
+				{
+					"Name": "NanoPi M3",
+					"Alias": "nanopim3"
+				},
+				{
+					"Name": "NanoPi NEO",
+					"Alias": "nanopineo",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/hysi686cq89d9ll/nanopi-neo_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "ubuntu",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				},
+				{
+					"Name": "NanoPi NEO 2",
+					"Alias": "nanopineo2",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/w2sp6pdwlj5l66j/nanopi-neo2_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "ubuntu",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				},
+				{
+					"Name": "NanoPi NEO Air",
+					"Alias": "nanopineoair",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/i4jq7fqfp55bqhh/nanopi-neo-air_ubuntu-core-xenial_4.11.2_20170605.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "ubuntu",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				},
+				{
+					"Name": "NanoPi S2",
+					"Alias": "nanopis2"
+				},
+				{
+					"Name": "NanoPi a64",
+					"Alias": "nanopia64",
+					"Images": [
+						{
+							"URL": "http://www.mediafire.com/file/hzfhcu0r1bb9ogt/nanopi-a64-core-qte-sd4g-20161129.img.zip",
+							"Title": "Light Ubuntu-core",
+							"Alias": "core",
+							"User": "root",
+							"Pass": "fa"
+						},
+						{
+							"URL": "http://www.mediafire.com/file/cbh9mkb70p18m12/nanopi-a64-ubuntu-mate-sd4g-20161129.img.zip",
+							"Title": "Ubuntu with a MATE-desktop",
+							"Alias": "mate",
+							"User": "root",
+							"Pass": "fa"
+						}
+					]
+				}
+			],
+			"Images": [
+				{
+					"URL": "http://www.mediafire.com/file/q4cpxn4dmoo63r4/s5p4418-ubuntu-core-qte-sd4g-20170414.img.zip",
+					"Title": "Light Ubuntu-core",
+					"Alias": "light",
+					"User": "root",
+					"Pass": "fa"
+				},
+				{
+					"URL": "http://www.mediafire.com/file/k1ghutjrecepqiv/s5p4418-debian-sd4g-20170414.img.zip",
+					"Title": "Debian Jessie",
+					"Alias": "debian",
+					"User": "root"
+				},
+				{
+					"URL": "http://www.mediafire.com/file/4e2es8j08vc8zp2/s5p4418-android-sd4g-20170414.img.zip",
+					"Title": "Android",
+					"Alias": "android"
+				},
+				{
+					"URL": "http://www.mediafire.com/file/4293ylyitgmo4l8/s5p4418-debian-wifiap-sd4g-20170414.img.zip",
+					"Title": "Debian WiFi AP",
+					"Alias": "debianwifiap",
+					"User": "root"
+				}
+			]
+		},
+		{
+			"Name": "beaglebone",
+			"Sub": [
+				{
+					"Name": "BeagleBone (*,*Black,*Blue,*Green,*Wireless)",
+					"Alias": "bb",
+					"Images": [
+						{
+							"URL": "https://cdn.isaax.io/isaax-distro/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
+							"Title": "Ubuntu 16.04",
+							"Alias": "ubuntu",
+							"User": "ubuntu",
+							"Pass": "temppwd"
+						},
+						{
+							"URL": "https://debian.beagleboard.org/images/bone-debian-8.7-lxqt-4gb-armhf-2017-03-19-4gb.img.xz",
+							"Title": "Debian with desktop",
+							"Alias": "debian",
+							"User": "root",
+							"Pass": "linaro"
+						}
+					]
+				},
+				{
+					"Name": "BeagleBoard-X15",
+					"Alias": "bbx15",
+					"Images": [
+						{
+							"URL": "https://debian.beagleboard.org/images/bbx15-debian-8.6-lxqt-4gb-armhf-2016-11-06-4gb.img.xz",
+							"Title": "Debian 8.6",
+							"Alias": "debian",
+							"User": "root",
+							"Pass": "linaro"
+						}
+					]
+				},
+				{
+					"Name": "BeagleBoard-xM",
+					"Alias": "bbxm",
+					"Images": [
+						{
+							"URL": "https://debian.beagleboard.org/images/bbxm-debian-8.6-lxqt-xm-4gb-armhf-2016-11-06-4gb.img.xz",
+							"Title": "Debian 8.6",
+							"Alias": "debian",
+							"User": "root",
+							"Pass": "linaro"
+						}
+					]
+				}
+			]
+		}
+	]
+}

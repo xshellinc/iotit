@@ -9,7 +9,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ssh_helper"
@@ -28,12 +27,18 @@ type raspberryPi struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
-	log.WithField("device", "raspi").Debug("Configure")
-	job := help.NewBackgroundJob()
-	c := config.NewDefault(d.conf.SSH)
+	if err := d.Prepare(); err != nil {
+		return err
+	}
 
-	*(c.GetConfigFn(config.Interface)) = *config.NewCallbackFn(configInterface, saveInterface)
-	c.AddConfigFn(config.NewCallbackFn(setupSSH, nil))
+	log.WithField("device", "raspi").Debug("Configure")
+	fmt.Println("[+] Configuring...")
+
+	job := help.NewBackgroundJob()
+	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
+	// replace default interface configuration with custom raspi configurator
+	c.SetConfigFn(config.Interface, config.NewCallbackFn(setInterface, saveInterface))
+	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiSSH, nil))
 
 	go func() {
 		defer job.Close()
@@ -47,9 +52,17 @@ func (d *raspberryPi) Configure() error {
 		}
 	}()
 
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
-		return err
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			// setup while background process mounting img
+			if err := c.Setup(); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := touchSSH(d.conf.SSH); err != nil {
+			fmt.Println("[-] Error:", err.Error())
+		}
 	}
 
 	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
@@ -64,10 +77,23 @@ func (d *raspberryPi) Configure() error {
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
+
 	if err := d.UnmountBoot(); err != nil {
 		return err
 	}
-	if err := d.Flash(); err != nil {
+
+	fmt.Println("[+] Image configured")
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *raspberryPi) Flash() error {
+
+	if err := d.Configure(); err != nil {
+		return err
+	}
+
+	if err := d.Write(); err != nil {
 		return err
 	}
 
@@ -84,8 +110,9 @@ interface %s
 	static domain_name_servers=%s
 `
 
-// configInterface is a custom configInterface method uses interfaceConfig var
-func configInterface(storage map[string]interface{}) error {
+// SetInterface is a custom SetInterface method uses interfaceConfig var
+func setInterface(storage map[string]interface{}) error {
+	log.WithField("type", "raspi").Debug("SetInterface")
 	device := []string{"eth0", "wlan0"}
 	i := config.Interfaces{
 		Address: "192.168.0.254",
@@ -99,27 +126,24 @@ func configInterface(storage map[string]interface{}) error {
 		num := dialogs.SelectOneDialog("Please select a network interface: ", device)
 		fmt.Println("[+] ********NOTE: ADJUST THESE VALUES ACCORDING TO YOUR LOCAL NETWORK CONFIGURATION********")
 
-		for {
-			fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
-				i.Address, i.Gateway, i.Netmask, i.DNS)
+		fmt.Printf("[+] Current values are:\n \t[+] Address:%s\n\t[+] Gateway:%s\n\t[+] Netmask:%s\n\t[+] DNS:%s\n",
+			i.Address, i.Gateway, i.Netmask, i.DNS)
 
-			if dialogs.YesNoDialog("Change values?") {
-				config.SetInterfaces(&i)
-
-				mask, _ := net.IPMask(net.ParseIP(i.Netmask).To4()).Size()
-
-				storage[config.GetConstLiteral(config.Interface)] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+strconv.Itoa(mask), i.Gateway, i.DNS)
-
-				switch device[num] {
-				case "eth0":
-					fmt.Println("[+]  Ethernet interface configuration was updated")
-				case "wlan0":
-					fmt.Println("[+]  wifi interface configuration was updated")
-				}
-			} else {
-				break
-			}
+		if dialogs.YesNoDialog("Change values?") {
+			config.AskInterfaceParams(&i)
 		}
+
+		mask, _ := net.IPMask(net.ParseIP(i.Netmask).To4()).Size()
+
+		storage[config.Interface] = fmt.Sprintf(interfaceConfig, device[num], i.Address+"/"+strconv.Itoa(mask), i.Gateway, i.DNS)
+
+		switch device[num] {
+		case "eth0":
+			fmt.Println("[+]  Ethernet interface configuration was updated")
+		case "wlan0":
+			fmt.Println("[+]  wifi interface configuration was updated")
+		}
+
 	}
 
 	return nil
@@ -127,8 +151,9 @@ func configInterface(storage map[string]interface{}) error {
 
 // saveInterface is a custom method and it saves Interfaces value into /etc/dhcpcd.conf
 func saveInterface(storage map[string]interface{}) error {
+	log.WithField("type", "raspi").Debug("saveInterface")
 
-	if _, ok := storage[config.GetConstLiteral(config.Interface)]; !ok {
+	if _, ok := storage[config.Interface]; !ok {
 		return nil
 	}
 
@@ -137,48 +162,46 @@ func saveInterface(storage map[string]interface{}) error {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", constants.MountDir, constants.ISAAX_CONF_DIR, "dhcpcd.conf")
-	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.GetConstLiteral(config.Interface)], fp)
-
+	fp := help.AddPathSuffix("unix", config.MountDir, config.IsaaxConfDir, "dhcpcd.conf")
+	command := fmt.Sprintf(`echo "%s" >> %s`, storage[config.Interface], fp)
+	log.WithField("type", "raspi").WithField("command", command).Debug("save interface")
 	_, eut, err := ssh.Run(command)
 	if err != nil {
 		return errors.New(err.Error() + ":" + eut)
 	}
-
 	return nil
 }
 
-// setupSSH is enabling ssh server on pi
-func setupSSH(storage map[string]interface{}) error {
+// enablePiSSH is enabling ssh server on pi
+func enablePiSSH(storage map[string]interface{}) error {
 	if dialogs.YesNoDialog("Would you like to enable SSH server?") {
 		ssh, ok := storage["ssh"].(ssh_helper.Util)
 		if !ok {
 			return errors.New("Cannot get ssh config")
 		}
-		command := fmt.Sprintf("touch %sssh", bootMount)
-		log.WithField("cmd", command).Debug("Enabling SSH")
-		if _, eut, err := ssh.Run(command); err != nil {
-			return errors.New(err.Error() + ":" + eut)
-		}
+		return touchSSH(ssh)
+	}
+	return nil
+}
+
+func touchSSH(ssh ssh_helper.Util) error {
+	fmt.Println("[+] Enabled SSH server.")
+	command := fmt.Sprintf("touch %sssh", bootMount)
+	log.WithField("cmd", command).Debug("Enabling SSH")
+	if _, eut, err := ssh.Run(command); err != nil {
+		return errors.New(err.Error() + ":" + eut)
 	}
 	return nil
 }
 
 // MountImg is a method to attach image to loop and mount it
 func (d *raspberryPi) MountBoot() error {
-	log.Debug("Mounting boot partition")
-	//check if image is attached?
-	// command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", constants.TMP_DIR, d.img))
-	// log.WithField("cmd", command).Debug("Attaching image loop device")
-	// if err := d.exec(command); err != nil {
-	// 	return err
-	// }
-
 	log.Debug("Creating tmp folder")
 	if err := d.exec(fmt.Sprintf("mkdir -p %s", bootMount)); err != nil {
 		return err
 	}
 
+	log.Debug("Mounting boot partition")
 	command := fmt.Sprintf("mount -o rw /dev/loop0%s %s", raspiBoot, bootMount)
 	log.WithField("cmd", command).Debug("Mounting boot folder")
 	if err := d.exec(command); err != nil {

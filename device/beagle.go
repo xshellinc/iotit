@@ -2,11 +2,10 @@ package device
 
 import (
 	"fmt"
-	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
-	"github.com/xshellinc/tools/constants"
+	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 )
 
@@ -21,6 +20,10 @@ type beagleBone struct {
 
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *beagleBone) Configure() error {
+	if err := d.Prepare(); err != nil {
+		return err
+	}
+	log.WithField("device", "beaglebone").Debug("Configure")
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH)
 
@@ -32,23 +35,27 @@ func (d *beagleBone) Configure() error {
 		}
 	}()
 
-	// setup while background process mounting img
-	if err := c.Setup(); err != nil {
-		return err
+	if !d.Quiet {
+		if dialogs.YesNoDialog("Would you like to configure your board?") {
+			// setup while background process mounting img
+			if err := c.Setup(); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
 		return err
 	}
-
-	logrus.Debug("Linking tmp folder")
-	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", filepath.Join(constants.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	// why?
+	command := fmt.Sprintf("ln -sf %s %s/%s", "/dev/null", help.AddPathSuffix("unix", config.MountDir, "etc", "udev", "rules.d"), "80-net-setup-link.rules")
+	log.WithField("command", command).Debug("Linking tmp folder")
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil {
-		logrus.Error("[-] Error when execute: ", command, eut)
+		log.Error("[-] Error when execute: ", command, eut)
 		return err
 	}
-	logrus.Debug(out, eut)
+	log.Debug(out, eut)
 
 	// write configs that were setup above
 	if err := c.Write(); err != nil {
@@ -58,7 +65,18 @@ func (d *beagleBone) Configure() error {
 	if err := d.UnmountImg(); err != nil {
 		return err
 	}
-	if err := d.Flash(); err != nil {
+
+	return nil
+}
+
+// Flash configures and flashes image
+func (d *beagleBone) Flash() error {
+
+	if err := d.Configure(); err != nil {
+		return err
+	}
+
+	if err := d.Write(); err != nil {
 		return err
 	}
 

@@ -13,7 +13,7 @@ deploy() {
         echo "Current tag is $CIRCLE_TAG"
 
         # Uploading to folder by tag for user-app
-        aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/darwin/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
+        aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
         aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
         aws s3 cp build/${VERSION}/. s3://iotit/${VERSION}/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
 
@@ -58,7 +58,7 @@ deploy() {
 
 	    # Uploading to latest folder for old versios support
         aws s3 rm  s3://iotit/latest --recursive
-        aws s3 cp build/${VERSION}/. s3://iotit/latest/darwin/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
+        aws s3 cp build/${VERSION}/. s3://iotit/latest/macos/ --recursive --exclude "*" --include "iotit_${VERSION}_darwin_*" --exclude "*/*"
         aws s3 cp build/${VERSION}/. s3://iotit/latest/linux/ --recursive --exclude "*" --include "iotit_${VERSION}_linux_*" --exclude "*/*"
         aws s3 cp build/${VERSION}/. s3://iotit/latest/windows/ --recursive --exclude "*" --include "iotit_${VERSION}_windows_*" --exclude "*/*"
 
