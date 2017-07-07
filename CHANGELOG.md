@@ -1,3 +1,18 @@
+## [0.3.0]
+
+### [ADDED]
+- New commands added (help, log, configure, list)
+- Unattended mode (with `-q` flag provided don't ask any questions)
+- Flashing esp32/esp8266 support
+
+### [UPDATED]
+- Updated images for raspberry pi, nanopi and beaglebone
+- Vendor dependencies
+
+### [FIXED]
+- Bugfix and refactoring
+
+
 ## [0.2.2]
 
 ### [FIXED]
