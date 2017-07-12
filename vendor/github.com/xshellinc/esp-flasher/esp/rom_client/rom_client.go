@@ -10,7 +10,7 @@ import (
 	"math"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/xshellinc/esp-flasher/common"
 	"github.com/xshellinc/esp-flasher/esp"

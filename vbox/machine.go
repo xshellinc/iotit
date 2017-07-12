@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	pipeline "github.com/mattn/go-pipeline"
 	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"

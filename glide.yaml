@@ -1,6 +1,6 @@
 package: github.com/xshellinc/iotit
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
   version: ^1.0.0
 - package: github.com/mattn/go-pipeline
 - package: github.com/pborman/uuid

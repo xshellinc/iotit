@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/repo"

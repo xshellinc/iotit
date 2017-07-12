@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/tools/dialogs"

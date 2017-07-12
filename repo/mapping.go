@@ -3,7 +3,7 @@ package repo
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/tools/lib/help"
 	"io/ioutil"
 	"os"

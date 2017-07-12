@@ -3,7 +3,7 @@ package device
 import (
 	"errors"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"

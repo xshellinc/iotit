@@ -26,9 +26,9 @@ import (
 
 	"io/ioutil"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/hypersleep/easyssh"
 	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/tj/go-spin"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -296,11 +296,11 @@ func DownloadFromUrl(url, destination string) (string, error) {
 	fmt.Printf("[+] Downloading %s from %s to %s\n", fileName, url, destination)
 
 	//target file does not exist
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", destination, fileName)); os.IsNotExist(err) {
+	if _, err := os.Stat(fullFileName); os.IsNotExist(err) {
 		//create destination dir
 		CreateDir(destination)
 		//create file
-		output, err := os.Create(fmt.Sprintf("%s/%s", destination, fileName))
+		output, err := os.Create(fullFileName)
 		if err != nil {
 			log.Error("[-] Error creating file ", destination, fileName)
 			return "", err
@@ -327,6 +327,55 @@ func DownloadFromUrl(url, destination string) (string, error) {
 		fmt.Printf("[+] File exist %s%s\n", destination, fileName)
 	}
 	fmt.Println("\n[+] Done")
+	return fileName, nil
+}
+
+func DownloadQuiet(url, destination string) (string, error) {
+	var (
+		timeout time.Duration = time.Duration(0)
+		client  http.Client   = http.Client{Timeout: timeout}
+	)
+	//tokenize url
+	tokens := strings.Split(url, "/")
+	//obtain file name
+	fileName := tokens[len(tokens)-1]
+
+	// check maybe downloaded file exists and corrupted
+	fullFileName := filepath.Join(destination, fileName)
+	if _, err := os.Stat(fullFileName); !os.IsNotExist(err) {
+
+		downloadedFileLength, _ := GetFileLength(fullFileName)
+		sourceFileLength, _ := GetHTTPFileLength(url)
+
+		if sourceFileLength != downloadedFileLength && sourceFileLength != 0 {
+			DeleteFile(fullFileName)
+		} else {
+			// otherwise file has correct length
+			return fileName, nil
+		}
+	}
+
+	//create destination dir
+	CreateDir(destination)
+	//create file
+	output, err := os.Create(fullFileName)
+	if err != nil {
+		log.Error("[-] Error creating file ", destination, fileName)
+		return "", err
+	}
+	defer output.Close()
+	response, err := client.Get(url)
+	if err != nil {
+		log.Error("[-] Error while downloading file ", url)
+		return "", err
+	}
+	defer response.Body.Close()
+	totalCount, err := io.Copy(output, response.Body)
+	if err != nil {
+		log.Error("error while copying ", err.Error())
+		return "", err
+	}
+	log.Debug("Total number of bytes read: ", totalCount)
 	return fileName, nil
 }
 
@@ -541,7 +590,28 @@ func DownloadFromUrlWithAttempts(url, destination string, retries int) (string, 
 		return "", err
 	}
 	return filename, nil
+}
 
+// Downloads From url with retries
+func DownloadQuietAttempts(url, destination string, retries int) (string, error) {
+	var (
+		err      error
+		filename string
+	)
+	for i := 1; i <= retries; i++ {
+		filename, err = DownloadQuiet(url, destination)
+		if err == nil {
+			break
+		} else {
+			DeleteFile(filepath.Join(destination, filename))
+		}
+	}
+	if err != nil {
+		fmt.Printf("[-] Could not download from url: %s \n", url)
+		fmt.Printf("[-] Reported error message:%s\n", err.Error())
+		return "", err
+	}
+	return filename, nil
 }
 
 // Downloads from the url asynchronously

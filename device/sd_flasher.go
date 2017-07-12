@@ -8,7 +8,7 @@ import (
 
 	"regexp"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/workstation"

@@ -7,7 +7,7 @@ import (
 	stdlog "log"
 	"runtime"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"

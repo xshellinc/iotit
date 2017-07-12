@@ -9,7 +9,7 @@ import (
 	"unicode"
 
 	"github.com/Nerdmaster/terminal"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var p *terminal.Prompt
