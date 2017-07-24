@@ -322,16 +322,18 @@ func (d *workstation) CleanDisk(disk string) error {
 
 		args := []string{
 			diskUtil,
-			"eraseDisk",
+			"partitionDisk",
+			disk,
+			"1",
+			"mbr",
 			"fat32",
 			"KERNEL",
-			disk,
+			"100%",
 		}
 		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-			job.Active(false)
 			job.Error(err)
 		}
-
+		job.Active(false)
 	}()
 
 	if err := help.WaitJobAndSpin("Formatting", job); err != nil {
