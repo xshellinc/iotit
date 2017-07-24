@@ -27,31 +27,31 @@ type colibri struct {
 	Port string
 }
 
+// Prepare overrides flasher Prepare method with port initialization
 func (d *colibri) Prepare() error {
 	// start VM, upload image and extract it
 	d.flasher.Prepare()
 	log.WithField("device", COLIBRI).Debug("Prepare")
-
+	// install toradex flasher dependencies
 	d.installTools()
-	if len(d.Port) == 0 {
-		fmt.Println("[+] Enumerating serial ports...")
-		port, err := serialport.GetPort("auto")
-		if err != nil {
-			return err
-		}
-		d.Port = port
+
+	fmt.Println("[+] Enumerating serial ports...")
+	port, err := serialport.GetPort("auto")
+	if err != nil {
+		return err
 	}
+	d.Port = port
+
 	fmt.Println("[+] Using ", dialogs.PrintColored(d.Port))
 	return nil
 }
 
-// Configure overrides sdFlasher Configure() method with custom config
+// Configure overrides flasher Configure() method with custom image configuration
 func (d *colibri) Configure() error {
 	log.WithField("device", COLIBRI).Debug("Configure")
 	fmt.Println("[+] Configuring...")
 
 	job := help.NewBackgroundJob()
-	// c := config.New(d.conf.SSH)
 
 	go func() {
 		defer job.Close()
@@ -66,22 +66,15 @@ func (d *colibri) Configure() error {
 		return err
 	}
 
-	// // write configs that were setup above
-	// if err := c.Write(); err != nil {
-	//     return err
-	// }
-
 	fmt.Println("[+] Image ready")
 	return nil
 }
 
 // Flash configures and flashes image
 func (d *colibri) Flash() error {
-	// if len(d.Port) == 0 {
 	if err := d.Prepare(); err != nil {
 		return err
 	}
-	// }
 
 	if err := d.Configure(); err != nil {
 		return err
@@ -100,6 +93,7 @@ func (d *colibri) Flash() error {
 	if err != nil {
 		return err
 	}
+
 	defer serialPort.Close()
 
 	if err := d.Write(); err != nil {
@@ -109,7 +103,7 @@ func (d *colibri) Flash() error {
 	if err := d.runUpdate(); err != nil {
 		return err
 	}
-	// return nil
+
 	return d.Done()
 }
 
@@ -122,7 +116,6 @@ func (d *colibri) installTools() error {
 
 func (d *colibri) configureImage() error {
 	d.img = "colibri_image.tar"
-	// return nil
 
 	log.Debug("Creating tmp folder")
 	command := fmt.Sprintf("mkdir -p %s", config.MountDir)
@@ -141,6 +134,7 @@ func (d *colibri) configureImage() error {
 	return nil
 }
 
+// Write - writes image to SD card
 func (d *colibri) Write() error {
 	log.WithField("img", d.img).Debug("Downloading image from vbox")
 
@@ -181,7 +175,6 @@ func (d *colibri) runUpdate() error {
 	}
 
 	job := help.NewBackgroundJob()
-
 	go func() {
 		defer job.Close()
 		for {
@@ -198,61 +191,54 @@ func (d *colibri) runUpdate() error {
 		}
 	}()
 
-	if err := help.WaitJobAndSpin("Now reset the board", job); err != nil {
+	if err := help.WaitJobAndSpin("Now reset or power up the board", job); err != nil {
 		log.Error(err)
 		return err
 	}
+	fmt.Println("[+] Flashing to eMMC")
+	if _, err := serialPort.Write([]byte("run setupdate\r\n")); err != nil {
+		log.Error(err)
+	}
+	data := make([]byte, 10000)
+	if _, err := serialPort.Read(data); err != nil {
+		log.Error(err)
+	} else {
+		log.WithField("data", string(data)).Debug("Response")
+	}
+	time.Sleep(time.Second * 1)
+	data = make([]byte, 10000)
+	if _, err := serialPort.Read(data); err != nil {
+		log.Error(err)
+	} else {
+		log.WithField("data", string(data)).Debug("Response")
+	}
 
-	job = help.NewBackgroundJob()
-	go func() {
-		defer job.Close()
-
-		if n, err := serialPort.Write([]byte("run setupdate\r\n")); err != nil {
-			log.Error(err)
-		} else {
-			log.Debug("Written:", n)
-		}
-		data := make([]byte, 10000)
+	time.Sleep(time.Second * 2)
+	if n, err := serialPort.Write([]byte("run update\r\n")); err != nil {
+		log.Error(err)
+	} else {
+		log.Debug("Written:", n)
+	}
+	data = make([]byte, 10000)
+	if _, err := serialPort.Read(data); err != nil {
+		log.Error(err)
+	} else {
+		log.WithField("data", string(data)).Debug("Response")
+	}
+	for {
+		serialPort.SetReadTimeout(time.Second * 5)
+		data = make([]byte, 1024)
 		if _, err := serialPort.Read(data); err != nil {
 			log.Error(err)
 		} else {
-			log.WithField("data", string(data)).Debug("Response")
-		}
-		time.Sleep(time.Second * 1)
-		data = make([]byte, 10000)
-		if _, err := serialPort.Read(data); err != nil {
-			log.Error(err)
-		} else {
-			log.WithField("data", string(data)).Debug("Response")
-		}
-
-		time.Sleep(time.Second * 2)
-		if n, err := serialPort.Write([]byte("run update\r\n")); err != nil {
-			log.Error(err)
-		} else {
-			log.Debug("Written:", n)
-		}
-		data = make([]byte, 10000)
-		if _, err := serialPort.Read(data); err != nil {
-			log.Error(err)
-		} else {
-			log.WithField("data", string(data)).Debug("Response")
-		}
-		for {
-			data = make([]byte, 10000)
-			if _, err := serialPort.Read(data); err != nil {
-				log.Error(err)
-				return
-			} else {
-				log.WithField("data", string(data)).Debug("Response")
-				fmt.Println(strings.TrimSpace(string(data)))
+			line := strings.TrimSpace(string(data))
+			log.WithField("data", line).Debug("Response")
+			fmt.Print(line)
+			if strings.Contains(line, "resetting") {
+				fmt.Println("[+] Done! Rebooting the board.")
+				return nil
 			}
 		}
-	}()
-
-	if err := help.WaitJobAndSpin("Flashing to eMMC", job); err != nil {
-		log.Error(err)
-		return err
 	}
 
 	return nil

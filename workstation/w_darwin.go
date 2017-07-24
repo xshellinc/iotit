@@ -68,12 +68,6 @@ func (d *workstation) CopyToDisk(img string) (job *help.BackgroundJob, err error
 		defer job.Close()
 		job.Active(true)
 		help.ExecCmd("tar", []string{"xf", img, "-C", "/Volumes/KERNEL/"})
-		// if err != nil {
-		// if !strings.Contains(err.Error(), "Can't create '.'") {
-		// job.Active(false)
-		// job.Error(err)
-		// }
-		// }
 		fmt.Println("\r[+] Done writing image to /Volumes/KERNEL")
 	}()
 
@@ -211,71 +205,75 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 
 // Lists available mounts
 func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
-	regex := regexp.MustCompile("^disk([0-9]+)$")
-	var (
-		devDisks []string
-		out      = []*MountInfo{}
-	)
+	var out = []*MountInfo{}
 
-	files, _ := ioutil.ReadDir("/dev/")
-	for _, f := range files {
-		fileName := f.Name()
-		if regex.MatchString(fileName) {
-			devDisks = append(devDisks, fileName)
+	for attempt := 0; attempt < diskSelectionTries; attempt++ {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+			break
 		}
-	}
-	for _, devDisk := range devDisks {
-		var p = &MountInfo{}
-		diskMap := make(map[string]string)
-		removable := true
+		regex := regexp.MustCompile("^disk([0-9]+)$")
+		var devDisks []string
+		files, _ := ioutil.ReadDir("/dev/")
+		for _, f := range files {
+			fileName := f.Name()
+			if regex.MatchString(fileName) {
+				devDisks = append(devDisks, fileName)
+			}
+		}
+		for _, devDisk := range devDisks {
+			var p = &MountInfo{}
+			diskMap := make(map[string]string)
+			removable := true
 
-		stdout, err := help.ExecCmd(diskUtil, []string{"info", "/dev/" + devDisk})
-		if err != nil {
-			stdout = ""
-		}
-		diskutilInfo := strings.Split(stdout, "\n")
-		for _, line := range diskutilInfo {
-			if strings.Contains(line, "Protocol") {
-				diskProtocol := strings.Trim(strings.Split(line, ":")[1], " ")
-				for _, protocol := range []string{"SATA", "ATA", "Disk Image", "PCI", "SAS"} {
-					if strings.Contains(diskProtocol, protocol) {
-						removable = false
+			stdout, err := help.ExecCmd(diskUtil, []string{"info", "/dev/" + devDisk})
+			if err != nil {
+				stdout = ""
+			}
+			diskutilInfo := strings.Split(stdout, "\n")
+			for _, line := range diskutilInfo {
+				if strings.Contains(line, "Protocol") {
+					diskProtocol := strings.Trim(strings.Split(line, ":")[1], " ")
+					for _, protocol := range []string{"SATA", "ATA", "Disk Image", "PCI", "SAS"} {
+						if strings.Contains(diskProtocol, protocol) {
+							removable = false
+						}
 					}
 				}
-			}
-			if strings.Contains(line, "Device Identifier") {
-				diskName := strings.Trim(strings.Split(line, ":")[1], " ")
-				diskMap["diskName"] = "/dev/" + diskName
-				diskMap["diskNameRaw"] = "/dev/r" + diskName
-			}
+				if strings.Contains(line, "Device Identifier") {
+					diskName := strings.Trim(strings.Split(line, ":")[1], " ")
+					diskMap["diskName"] = "/dev/" + diskName
+					diskMap["diskNameRaw"] = "/dev/r" + diskName
+				}
 
-			if strings.Contains(line, "Device / Media Name") {
-				deviceName := strings.Trim(strings.Split(line, ":")[1], " ")
-				deviceName = strings.Split(deviceName, " Media")[0]
-				diskMap["deviceName"] = deviceName
-			}
+				if strings.Contains(line, "Device / Media Name") {
+					deviceName := strings.Trim(strings.Split(line, ":")[1], " ")
+					deviceName = strings.Split(deviceName, " Media")[0]
+					diskMap["deviceName"] = deviceName
+				}
 
-			if strings.Contains(line, "Total Size") {
-				deviceSize := strings.Trim(strings.Split(line, ":")[1], " ")
-				deviceSize = strings.Split(deviceSize, " (")[0]
-				diskMap["deviceSize"] = deviceSize
+				if strings.Contains(line, "Total Size") {
+					deviceSize := strings.Trim(strings.Split(line, ":")[1], " ")
+					deviceSize = strings.Split(deviceSize, " (")[0]
+					diskMap["deviceSize"] = deviceSize
+				}
+			}
+			if removable {
+				p.deviceName = diskMap["deviceName"]
+				p.deviceSize = diskMap["deviceSize"]
+				p.diskName = diskMap["diskName"]
+				p.diskNameRaw = diskMap["diskNameRaw"]
+				out = append(out, p)
+				log.Debug(diskMap)
 			}
 		}
-		if removable {
-			p.deviceName = diskMap["deviceName"]
-			p.deviceSize = diskMap["deviceSize"]
-			p.diskName = diskMap["diskName"]
-			p.diskNameRaw = diskMap["diskNameRaw"]
-			out = append(out, p)
-			log.Debug(diskMap)
+
+		if !(len(out) > 0) {
+			fmt.Println("[-] Removable disks not found.\n[-] Please insert your SD card and start command again")
+			continue
 		}
+		d.mounts = out
 	}
 
-	if !(len(out) > 0) {
-		return nil, fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
-	}
-
-	d.mounts = out
 	return out, nil
 }
 
