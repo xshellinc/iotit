@@ -257,6 +257,19 @@
 					]
 				}
 			]
+		},
+		{
+			"Name": "colibri iMX6",
+			"Alias": "colibri",
+			"Images": [
+				{
+					"URL": "http://developer1.toradex.com/files/toradex-dev/uploads/media/Colibri/Linux/Images/Colibri-iMX6_LXDE-Image_2.7b3+-20170630.tar.bz2",
+					"Title": "Angstrom LXDE Linux",
+					"Alias": "lxde",
+					"User": "root",
+					"Pass": ""
+				}
+			]
 		}
 	]
 }

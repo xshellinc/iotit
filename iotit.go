@@ -283,7 +283,7 @@ func main() {
 			Usage: "*Windows only* Clean SD card partition table",
 			Action: func(c *cli.Context) error {
 				w := workstation.NewWorkStation("")
-				if err := w.CleanDisk(); err != nil {
+				if err := w.CleanDisk(""); err != nil {
 					fmt.Println("[-] Error:", err)
 					return nil
 				}

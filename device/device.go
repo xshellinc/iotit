@@ -19,6 +19,7 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_EDISON,
 	constants.DEVICE_TYPE_NANOPI,
 	constants.DEVICE_TYPE_BEAGLEBONE,
+	constants.DEVICE_TYPE_COLIBRI,
 	constants.DEVICE_TYPE_ESP,
 	customFlash,
 }
@@ -144,6 +145,11 @@ func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 		return i, nil
 	case constants.DEVICE_TYPE_BEAGLEBONE:
 		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet}, port}}
+		i.device = device
+		i.devRepo = r
+		return i, nil
+	case constants.DEVICE_TYPE_COLIBRI:
+		i := &colibri{&flasher{Quiet: quiet}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil

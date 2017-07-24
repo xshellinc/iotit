@@ -26,6 +26,60 @@ func newWorkstation(disk string) WorkStation {
 const diskSelectionTries = 3
 const writeAttempts = 3
 
+// CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
+func (d *workstation) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+	log.Debug("CopyToDisk")
+	_, err = d.ListRemovableDisk()
+	if err != nil {
+		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+		return nil, err
+	}
+
+	var dev *MountInfo
+	if len(d.Disk) == 0 {
+		rng := make([]string, len(d.mounts))
+		for i, e := range d.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
+		}
+		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		dev = d.mounts[num]
+	} else {
+		for _, e := range d.mounts {
+			if e.diskName == d.Disk {
+				dev = e
+				break
+			}
+		}
+		if dev == nil {
+			return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+		}
+	}
+
+	d.mount = dev
+	fmt.Printf("[+] Writing image to %s\n", d.mount.diskName)
+	log.WithField("image", img).WithField("mount", "/Volumes/KERNEL").Debugf("Writing image to %s", d.mount.diskName)
+
+	if err := d.CleanDisk(d.mount.diskName); err != nil {
+		return nil, err
+	}
+
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		help.ExecCmd("tar", []string{"xf", img, "-C", "/Volumes/KERNEL/"})
+		// if err != nil {
+		// if !strings.Contains(err.Error(), "Can't create '.'") {
+		// job.Active(false)
+		// job.Error(err)
+		// }
+		// }
+		fmt.Println("\r[+] Done writing image to /Volumes/KERNEL")
+	}()
+
+	return job, nil
+}
+
 // Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
@@ -241,11 +295,11 @@ func (d *workstation) Eject() error {
 // Unmounts the mounted disk
 func (d *workstation) Unmount() error {
 	if d.writable {
-		fmt.Printf("[+] Unmounting your sd card :%s\n", d.mount.diskName)
+		fmt.Printf("[+] Unmounting your SD card %s\n", d.mount.deviceName)
 		stdout, err := help.ExecCmd(diskUtil,
 			[]string{
 				"unmountDisk",
-				d.mount.deviceName,
+				d.mount.diskName,
 			})
 		if err != nil {
 			return fmt.Errorf("error unmounting disk: %s\n[-] Cause: %s", d.mount.diskName, stdout)
@@ -254,8 +308,37 @@ func (d *workstation) Unmount() error {
 	return nil
 }
 
-// CleanDisk does nothing on macOS
-func (d *workstation) CleanDisk() error {
+// CleanDisk formats disk into single fat32 partition
+func (d *workstation) CleanDisk(disk string) error {
+	log.Debug("CleanDisk")
+	if disk == "" {
+		return fmt.Errorf("No disk to format")
+	}
+
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+
+		args := []string{
+			diskUtil,
+			"eraseDisk",
+			"fat32",
+			"KERNEL",
+			disk,
+		}
+		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Active(false)
+			job.Error(err)
+		}
+
+	}()
+
+	if err := help.WaitJobAndSpin("Formatting", job); err != nil {
+		return err
+	}
+
+	d.writable = true
 	return nil
 }
 

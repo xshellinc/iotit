@@ -27,7 +27,7 @@ create partition primary
 active
 assign letter=N
 remove letter=N
-format fs=fat32 label=New quick
+format fs=fat32 label=KERNEL quick
 `
 
 type windows struct {
@@ -243,7 +243,7 @@ func (w *windows) getDDBinary() error {
 }
 
 // CleanDisk cleans target disk partitions
-func (w *windows) CleanDisk() error {
+func (w *windows) CleanDisk(disk string) error {
 	fmt.Println("[+] Cleaning disk...")
 	var last error
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
