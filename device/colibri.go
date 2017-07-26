@@ -15,10 +15,6 @@ import (
 	"github.com/xshellinc/tools/lib/help"
 )
 
-const (
-	COLIBRI = "colibri"
-)
-
 var serialPort serial.Serial
 
 const portSelectionTries = 3
@@ -34,7 +30,7 @@ type colibri struct {
 func (d *colibri) Prepare() error {
 	// start VM, upload image and extract it
 	d.flasher.Prepare()
-	log.WithField("device", COLIBRI).Debug("Prepare")
+	log.WithField("device", "colibri").Debug("Prepare")
 	// install toradex flasher dependencies
 	d.installTools()
 	return nil
@@ -67,7 +63,7 @@ func (d *colibri) getPort() error {
 
 // Configure overrides flasher Configure() method with custom image configuration
 func (d *colibri) Configure() error {
-	log.WithField("device", COLIBRI).Debug("Configure")
+	log.WithField("device", "colibri").Debug("Configure")
 	fmt.Println("[+] Configuring...")
 
 	job := help.NewBackgroundJob()
@@ -154,8 +150,8 @@ func (d *colibri) Write() error {
 		d.img = "colibri_image.zip"
 	}
 
-	flash_only := d.flasher.CLI.Bool("flash")
-	if !flash_only {
+	flashOnly := d.flasher.CLI.Bool("flash")
+	if !flashOnly {
 		w := workstation.NewWorkStation(d.Disk)
 		img := filepath.Join(help.GetTempDir(), d.img)
 
@@ -237,7 +233,6 @@ func rebootBoard() error {
 			}
 		}
 	}
-	return nil
 }
 
 func bootInRecovery() *help.BackgroundJob {
@@ -298,8 +293,6 @@ func (d *colibri) runUpdate() error {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 func (d *colibri) exec(command string) error {
