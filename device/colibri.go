@@ -21,6 +21,8 @@ const (
 
 var serialPort serial.Serial
 
+const portSelectionTries = 3
+
 // toradex colibri imx6 device
 type colibri struct {
 	*flasher
@@ -44,14 +46,23 @@ func (d *colibri) getPort() error {
 	if d.Port != "" {
 		return nil
 	}
-
-	fmt.Println("[+] Enumerating serial ports...")
-	port, err := serialport.GetPort("auto")
-	if err != nil {
-		return err
+	var perr error
+	for attempt := 0; attempt < portSelectionTries; attempt++ {
+		if attempt > 0 && !dialogs.YesNoDialog("No ports found. Reconnect your device and try again. Ready?") {
+			return perr
+		}
+		fmt.Println("[+] Enumerating serial ports...")
+		port, err := serialport.GetPort("auto")
+		if err != nil {
+			perr = err
+			continue
+		}
+		d.Port = port
+		break
 	}
-	d.Port = port
-
+	if d.Port == "" {
+		return perr
+	}
 	fmt.Println("[+] Using ", dialogs.PrintColored(d.Port))
 	return nil
 }
