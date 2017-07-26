@@ -102,6 +102,21 @@ GLOBAL OPTIONS:
    --version, -v  print the version
 ```
 
+For example here are the flash command flags:
+```
+$ iotit flash --help
+NAME:
+   iotit flash - Flash image to the device
+
+USAGE:
+   iotit flash [command options] [device image]
+
+OPTIONS:
+   --quiet, --unattended, -q  Suppress questions and assume default answers
+   --disk value, -d value     External disk or usb device
+   --port value, -p value     Serial port for connected device. If set to 'auto' first port will be used.
+```
+
 #### VIRTUALBOX
 ----------------
 During installation user can choose `default` virtualbox specs

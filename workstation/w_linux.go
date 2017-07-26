@@ -31,6 +31,7 @@ func newWorkstation(disk string) WorkStation {
 
 // Lists available mounts
 func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
+	fmt.Println("[+] Listing available disks...")
 	regex := regexp.MustCompile(`(sd[a-z])$`)
 	regexMmcblk := regexp.MustCompile(`(mmcblk[0-9])$`)
 	var (
@@ -116,6 +117,54 @@ func (l *linux) Unmount() error {
 
 const diskSelectionTries = 3
 const writeAttempts = 3
+
+// CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
+func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+	log.Debug("CopyToDisk")
+	_, err = l.ListRemovableDisk()
+	if err != nil {
+		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+		return nil, err
+	}
+
+	var dev *MountInfo
+	if len(l.Disk) == 0 {
+		rng := make([]string, len(l.workstation.mounts))
+		for i, e := range l.workstation.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
+		}
+		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		dev = l.workstation.mounts[num]
+	} else {
+		for _, e := range l.workstation.mounts {
+			if e.diskName == l.Disk {
+				dev = e
+				break
+			}
+		}
+		if dev == nil {
+			return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+		}
+	}
+
+	l.workstation.mount = dev
+	fmt.Printf("[+] Writing image to %s\n", dev.diskName)
+	log.WithField("image", img).WithField("mount", "/media/KERNEL").Debugf("Writing image to %s", dev.diskName)
+
+	if err := l.CleanDisk(dev.diskName); err != nil {
+		return nil, err
+	}
+
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		help.ExecCmd("unzip", []string{img, "-d", "/media/KERNEL/"})
+		fmt.Println("\r[+] Done writing image to /media/KERNEL")
+	}()
+
+	return job, nil
+}
 
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -232,7 +281,40 @@ func (l *linux) Eject() error {
 }
 
 // CleanDisk does nothing on linux
-func (l *linux) CleanDisk() error {
+func (l *linux) CleanDisk(disk string) error {
+	log.Debug("CleanDisk")
+	if disk == "" {
+		return fmt.Errorf("No disk to format")
+	}
+
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+
+		// need to find a way to partition and format disk on linux
+
+		// args := []string{
+		//     diskUtil,
+		//     "partitionDisk",
+		//     disk,
+		//     "1",
+		//     "mbr",
+		//     "fat32",
+		//     "KERNEL",
+		//     "100%",
+		// }
+		// if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+		//     job.Error(err)
+		// }
+		job.Active(false)
+	}()
+
+	if err := help.WaitJobAndSpin("Formatting", job); err != nil {
+		return err
+	}
+
+	l.workstation.writable = true
 	return nil
 }
 

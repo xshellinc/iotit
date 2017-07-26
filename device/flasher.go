@@ -16,12 +16,14 @@ import (
 	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // Flasher is an entity for flashing different devices
 type Flasher interface {
 	Flash() error
 	Configure() error
+	Write() error
 }
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
@@ -30,8 +32,10 @@ type flasher struct {
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
 	devRepo *repo.DeviceMapping
+	CLI     *cli.Context
 
 	img    string
+	folder string
 	device string
 }
 
@@ -169,9 +173,13 @@ func (d *flasher) startVM() error {
 }
 
 func (d *flasher) extractImage(fileName string) error {
+	if strings.HasSuffix(fileName, ".img") {
+		d.img = fileName
+		return nil
+	}
 	fmt.Printf("[+] Extracting %s \n", fileName)
 	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
-	log.Debug("Extracting an image... ", command)
+	log.WithField("command", command).Debug("Extracting an image...")
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
 	if err != nil || len(strings.TrimSpace(eut)) > 0 {
@@ -187,9 +195,12 @@ func (d *flasher) extractImage(fileName string) error {
 		}
 	}
 	if out, _, err := d.conf.SSH.Run("ls -1 " + config.TmpDir); err == nil && len(strings.TrimSpace(out)) > 0 {
-		log.Debug(out)
+		log.WithField("command", "ls -1").Debug(out)
 		for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
 			s := strings.TrimSpace(raw)
+			if d.folder == "" {
+				d.folder = s
+			}
 			if s != "" && strings.HasSuffix(s, ".img") {
 				d.img = s
 				return nil

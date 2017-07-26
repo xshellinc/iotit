@@ -20,6 +20,7 @@ const (
 	DEVICE_TYPE_EDISON     = "edison"
 	DEVICE_TYPE_NANOPI     = "nano-pi"
 	DEVICE_TYPE_BEAGLEBONE = "beaglebone"
+	DEVICE_TYPE_COLIBRI    = "colibri iMX6"
 	DEVICE_TYPE_ESP        = "esp"
 
 	LSB_RELEASE_RASPBERRY = "Raspbian"

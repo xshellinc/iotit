@@ -53,7 +53,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		flasher := device.New(c.Args()[:], "", false)
+		flasher := device.New(c)
 		if flasher == nil {
 			return nil
 		}
@@ -81,12 +81,7 @@ func main() {
 					cli.ShowCommandHelp(c, "flash")
 					return nil
 				}
-				port := c.String("port")
-				disk := c.String("disk")
-				if len(disk) > 0 {
-					port = disk
-				}
-				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				flasher := device.New(c)
 				if flasher == nil {
 					return nil
 				}
@@ -107,16 +102,34 @@ func main() {
 			},
 			ArgsUsage: "[device image]",
 			Action: func(c *cli.Context) error {
-				port := c.String("port")
-				disk := c.String("disk")
-				if len(disk) > 0 {
-					port = disk
-				}
-				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				flasher := device.New(c)
 				if flasher == nil {
 					return nil
 				}
 				if err := flasher.Configure(); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:    "write",
+			Aliases: []string{"w"},
+			Usage:   "Write image to SD or eMMC",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "flash, f", Usage: "Flash ready image"},
+				cli.StringFlag{Name: "image, i", Usage: "Image path"},
+				cli.StringFlag{Name: "disk, d", Usage: "External disk or usb device"},
+				cli.StringFlag{Name: "port, p", Usage: "Serial port for connected device. " +
+					"If set to 'auto' first port will be used."},
+			},
+			ArgsUsage: "[device image]",
+			Action: func(c *cli.Context) error {
+				flasher := device.New(c)
+				if flasher == nil {
+					return nil
+				}
+				if err := flasher.Write(); err != nil {
 					return err
 				}
 				return nil
@@ -283,7 +296,7 @@ func main() {
 			Usage: "*Windows only* Clean SD card partition table",
 			Action: func(c *cli.Context) error {
 				w := workstation.NewWorkStation("")
-				if err := w.CleanDisk(); err != nil {
+				if err := w.CleanDisk(""); err != nil {
 					fmt.Println("[-] Error:", err)
 					return nil
 				}

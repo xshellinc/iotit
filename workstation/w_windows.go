@@ -27,7 +27,7 @@ create partition primary
 active
 assign letter=N
 remove letter=N
-format fs=fat32 label=New quick
+format fs=fat32 label=KERNEL quick
 `
 
 type windows struct {
@@ -45,6 +45,7 @@ func newWorkstation(disk string) WorkStation {
 // Lists available mounts
 func (w *windows) ListRemovableDisk() ([]*MountInfo, error) {
 	log.Debug("Listing disks...")
+	fmt.Println("[+] Listing available disks...")
 	var out = []*MountInfo{}
 
 	// stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})
@@ -100,6 +101,54 @@ func (w *windows) Eject() error {
 
 const diskSelectionTries = 3
 const writeAttempts = 5
+
+// CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
+func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+	log.Debug("CopyToDisk")
+	_, err = l.ListRemovableDisk()
+	if err != nil {
+		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+		return nil, err
+	}
+
+	var dev *MountInfo
+	if len(l.Disk) == 0 {
+		rng := make([]string, len(l.workstation.mounts))
+		for i, e := range l.workstation.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
+		}
+		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		dev = l.workstation.mounts[num]
+	} else {
+		for _, e := range l.workstation.mounts {
+			if e.diskName == l.Disk {
+				dev = e
+				break
+			}
+		}
+		if dev == nil {
+			return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+		}
+	}
+
+	l.workstation.mount = dev
+	fmt.Printf("[+] Writing image to %s\n", dev.diskName)
+	log.WithField("image", img).WithField("mount", "N:").Debugf("Writing image to %s", dev.diskName)
+
+	if err := l.CleanDisk(dev.diskName); err != nil {
+		return nil, err
+	}
+
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		help.ExecCmd("unzip", []string{img, "-d", "N:\\"})
+		fmt.Println("\r[+] Done writing image to N:")
+	}()
+
+	return job, nil
+}
 
 // WriteToDisk notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -243,7 +292,7 @@ func (w *windows) getDDBinary() error {
 }
 
 // CleanDisk cleans target disk partitions
-func (w *windows) CleanDisk() error {
+func (w *windows) CleanDisk(disk string) error {
 	fmt.Println("[+] Cleaning disk...")
 	var last error
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
