@@ -68,7 +68,7 @@ func (d *workstation) CopyToDisk(img string) (job *help.BackgroundJob, err error
 	go func() {
 		defer job.Close()
 		job.Active(true)
-		help.ExecCmd("tar", []string{"xf", img, "-C", "/Volumes/KERNEL/"})
+		help.ExecCmd("unzip", []string{img, "-d", "/Volumes/KERNEL/"})
 		fmt.Println("\r[+] Done writing image to /Volumes/KERNEL")
 	}()
 

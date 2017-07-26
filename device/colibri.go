@@ -116,7 +116,7 @@ func (d *colibri) installTools() error {
 }
 
 func (d *colibri) configureImage() error {
-	d.img = "colibri_image.tar"
+	d.img = "colibri_image.zip"
 
 	log.Debug("Creating tmp folder")
 	command := fmt.Sprintf("mkdir -p %s", config.MountDir)
@@ -128,7 +128,7 @@ func (d *colibri) configureImage() error {
 	if err := d.exec(command); err != nil {
 		return err
 	}
-	command = fmt.Sprintf("tar -C %s -cf %s .", config.MountDir, help.AddPathSuffix("unix", config.TmpDir, "colibri_image.tar"))
+	command = fmt.Sprintf("cd %s && zip -0 -r ../%s *", config.MountDir, d.img)
 	if err := d.exec(command); err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (d *colibri) Write() error {
 			return err
 		}
 	} else {
-		d.img = "colibri_image.tar"
+		d.img = "colibri_image.zip"
 	}
 
 	flash_only := d.flasher.CLI.Bool("flash")

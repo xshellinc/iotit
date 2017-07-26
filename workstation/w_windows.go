@@ -143,7 +143,7 @@ func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
 	go func() {
 		defer job.Close()
 		job.Active(true)
-		help.ExecCmd("tar", []string{"xf", img, "-C", "N:\\"})
+		help.ExecCmd("unzip", []string{img, "-d", "N:\\"})
 		fmt.Println("\r[+] Done writing image to N:")
 	}()
 
