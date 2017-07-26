@@ -31,6 +31,7 @@ func newWorkstation(disk string) WorkStation {
 
 // Lists available mounts
 func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
+	fmt.Println("[+] Listing available disks...")
 	regex := regexp.MustCompile(`(sd[a-z])$`)
 	regexMmcblk := regexp.MustCompile(`(mmcblk[0-9])$`)
 	var (

@@ -72,7 +72,7 @@ func (d *colibri) Configure() error {
 		}
 	}()
 
-	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
+	if err := help.WaitJobAndSpin("Preparing", job); err != nil {
 		return err
 	}
 
@@ -98,7 +98,7 @@ func (d *colibri) Flash() error {
 }
 
 func (d *colibri) installTools() error {
-	if err := d.exec("apk add dosfstools parted sudo e2fsprogs-extra coreutils"); err != nil {
+	if err := d.exec("apk add dosfstools parted sudo e2fsprogs-extra coreutils libattr"); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +147,6 @@ func (d *colibri) Write() error {
 
 	flash_only := d.flasher.CLI.Bool("flash")
 	if !flash_only {
-		fmt.Println("[+] Listing available disks...")
 		w := workstation.NewWorkStation(d.Disk)
 		img := filepath.Join(help.GetTempDir(), d.img)
 

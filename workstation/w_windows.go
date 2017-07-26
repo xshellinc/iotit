@@ -45,6 +45,7 @@ func newWorkstation(disk string) WorkStation {
 // Lists available mounts
 func (w *windows) ListRemovableDisk() ([]*MountInfo, error) {
 	log.Debug("Listing disks...")
+	fmt.Println("[+] Listing available disks...")
 	var out = []*MountInfo{}
 
 	// stdout, err := help.ExecCmd("wmic", []string{"diskdrive", "get", "DeviceID,index,InterfaceType,MediaType,Model,Size", "/format:csv"})

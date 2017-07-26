@@ -207,8 +207,9 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 // Lists available mounts
 func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
 	var out = []*MountInfo{}
-
+	fmt.Println("[+] Listing available disks...")
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
+		log.Debug(attempt)
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			return out, fmt.Errorf("No SD card found")
 		}
@@ -268,11 +269,12 @@ func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
 			}
 		}
 
-		if !(len(out) > 0) {
+		if len(out) == 0 {
 			fmt.Println("[-] Removable disks not found.\n[-] Please insert your SD card and start command again")
 			continue
 		}
 		d.mounts = out
+		break
 	}
 
 	return out, nil
