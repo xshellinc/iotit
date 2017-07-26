@@ -159,7 +159,7 @@ func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
 	go func() {
 		defer job.Close()
 		job.Active(true)
-		help.ExecCmd("unzip", []string{img, "-d", "/Volumes/KERNEL/"})
+		help.ExecCmd("unzip", []string{img, "-d", "/media/KERNEL/"})
 		fmt.Println("\r[+] Done writing image to /media/KERNEL")
 	}()
 
@@ -292,19 +292,21 @@ func (l *linux) CleanDisk(disk string) error {
 		defer job.Close()
 		job.Active(true)
 
-		args := []string{
-			diskUtil,
-			"partitionDisk",
-			disk,
-			"1",
-			"mbr",
-			"fat32",
-			"KERNEL",
-			"100%",
-		}
-		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-			job.Error(err)
-		}
+		// need to find a way to partition and format disk on linux
+
+		// args := []string{
+		//     diskUtil,
+		//     "partitionDisk",
+		//     disk,
+		//     "1",
+		//     "mbr",
+		//     "fat32",
+		//     "KERNEL",
+		//     "100%",
+		// }
+		// if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+		//     job.Error(err)
+		// }
 		job.Active(false)
 	}()
 
