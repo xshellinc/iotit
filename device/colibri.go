@@ -37,8 +37,6 @@ func (d *colibri) Prepare() error {
 	log.WithField("device", COLIBRI).Debug("Prepare")
 	// install toradex flasher dependencies
 	d.installTools()
-
-	d.getPort()
 	return nil
 }
 
@@ -166,7 +164,7 @@ func (d *colibri) Write() error {
 		if job, err := w.CopyToDisk(img); err != nil {
 			return err
 		} else if job != nil {
-			if err := help.WaitJobAndSpin("Flashing", job); err != nil {
+			if err := help.WaitJobAndSpin("Writing image files to SD card", job); err != nil {
 				return err
 			}
 		}
