@@ -16,12 +16,14 @@ import (
 	"github.com/xshellinc/iotit/vbox"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // Flasher is an entity for flashing different devices
 type Flasher interface {
 	Flash() error
 	Configure() error
+	Write() error
 }
 
 // flasher contains virtualbox machine, ssh connection, repository, currently selected device and image name
@@ -30,6 +32,7 @@ type flasher struct {
 	vbox    *virtualbox.Machine
 	conf    *vbox.Config
 	devRepo *repo.DeviceMapping
+	CLI     *cli.Context
 
 	img    string
 	folder string

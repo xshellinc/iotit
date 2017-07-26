@@ -8,6 +8,7 @@ import (
 	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // CustomFlash custom method enum
@@ -25,7 +26,9 @@ var devices = [...]string{
 }
 
 // New returns new Flasher instance
-func New(args []string, port string, quiet bool) Flasher {
+func New(c *cli.Context) Flasher {
+	args := c.Args()[:]
+
 	log.WithField("args", args).Info("DeviceInit")
 	typeArg := ""
 	imgArg := ""
@@ -53,7 +56,7 @@ func New(args []string, port string, quiet bool) Flasher {
 
 	fmt.Println("[+] Flashing", deviceType)
 
-	flasher, err := getFlasher(deviceType, imgArg, port, quiet)
+	flasher, err := getFlasher(deviceType, imgArg, c)
 	if err != nil {
 		fmt.Println("[-] Error: ", err)
 		return nil
@@ -109,8 +112,12 @@ func ListMapping() []*ListItem {
 }
 
 // getFlasher triggers select repository methods and initializes a new flasher
-func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
+func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 	var r *repo.DeviceMapping
+
+	port := c.String("port")
+	disk := c.String("disk")
+	quiet := c.Bool("quiet")
 
 	if device == customFlash {
 		url := dialogs.GetSingleAnswer("Please provide image URL or path: ", dialogs.EmptyStringValidator)
@@ -139,34 +146,34 @@ func getFlasher(device, image, port string, quiet bool) (Flasher, error) {
 	}
 	switch r.Type {
 	case constants.DEVICE_TYPE_RASPBERRY:
-		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet}, port}}
+		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_BEAGLEBONE:
-		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet}, port}}
+		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_COLIBRI:
-		i := &colibri{&flasher{Quiet: quiet}, port}
+		i := &colibri{&flasher{Quiet: quiet, CLI: c}, port, disk}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_EDISON:
-		i := &edison{flasher: &flasher{Quiet: quiet}, IP: port}
+		i := &edison{flasher: &flasher{Quiet: quiet, CLI: c}, IP: port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_ESP:
-		i := &serialFlasher{&flasher{Quiet: quiet}, port}
+		i := &serialFlasher{&flasher{Quiet: quiet, CLI: c}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_NANOPI:
 		fallthrough
 	default:
-		i := &sdFlasher{&flasher{Quiet: quiet}, port}
+		i := &sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}
 		i.device = device
 		i.devRepo = r
 		return i, nil

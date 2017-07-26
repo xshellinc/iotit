@@ -31,6 +31,7 @@ func (d *workstation) CopyToDisk(img string) (job *help.BackgroundJob, err error
 	log.Debug("CopyToDisk")
 	_, err = d.ListRemovableDisk()
 	if err != nil {
+		log.Error(err)
 		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
 
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
-			break
+			return out, fmt.Errorf("No SD card found")
 		}
 		regex := regexp.MustCompile("^disk([0-9]+)$")
 		var devDisks []string

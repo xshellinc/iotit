@@ -25,6 +25,7 @@ var serialPort serial.Serial
 type colibri struct {
 	*flasher
 	Port string
+	Disk string
 }
 
 // Prepare overrides flasher Prepare method with port initialization
@@ -34,6 +35,15 @@ func (d *colibri) Prepare() error {
 	log.WithField("device", COLIBRI).Debug("Prepare")
 	// install toradex flasher dependencies
 	d.installTools()
+
+	d.getPort()
+	return nil
+}
+
+func (d *colibri) getPort() error {
+	if d.Port != "" {
+		return nil
+	}
 
 	fmt.Println("[+] Enumerating serial ports...")
 	port, err := serialport.GetPort("auto")
@@ -80,27 +90,7 @@ func (d *colibri) Flash() error {
 		return err
 	}
 
-	commonOpts := serial.OpenOptions{
-		BaudRate:              115200,
-		DataBits:              8,
-		ParityMode:            serial.PARITY_NONE,
-		StopBits:              1,
-		InterCharacterTimeout: 200.0,
-		PortName:              d.Port,
-	}
-	var err error
-	serialPort, err = serial.Open(commonOpts)
-	if err != nil {
-		return err
-	}
-
-	defer serialPort.Close()
-
 	if err := d.Write(); err != nil {
-		return err
-	}
-
-	if err := d.runUpdate(); err != nil {
 		return err
 	}
 
@@ -136,44 +126,113 @@ func (d *colibri) configureImage() error {
 
 // Write - writes image to SD card
 func (d *colibri) Write() error {
-	log.WithField("img", d.img).Debug("Downloading image from vbox")
+	if d.img != "" {
+		log.WithField("img", d.img).Debug("Downloading image from vbox")
 
-	job := help.NewBackgroundJob()
-	go func() {
-		defer job.Close()
-		if err := d.conf.SSH.ScpFrom(help.AddPathSuffix("unix", config.TmpDir, d.img), filepath.Join(help.GetTempDir(), d.img)); err != nil {
-			job.Error(err)
+		job := help.NewBackgroundJob()
+		go func() {
+			defer job.Close()
+			if err := d.conf.SSH.ScpFrom(help.AddPathSuffix("unix", config.TmpDir, d.img), filepath.Join(help.GetTempDir(), d.img)); err != nil {
+				job.Error(err)
+			}
+		}()
+
+		if err := help.WaitJobAndSpin("Copying files", job); err != nil {
+			log.Error(err)
+			return err
 		}
-	}()
-
-	if err := help.WaitJobAndSpin("Copying files", job); err != nil {
-		log.Error(err)
-		return err
+	} else {
+		d.img = "colibri_image.tar"
 	}
 
-	fmt.Println("[+] Listing available disks...")
-	w := workstation.NewWorkStation("")
-	img := filepath.Join(help.GetTempDir(), d.img)
+	flash_only := d.flasher.CLI.Bool("flash")
+	if !flash_only {
+		fmt.Println("[+] Listing available disks...")
+		w := workstation.NewWorkStation(d.Disk)
+		img := filepath.Join(help.GetTempDir(), d.img)
 
-	log.WithField("img", img).Debug("Writing image to disk")
+		log.WithField("img", img).Debug("Writing image to disk")
 
-	if job, err := w.CopyToDisk(img); err != nil {
-		return err
-	} else if job != nil {
-		if err := help.WaitJobAndSpin("Flashing", job); err != nil {
+		if job, err := w.CopyToDisk(img); err != nil {
+			return err
+		} else if job != nil {
+			if err := help.WaitJobAndSpin("Flashing", job); err != nil {
+				return err
+			}
+		}
+		time.Sleep(time.Second * 2)
+		w.Unmount()
+		fmt.Println("[+] SD card prepared")
+	}
+	if d.Port == "" {
+		if err := d.getPort(); err != nil {
+			log.Error(err)
 			return err
 		}
 	}
-	time.Sleep(time.Second * 2)
-	w.Unmount()
-	fmt.Println("[+] SD card prepared")
+	commonOpts := serial.OpenOptions{
+		BaudRate:              115200,
+		DataBits:              8,
+		ParityMode:            serial.PARITY_NONE,
+		StopBits:              1,
+		InterCharacterTimeout: 200.0,
+		PortName:              d.Port,
+	}
+	var err error
+	serialPort, err = serial.Open(commonOpts)
+	if err != nil {
+		return err
+	}
+
+	defer serialPort.Close()
+
+	if err := d.runUpdate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (d *colibri) runUpdate() error {
-	for !dialogs.YesNoDialog("Please insert prepared SD card into your Colibri iMX6 board. Type yes once ready.") {
+func readResponse() string {
+	data := make([]byte, 10000)
+	if _, err := serialPort.Read(data); err != nil {
+		log.Error(err)
 	}
+	line := strings.TrimSpace(string(data))
+	log.WithField("data", line).Debug("Response")
+	return line
+}
 
+func rebootBoard() error {
+	serialPort.SetReadTimeout(time.Second * 5)
+	if _, err := serialPort.Write([]byte("\r\n")); err != nil {
+		log.Error(err)
+		serialPort.Write([]byte("\r\n"))
+	}
+	for {
+		line := readResponse()
+		if line != "" {
+			if strings.Contains(line, "imx6 login:") {
+				if _, err := serialPort.Write([]byte("root\r\n")); err != nil {
+					log.Error(err)
+				}
+				readResponse() //command echo
+				readResponse() //response
+				time.Sleep(time.Second * 2)
+				if _, err := serialPort.Write([]byte("reboot\r\n")); err != nil {
+					log.Error(err)
+				}
+				readResponse() //command echo
+				readResponse() //response
+				time.Sleep(time.Second * 2)
+				return nil
+			}
+		}
+	}
+	return nil
+}
+
+func bootInRecovery() *help.BackgroundJob {
 	job := help.NewBackgroundJob()
 	go func() {
 		defer job.Close()
@@ -190,8 +249,20 @@ func (d *colibri) runUpdate() error {
 			}
 		}
 	}()
+	return job
+}
 
-	if err := help.WaitJobAndSpin("Now reset or power up the board", job); err != nil {
+func (d *colibri) runUpdate() error {
+	for !dialogs.YesNoDialog("Please insert prepared SD card into your Colibri iMX6 board. Type yes once ready.") {
+	}
+	message := "Now reset or power up the board"
+	if !dialogs.YesNoDialog("Do you have a reset button on your carrier board?") {
+		fmt.Println("[+] Trying to reboot the board")
+		rebootBoard()
+		message = "Booting in recovery"
+	}
+	job := bootInRecovery()
+	if err := help.WaitJobAndSpin(message, job); err != nil {
 		log.Error(err)
 		return err
 	}
@@ -199,45 +270,24 @@ func (d *colibri) runUpdate() error {
 	if _, err := serialPort.Write([]byte("run setupdate\r\n")); err != nil {
 		log.Error(err)
 	}
-	data := make([]byte, 10000)
-	if _, err := serialPort.Read(data); err != nil {
-		log.Error(err)
-	} else {
-		log.WithField("data", string(data)).Debug("Response")
-	}
-	time.Sleep(time.Second * 1)
-	data = make([]byte, 10000)
-	if _, err := serialPort.Read(data); err != nil {
-		log.Error(err)
-	} else {
-		log.WithField("data", string(data)).Debug("Response")
-	}
 
+	readResponse()
+	time.Sleep(time.Second * 1)
+	readResponse()
 	time.Sleep(time.Second * 2)
 	if n, err := serialPort.Write([]byte("run update\r\n")); err != nil {
 		log.Error(err)
 	} else {
 		log.Debug("Written:", n)
 	}
-	data = make([]byte, 10000)
-	if _, err := serialPort.Read(data); err != nil {
-		log.Error(err)
-	} else {
-		log.WithField("data", string(data)).Debug("Response")
-	}
+	readResponse()
 	for {
 		serialPort.SetReadTimeout(time.Second * 5)
-		data = make([]byte, 1024)
-		if _, err := serialPort.Read(data); err != nil {
-			log.Error(err)
-		} else {
-			line := strings.TrimSpace(string(data))
-			log.WithField("data", line).Debug("Response")
-			fmt.Print(line)
-			if strings.Contains(line, "resetting") {
-				fmt.Println("[+] Done! Rebooting the board.")
-				return nil
-			}
+		line := readResponse()
+		fmt.Print(line)
+		if strings.Contains(line, "resetting") {
+			fmt.Println("[+] Done! Rebooting the board.")
+			return nil
 		}
 	}
 
