@@ -16,6 +16,7 @@
 * [BeagleBone](http://beagleboard.org/bone)
 * [ESP-32](http://esp32.net/)
 * [ESP-8266](http://esp8266.net/)
+* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
 
 
 ### REQUIREMENTS
@@ -140,7 +141,7 @@ which is applied to `iotit-box`
 because it allows to work with linux partitions and reduces installation requirements
 across different OSes
 
-Currently 3 workflows are supported:
+Currently 4 workflows are supported:
 
 ##### 1 Edison:
 - copy installation files into virtualbox
@@ -157,6 +158,13 @@ Currently 3 workflows are supported:
 - upload firmware and bootloader binaries over serial connection
 - configure module parameters using serial connection
 
+##### 4 Toradex Colibri
+- copy installation files into virtualbox
+- run update.sh and create img files
+- copy image files to SD card
+- connect to colibri module via serial
+- run update to flash linux to internal eMMC
+
 VirtualBox uses alpine virtualbox image with additional software installed
 ```
 bash
@@ -165,12 +173,21 @@ xz
 util-linux
 dfu-util
 ```
+and for Toradex:
+```
+dosfstools
+parted
+sudo
+e2fsprogs-extra
+coreutils
+libattr
+zip
+```
 
 Edison device is additionally mapped to the usb ports
 ```
 Intel Edison [0310]
 Intel USB download gadget [9999]
-FTDI FT232R USB UART [0600]
 ```
 
 #### CUSTOM BOARDS FLASHING:
