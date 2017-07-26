@@ -209,7 +209,6 @@ func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
 	var out = []*MountInfo{}
 	fmt.Println("[+] Listing available disks...")
 	for attempt := 0; attempt < diskSelectionTries; attempt++ {
-		log.Debug(attempt)
 		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
 			return out, fmt.Errorf("No SD card found")
 		}
@@ -296,7 +295,7 @@ func (d *workstation) Eject() error {
 // Unmounts the mounted disk
 func (d *workstation) Unmount() error {
 	if d.writable {
-		fmt.Printf("[+] Unmounting your SD card %s\n", d.mount.deviceName)
+		fmt.Printf("[+] Unmounting: %s\n", d.mount.deviceName)
 		stdout, err := help.ExecCmd(diskUtil,
 			[]string{
 				"unmountDisk",

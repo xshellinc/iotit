@@ -107,7 +107,7 @@ func (d *colibri) Flash() error {
 }
 
 func (d *colibri) installTools() error {
-	if err := d.exec("apk add dosfstools parted sudo e2fsprogs-extra coreutils libattr"); err != nil {
+	if err := d.exec("apk add dosfstools parted sudo e2fsprogs-extra coreutils libattr zip"); err != nil {
 		return err
 	}
 	return nil
