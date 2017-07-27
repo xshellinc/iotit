@@ -139,7 +139,7 @@ func SetLocale(storage map[string]interface{}) error {
 		if len(arr) == 1 {
 			l = arr[0].Locale
 		} else {
-			l = arr[dialogs.SelectOneDialog("Please select a locale from a list: ", arr.Strings())].Locale
+			l = arr[dialogs.SelectOneDialog("Please select a locale from the list: ", arr.Strings())].Locale
 		}
 
 		storage[Locale] = l
@@ -204,7 +204,7 @@ func SetKeyboard(storage map[string]interface{}) error {
 		if len(arr) == 1 {
 			l = arr[0].Layout
 		} else {
-			l = arr[dialogs.SelectOneDialog("Please select a layout from a list: ", arr.Strings())].Layout
+			l = arr[dialogs.SelectOneDialog("Please select a layout from the list: ", arr.Strings())].Layout
 		}
 
 		storage[Keymap] = fmt.Sprintf("KEYMAP=%s\n", l)
