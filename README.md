@@ -126,6 +126,11 @@ Alternatively user can create their own vbox spec by choosing `Create new virtua
 This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
 which is applied to `iotit-box`
 
+To delete a custom virtual box preset, go to the iotit folder on your machine on macOS it is at`/Users/{user}/.iotit`. Open the file iotit-vbox.json in a text editor and delete the entry of the preset you want to remove. Entries are in the following form:
+```
+{"name":"test_vbox","uuid":"c1fd7bca-4532-4796-b862-7c16be2d07f4","template":"iotit-box","device":"raspberry-pi","description":"it is a test vbox","option":{"cpu":1,"memory":512,"usb":{"vc":false,"type":{"2.0":false,"3.0":false}}},"SSH":{"SSH":{"User":"root","Server":"localhost","Key":"","Port":"2222","Password":""},"Sudo":false,"SudoPass":""}}
+```
+
 
 ##### INTERNALS
 ----------------
