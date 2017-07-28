@@ -118,9 +118,14 @@ func (d *colibri) configureImage() error {
 		return err
 	}
 	log.Debug("Running update.sh")
+	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	command = fmt.Sprintf("cd %s && ./update.sh -o %s", help.AddPathSuffix("unix", config.TmpDir, d.folder), config.MountDir)
-	if err := d.exec(command); err != nil {
+	log.Debug(command)
+	if out, eut, err := d.conf.SSH.Run(command); err != nil {
+		log.Error("[-] Error executing: ", command, eut)
 		return err
+	} else if strings.TrimSpace(out) != "" {
+		log.Debug(strings.TrimSpace(out))
 	}
 	command = fmt.Sprintf("cd %s && zip -0 -r ../%s *", config.MountDir, d.img)
 	if err := d.exec(command); err != nil {

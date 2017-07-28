@@ -172,7 +172,7 @@ func DownloadNewVersion(name, version, dst string) (string, error) {
 	}
 
 	url := fmt.Sprintf("https://cdn.isaax.io/%s/%s/%s/%s.%s", name, currentRelease(version), runtime.GOOS, fileName, zipMethod)
-
+	log.WithField("url", url).Debug("DownloadNewVersion")
 	wg := &sync.WaitGroup{}
 	imgName, bar, err := help.DownloadFromUrlWithAttemptsAsync(url, dst, 5, wg)
 	if err != nil {
@@ -258,6 +258,7 @@ func IsVersionUpToDate(v1, v2 string) (bool, error) {
 
 // GetIoTItVersionMD5 gets the latest version from the repo and checks if the new version is available
 func GetIoTItVersionMD5(oss, arch, version string) (hash string, repoVersion string, err error) {
+	log.WithField("url", IoTItRepo).WithField("ver", version).Debug("GetIoTItVersionMD5")
 	var checkMethKey = "md5sums"
 	var versionKey = "version"
 
@@ -287,8 +288,9 @@ func GetIoTItVersionMD5(oss, arch, version string) (hash string, repoVersion str
 	if err = json.Unmarshal(*r[versionKey], &repoVersion); err != nil {
 		return
 	}
-	var bl bool
-	if bl, err = IsVersionUpToDate(version, repoVersion); bl {
+	log.WithField("registry", r).Debug("parsed")
+
+	if result := help.CompareVersions(version, repoVersion); result <= 0 {
 		repoVersion = ""
 		return
 	}

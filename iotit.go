@@ -20,8 +20,8 @@ import (
 const progName = "iotit"
 const installPath = "/usr/local/bin/"
 
-// Version string came from linker
-var version string
+// version string came from linker
+var version = "latest"
 
 // Env string came from linker
 var Env = "dev"
