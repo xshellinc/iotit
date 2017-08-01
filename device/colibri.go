@@ -131,6 +131,9 @@ func (d *colibri) configureImage() error {
 	if err := d.exec(command); err != nil {
 		return err
 	}
+	if err := d.exec("ls -la /tmp/colibri_image.zip"); err != nil {
+		return err
+	}
 	return nil
 }
 

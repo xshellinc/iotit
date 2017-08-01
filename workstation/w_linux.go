@@ -107,7 +107,7 @@ func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
 func (l *linux) Unmount() error {
 	if l.workstation.writable != false {
 		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
-		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.deviceName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.folder, err.Error(), stdout)
 		}
@@ -117,6 +117,14 @@ func (l *linux) Unmount() error {
 
 const diskSelectionTries = 3
 const writeAttempts = 3
+const cleanTemplate = `n
+p
+1
+
+
+w
+q
+`
 
 // CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
 func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -286,31 +294,48 @@ func (l *linux) CleanDisk(disk string) error {
 	if disk == "" {
 		return fmt.Errorf("No disk to format")
 	}
-
 	job := help.NewBackgroundJob()
 	go func() {
 		defer job.Close()
 		job.Active(true)
+		help.ExecCmd("umount", []string{disk})
 
-		// need to find a way to partition and format disk on linux
+		// fdisk /dev/mmcblk0 < /tmp/fdisk.cmd
+		dst := help.GetTempDir() + help.Separator() + "fdisk.cmd"
+		help.CreateFile(dst)
+		help.WriteFile(dst, cleanTemplate)
 
-		// args := []string{
-		//     diskUtil,
-		//     "partitionDisk",
-		//     disk,
-		//     "1",
-		//     "mbr",
-		//     "fat32",
-		//     "KERNEL",
-		//     "100%",
-		// }
-		// if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
-		//     job.Error(err)
-		// }
+		args := []string{
+			"fdisk",
+			disk,
+			"<",
+			dst,
+		}
+		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		}
+
+		args = []string{
+			"mkdosfs",
+			"-n",
+			"KERNEL",
+			disk,
+			"-F",
+			"32",
+		}
+		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		}
+		log.Debug("mkdosfs done")
+		help.ExecCmd("mkdir", []string{"/media/KERNEL/"})
+		log.Debug("mkdir done")
+		help.ExecCmd("mount", []string{disk, "/media/KERNEL/"})
+		log.Debug("mount done")
+		l.workstation.mount.deviceName = "/media/KERNEL"
 		job.Active(false)
 	}()
 
-	if err := help.WaitJobAndSpin("Formatting", job); err != nil {
+	if err := help.WaitJobAndSpin("You need to have "+dialogs.PrintColored("dosfstools")+" package installed. Formatting", job); err != nil {
 		return err
 	}
 

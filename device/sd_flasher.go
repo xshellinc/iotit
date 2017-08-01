@@ -123,7 +123,6 @@ func (d *sdFlasher) Write() error {
 		return err
 	}
 
-	fmt.Println("[+] Listing available disks...")
 	w := workstation.NewWorkStation(d.Disk)
 	img := filepath.Join(help.GetTempDir(), d.img)
 
