@@ -106,7 +106,7 @@ func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
 // Unmounts the disk
 func (l *linux) Unmount() error {
 	if l.workstation.writable != false {
-		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
+		fmt.Printf("[+] Unmounting disk: %s\n", l.workstation.mount.deviceName)
 		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.folder, err.Error(), stdout)
@@ -290,7 +290,7 @@ func (l *linux) Eject() error {
 
 // CleanDisk does nothing on linux
 func (l *linux) CleanDisk(disk string) error {
-	log.Debug("CleanDisk")
+	log.WithField("disk", disk).Debug("CleanDisk")
 	if disk == "" {
 		return fmt.Errorf("No disk to format")
 	}
@@ -319,7 +319,7 @@ func (l *linux) CleanDisk(disk string) error {
 			"mkdosfs",
 			"-n",
 			"KERNEL",
-			disk,
+			disk + "p1",
 			"-F",
 			"32",
 		}
@@ -329,9 +329,11 @@ func (l *linux) CleanDisk(disk string) error {
 		log.Debug("mkdosfs done")
 		help.ExecCmd("mkdir", []string{"/media/KERNEL/"})
 		log.Debug("mkdir done")
-		help.ExecCmd("mount", []string{disk, "/media/KERNEL/"})
+		help.ExecCmd("mount", []string{disk + "p1", "/media/KERNEL/"})
 		log.Debug("mount done")
 		l.workstation.mount.deviceName = "/media/KERNEL"
+		l.workstation.mount.diskName = disk + "p1"
+		l.workstation.writable = true
 		job.Active(false)
 	}()
 
