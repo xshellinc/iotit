@@ -3,6 +3,7 @@ package workstation
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -298,41 +299,71 @@ func (l *linux) CleanDisk(disk string) error {
 	go func() {
 		defer job.Close()
 		job.Active(true)
-		help.ExecCmd("umount", []string{disk})
+		log.Info("[+] Unmounting")
+		cmd := fmt.Sprintf("for n in %s* ; do umount $n ; done", disk)
+		if out, err := help.ExecCmd("sh", []string{"-c", cmd}); err == nil {
+			log.WithField("cmd", cmd).Debug(strings.TrimSpace(out))
+		}
 
-		// fdisk /dev/mmcblk0 < /tmp/fdisk.cmd
-		dst := help.GetTempDir() + help.Separator() + "fdisk.cmd"
+		log.Info("[+] Wiping previous partitions info")
+		args := []string{
+			"wipefs",
+			"-a",
+			disk,
+		}
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("wipefs output")
+		}
+
+		log.Info("[+] Creating new partition table")
+		dst := help.GetTempDir() + help.Separator() + "fdisk.in"
 		help.CreateFile(dst)
 		help.WriteFile(dst, cleanTemplate)
 
-		args := []string{
-			"fdisk",
-			disk,
-			"<",
-			dst,
-		}
-		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+		// fdisk /dev/mmcblk0 < /tmp/fdisk.cmd
+		dst = help.GetTempDir() + help.Separator() + "fdisk.cmd"
+		help.CreateFile(dst)
+		help.WriteFile(dst, fmt.Sprintf("fdisk %s < %s/fdisk.in", disk, help.GetTempDir()))
+		os.Chmod(dst, 0755)
+
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, dst); err != nil {
 			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("fdisk output")
 		}
 
+		log.Info("[+] Formatting into FAT32 partition")
+		partition := disk + "1"
+		if strings.Contains(disk, "blk") {
+			partition = disk + "p1"
+		}
 		args = []string{
 			"mkdosfs",
 			"-n",
 			"KERNEL",
-			disk + "p1",
+			partition,
 			"-F",
 			"32",
 		}
-		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
 			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("mkdosfs output")
 		}
 		log.Debug("mkdosfs done")
 		help.ExecCmd("mkdir", []string{"/media/KERNEL/"})
 		log.Debug("mkdir done")
-		help.ExecCmd("mount", []string{disk + "p1", "/media/KERNEL/"})
+		log.Info("[+] Mounting")
+		if out, err := help.ExecCmd("mount", []string{partition, "/media/KERNEL/"}); err != nil {
+			log.Debug(strings.TrimSpace(out))
+			job.Error(fmt.Errorf("Can't mount %s", partition))
+			return
+		}
 		log.Debug("mount done")
 		l.workstation.mount.deviceName = "/media/KERNEL"
-		l.workstation.mount.diskName = disk + "p1"
+		l.workstation.mount.diskName = partition
 		l.workstation.writable = true
 		job.Active(false)
 	}()
