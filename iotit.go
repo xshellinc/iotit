@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
-	"github.com/xshellinc/iotit/repo"
+	// "github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -248,37 +248,39 @@ func main() {
 				return nil
 			},
 		},
-		{
-			Name:    "update",
-			Aliases: []string{"u"},
-			Usage:   "Self-update",
-			Action: func(c *cli.Context) error {
-				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-					fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
-					return nil
-				}
-				fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
-				dir, err := repo.DownloadNewVersion(progName, version, help.GetTempDir())
-
-				if err != nil {
-					fmt.Println("[-] Error:", err)
-					return nil
-				}
-
-				if dir == "" {
-					fmt.Println("[+] ", progName, " is up to date")
-				} else {
-					fmt.Println("[+] You may need to enter your user password")
-					if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
-						fmt.Println("[-] Error:", eut)
+		/*
+			{
+				Name:    "update",
+				Aliases: []string{"u"},
+				Usage:   "Self-update",
+				Action: func(c *cli.Context) error {
+					if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+						fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
 						return nil
 					}
-					fmt.Println("[+]", progName, " is updated")
-				}
+					fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
+					dir, err := repo.DownloadNewVersion(progName, version, help.GetTempDir())
 
-				return nil
+					if err != nil {
+						fmt.Println("[-] Error:", err)
+						return nil
+					}
+
+					if dir == "" {
+						fmt.Println("[+] ", progName, " is up to date")
+					} else {
+						fmt.Println("[+] You may need to enter your user password")
+						if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
+							fmt.Println("[-] Error:", eut)
+							return nil
+						}
+						fmt.Println("[+]", progName, " is updated")
+					}
+
+					return nil
+				},
 			},
-		},
+		*/
 		{
 			Name:    "log",
 			Aliases: []string{"l"},
