@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	stdlog "log"
@@ -285,8 +286,13 @@ func main() {
 			Name:    "log",
 			Aliases: []string{"l"},
 			Usage:   "Show log file location",
+			Flags: []cli.Flag{
+				cli.IntFlag{Name: "number, n", Usage: "Number of lines", Value: 10},
+			},
 			Action: func(c *cli.Context) error {
 				fmt.Println("Log location:", logfile)
+				fmt.Printf("-------Showing last %d lines-------\n", c.Int("number"))
+				tailLog(c.Int("number"))
 				return nil
 			},
 		},
@@ -310,4 +316,58 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+func tailLog(numLines int) bool {
+	if numLines == 0 {
+		return false
+	}
+
+	file, err := os.Open(logfile)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	defer file.Close()
+
+	numNewLines := 0
+	var offset int64 = -1
+	var finalReadStartPos int64
+	bytesRead := 1
+	for numNewLines <= numLines-1 {
+		startPos, err := file.Seek(offset, 2)
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		if startPos == 0 {
+			finalReadStartPos = -1
+			break
+		}
+		b := make([]byte, 1)
+		_, err = file.ReadAt(b, startPos)
+		bytesRead++
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		if offset == int64(-1) && string(b) == "\n" {
+			offset--
+			continue
+		}
+		if string(b) == "\n" {
+			numNewLines++
+			finalReadStartPos = startPos
+		}
+		offset--
+	}
+
+	b := make([]byte, bytesRead+1)
+	_, err = file.ReadAt(b, finalReadStartPos+1)
+	if err == io.EOF {
+		fmt.Print(string(b))
+		return true
+	}
+	return false
 }
