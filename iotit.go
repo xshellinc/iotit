@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	stdlog "log"
 	"runtime"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
-	"github.com/xshellinc/iotit/repo"
+	// "github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -20,8 +21,8 @@ import (
 const progName = "iotit"
 const installPath = "/usr/local/bin/"
 
-// Version string came from linker
-var version string
+// version string came from linker
+var version = "latest"
 
 // Env string came from linker
 var Env = "dev"
@@ -53,7 +54,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		// TODO: launch gui by default
-		flasher := device.New(c.Args()[:], "", false)
+		flasher := device.New(c)
 		if flasher == nil {
 			return nil
 		}
@@ -81,12 +82,7 @@ func main() {
 					cli.ShowCommandHelp(c, "flash")
 					return nil
 				}
-				port := c.String("port")
-				disk := c.String("disk")
-				if len(disk) > 0 {
-					port = disk
-				}
-				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				flasher := device.New(c)
 				if flasher == nil {
 					return nil
 				}
@@ -107,16 +103,34 @@ func main() {
 			},
 			ArgsUsage: "[device image]",
 			Action: func(c *cli.Context) error {
-				port := c.String("port")
-				disk := c.String("disk")
-				if len(disk) > 0 {
-					port = disk
-				}
-				flasher := device.New(c.Args()[:], port, c.Bool("quiet"))
+				flasher := device.New(c)
 				if flasher == nil {
 					return nil
 				}
 				if err := flasher.Configure(); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:    "write",
+			Aliases: []string{"w"},
+			Usage:   "Write image to SD or eMMC",
+			Flags: []cli.Flag{
+				cli.BoolFlag{Name: "flash, f", Usage: "Flash ready image"},
+				cli.StringFlag{Name: "image, i", Usage: "Image path"},
+				cli.StringFlag{Name: "disk, d", Usage: "External disk or usb device"},
+				cli.StringFlag{Name: "port, p", Usage: "Serial port for connected device. " +
+					"If set to 'auto' first port will be used."},
+			},
+			ArgsUsage: "[device image]",
+			Action: func(c *cli.Context) error {
+				flasher := device.New(c)
+				if flasher == nil {
+					return nil
+				}
+				if err := flasher.Write(); err != nil {
 					return err
 				}
 				return nil
@@ -235,43 +249,50 @@ func main() {
 				return nil
 			},
 		},
-		{
-			Name:    "update",
-			Aliases: []string{"u"},
-			Usage:   "Self-update",
-			Action: func(c *cli.Context) error {
-				if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
-					fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
-					return nil
-				}
-				fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
-				dir, err := repo.DownloadNewVersion(progName, version, help.GetTempDir())
-
-				if err != nil {
-					fmt.Println("[-] Error:", err)
-					return nil
-				}
-
-				if dir == "" {
-					fmt.Println("[+] ", progName, " is up to date")
-				} else {
-					fmt.Println("[+] You may need to enter your user password")
-					if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
-						fmt.Println("[-] Error:", eut)
+		/*
+			{
+				Name:    "update",
+				Aliases: []string{"u"},
+				Usage:   "Self-update",
+				Action: func(c *cli.Context) error {
+					if _, err := os.Stat(installPath + progName); os.IsNotExist(err) {
+						fmt.Println("[-] Software is not installed, please install it globally first: `" + progName + " gl`")
 						return nil
 					}
-					fmt.Println("[+]", progName, " is updated")
-				}
+					fmt.Println("[+] Current os: ", runtime.GOOS, runtime.GOARCH)
+					dir, err := repo.DownloadNewVersion(progName, version, help.GetTempDir())
 
-				return nil
+					if err != nil {
+						fmt.Println("[-] Error:", err)
+						return nil
+					}
+
+					if dir == "" {
+						fmt.Println("[+] ", progName, " is up to date")
+					} else {
+						fmt.Println("[+] You may need to enter your user password")
+						if _, eut, err := sudo.Exec(sudo.InputMaskedPassword, nil, "mv", dir, installPath+progName); err != nil {
+							fmt.Println("[-] Error:", eut)
+							return nil
+						}
+						fmt.Println("[+]", progName, " is updated")
+					}
+
+					return nil
+				},
 			},
-		},
+		*/
 		{
 			Name:    "log",
 			Aliases: []string{"l"},
 			Usage:   "Show log file location",
+			Flags: []cli.Flag{
+				cli.IntFlag{Name: "number, n", Usage: "Number of lines", Value: 10},
+			},
 			Action: func(c *cli.Context) error {
 				fmt.Println("Log location:", logfile)
+				fmt.Printf("-------Showing last %d lines-------\n", c.Int("number"))
+				tailLog(c.Int("number"))
 				return nil
 			},
 		},
@@ -283,7 +304,7 @@ func main() {
 			Usage: "*Windows only* Clean SD card partition table",
 			Action: func(c *cli.Context) error {
 				w := workstation.NewWorkStation("")
-				if err := w.CleanDisk(); err != nil {
+				if err := w.CleanDisk(""); err != nil {
 					fmt.Println("[-] Error:", err)
 					return nil
 				}
@@ -295,4 +316,58 @@ func main() {
 	}
 
 	app.Run(os.Args)
+}
+
+func tailLog(numLines int) bool {
+	if numLines == 0 {
+		return false
+	}
+
+	file, err := os.Open(logfile)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	defer file.Close()
+
+	numNewLines := 0
+	var offset int64 = -1
+	var finalReadStartPos int64
+	bytesRead := 1
+	for numNewLines <= numLines-1 {
+		startPos, err := file.Seek(offset, 2)
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		if startPos == 0 {
+			finalReadStartPos = -1
+			break
+		}
+		b := make([]byte, 1)
+		_, err = file.ReadAt(b, startPos)
+		bytesRead++
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		if offset == int64(-1) && string(b) == "\n" {
+			offset--
+			continue
+		}
+		if string(b) == "\n" {
+			numNewLines++
+			finalReadStartPos = startPos
+		}
+		offset--
+	}
+
+	b := make([]byte, bytesRead+1)
+	_, err = file.ReadAt(b, finalReadStartPos+1)
+	if err == io.EOF {
+		fmt.Print(string(b))
+		return true
+	}
+	return false
 }

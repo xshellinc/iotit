@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

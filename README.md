@@ -16,6 +16,7 @@
 * [BeagleBone](http://beagleboard.org/bone)
 * [ESP-32](http://esp32.net/)
 * [ESP-8266](http://esp8266.net/)
+* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
 
 
 ### REQUIREMENTS
@@ -102,6 +103,21 @@ GLOBAL OPTIONS:
    --version, -v  print the version
 ```
 
+For example here are the flash command flags:
+```
+$ iotit flash --help
+NAME:
+   iotit flash - Flash image to the device
+
+USAGE:
+   iotit flash [command options] [device image]
+
+OPTIONS:
+   --quiet, --unattended, -q  Suppress questions and assume default answers
+   --disk value, -d value     External disk or usb device
+   --port value, -p value     Serial port for connected device. If set to 'auto' first port will be used.
+```
+
 #### VIRTUALBOX
 ----------------
 During installation user can choose `default` virtualbox specs
@@ -109,6 +125,11 @@ During installation user can choose `default` virtualbox specs
 Alternatively user can create their own vbox spec by choosing `Create new virtual machine`.
 This will create a spec file with a name of virtualbox and specs such as memory, cpu, vram etc,
 which is applied to `iotit-box`
+
+To delete a custom virtual box preset, go to the iotit folder on your machine on macOS it is at`/Users/{user}/.iotit`. Open the file iotit-vbox.json in a text editor and delete the entry of the preset you want to remove. Entries are in the following form:
+```
+{"name":"test_vbox","uuid":"c1fd7bca-4532-4796-b862-7c16be2d07f4","template":"iotit-box","device":"raspberry-pi","description":"it is a test vbox","option":{"cpu":1,"memory":512,"usb":{"vc":false,"type":{"2.0":false,"3.0":false}}},"SSH":{"SSH":{"User":"root","Server":"localhost","Key":"","Port":"2222","Password":""},"Sudo":false,"SudoPass":""}}
+```
 
 
 ##### INTERNALS
@@ -125,7 +146,7 @@ which is applied to `iotit-box`
 because it allows to work with linux partitions and reduces installation requirements
 across different OSes
 
-Currently 3 workflows are supported:
+Currently 4 workflows are supported:
 
 ##### 1 Edison:
 - copy installation files into virtualbox
@@ -142,6 +163,13 @@ Currently 3 workflows are supported:
 - upload firmware and bootloader binaries over serial connection
 - configure module parameters using serial connection
 
+##### 4 Toradex Colibri
+- copy installation files into virtualbox
+- run update.sh and create img files
+- copy image files to SD card
+- connect to colibri module via serial
+- run update to flash linux to internal eMMC
+
 VirtualBox uses alpine virtualbox image with additional software installed
 ```
 bash
@@ -150,12 +178,21 @@ xz
 util-linux
 dfu-util
 ```
+and for Toradex:
+```
+dosfstools
+parted
+sudo
+e2fsprogs-extra
+coreutils
+libattr
+zip
+```
 
 Edison device is additionally mapped to the usb ports
 ```
 Intel Edison [0310]
 Intel USB download gadget [9999]
-FTDI FT232R USB UART [0600]
 ```
 
 #### CUSTOM BOARDS FLASHING:

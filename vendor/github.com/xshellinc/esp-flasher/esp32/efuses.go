@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/juju/errors"
 	"github.com/xshellinc/esp-flasher/esp/rom_client"
 )

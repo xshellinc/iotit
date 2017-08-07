@@ -57,8 +57,16 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 
 // IoctlSetInt performs an ioctl operation which sets an integer value
 // on fd, using the specified request number.
-func IoctlSetInt(fd int, req uint, value int) (err error) {
+func IoctlSetInt(fd int, req uint, value int) error {
 	return ioctl(fd, req, uintptr(value))
+}
+
+func IoctlSetWinsize(fd int, req uint, value *Winsize) error {
+	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
+}
+
+func IoctlSetTermios(fd int, req uint, value *Termios) error {
+	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
 }
 
 // IoctlGetInt performs an ioctl operation which gets an integer value
@@ -67,6 +75,18 @@ func IoctlGetInt(fd int, req uint) (int, error) {
 	var value int
 	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
 	return value, err
+}
+
+func IoctlGetWinsize(fd int, req uint) (*Winsize, error) {
+	var value Winsize
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetTermios(fd int, req uint) (*Termios, error) {
+	var value Termios
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
 }
 
 //sys	Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error)
@@ -332,8 +352,12 @@ func Wait4(pid int, wstatus *WaitStatus, options int, rusage *Rusage) (wpid int,
 	return
 }
 
-func Mkfifo(path string, mode uint32) (err error) {
+func Mkfifo(path string, mode uint32) error {
 	return Mknod(path, mode|S_IFIFO, 0)
+}
+
+func Mkfifoat(dirfd int, path string, mode uint32) error {
+	return Mknodat(dirfd, path, mode|S_IFIFO, 0)
 }
 
 func (sa *SockaddrInet4) sockaddr() (unsafe.Pointer, _Socklen, error) {

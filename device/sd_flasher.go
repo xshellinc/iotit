@@ -8,8 +8,8 @@ import (
 
 	"regexp"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
@@ -24,7 +24,7 @@ type sdFlasher struct {
 
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
-	log.Debug("Attaching an image")
+	log.WithField("img", d.img).Debug("Attaching an image")
 
 	if d.img == "" {
 		return errors.New("Image not found, please check if the repo is valid")
@@ -123,7 +123,6 @@ func (d *sdFlasher) Write() error {
 		return err
 	}
 
-	fmt.Println("[+] Listing available disks...")
 	w := workstation.NewWorkStation(d.Disk)
 	img := filepath.Join(help.GetTempDir(), d.img)
 
@@ -230,6 +229,7 @@ func (d *sdFlasher) Done() error {
 }
 
 func (d *sdFlasher) execOverSSH(command string, outp *string) error {
+	log.WithField("command", command).Debug("execOverSSH")
 	if out, eut, err := d.conf.SSH.Run(command); err != nil {
 		log.Error("[-] Error executing: ", command, eut)
 		return err

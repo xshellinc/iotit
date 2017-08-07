@@ -2,7 +2,7 @@ package device
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/esp-flasher/common"
 	"github.com/xshellinc/esp-flasher/esp"
 	espFlasher "github.com/xshellinc/esp-flasher/esp/flasher"

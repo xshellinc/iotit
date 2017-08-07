@@ -9,4 +9,4 @@ if [ $gitRepo != "master" ]; then
     v=$v"_"$gitRepo
 fi
 
-go build -ldflags "-X main.Version=$v -X main.Env=dev" iotit.go
+go build -ldflags "-X main.version=$v -X main.Env=dev" iotit.go

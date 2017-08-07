@@ -1,12 +1,12 @@
-hash: 5f48008290360f8ffb54bbcbef7ab34da7bb352845b6eaf267423a43d5d2d5fa
-updated: 2017-06-29T09:46:54.318309352+03:00
+hash: 97357ca4e232e5fcff58ef03f4b87bbd4d5aa77080d0c09ab4b244c384514499
+updated: 2017-07-24T18:22:26.021331051+03:00
 imports:
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - name: github.com/hypersleep/easyssh
   version: 70879c819ea11f5f4967d0fa7080dfb051884e2f
 - name: github.com/juju/errors
-  version: 6bffea730f4aba190658f565cb02e95679f7ce31
+  version: c7d06af17c68cd34c835053720b21f6549d9b0ee
 - name: github.com/mattn/go-pipeline
   version: 4861b26ff5ba4743d594f2a8f763fe10be34e018
 - name: github.com/mattn/go-runewidth
@@ -16,15 +16,15 @@ imports:
 - name: github.com/Nerdmaster/terminal
   version: 38e30f80d51fc023221d4c420c2c2d9bdf9cb70b
 - name: github.com/pborman/uuid
-  version: a97ce2ca70fa5a848076093f05e639a89ca34d06
+  version: e790cca94e6cc75c7064b1332e63811d4aae1a53
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
-- name: github.com/Sirupsen/logrus
-  version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
+- name: github.com/sirupsen/logrus
+  version: a3f95b5c423586578a4e099b11a46c2479628cac
 - name: github.com/tj/go-spin
   version: 866762925be273d8db6a8b816f359ca41d61bcdb
 - name: github.com/xshellinc/esp-flasher
-  version: 97165a9c421a91ddba3b4a287eb913dd2b771505
+  version: 2771a7899f00f186902703056d681b30795ecf62
   subpackages:
   - common
   - esp
@@ -38,7 +38,7 @@ imports:
 - name: github.com/xshellinc/go-virtualbox
   version: a6405bc2b4bc7aed8273f125f31ca9e4a908ef13
 - name: github.com/xshellinc/tools
-  version: acc06e2c3b970b624615971d69e1ff2a85ee252b
+  version: 1158427130ded29beed45b1fbc2a14c34bb237b9
   subpackages:
   - constants
   - dialogs
@@ -48,7 +48,7 @@ imports:
   - lib/sudo
   - locale
 - name: golang.org/x/crypto
-  version: 5ef0053f77724838734b6945dd364d3847e5de1d
+  version: 6914964337150723782436d56b3f21610a74ce7b
   subpackages:
   - curve25519
   - ed25519
@@ -57,7 +57,7 @@ imports:
   - ssh/agent
   - ssh/terminal
 - name: golang.org/x/sys
-  version: 90796e5a05ce440b41c768bd9af257005e470461
+  version: c4489faa6e5ab84c0ef40d6ee878f7a030281f0f
   subpackages:
   - unix
   - windows

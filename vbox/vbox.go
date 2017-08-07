@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
 	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"

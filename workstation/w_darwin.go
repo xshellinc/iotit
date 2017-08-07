@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/sudo"
@@ -25,6 +25,55 @@ func newWorkstation(disk string) WorkStation {
 
 const diskSelectionTries = 3
 const writeAttempts = 3
+
+// CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
+func (d *workstation) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+	log.Debug("CopyToDisk")
+	_, err = d.ListRemovableDisk()
+	if err != nil {
+		log.Error(err)
+		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+		return nil, err
+	}
+
+	var dev *MountInfo
+	if len(d.Disk) == 0 {
+		rng := make([]string, len(d.mounts))
+		for i, e := range d.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
+		}
+		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		dev = d.mounts[num]
+	} else {
+		for _, e := range d.mounts {
+			if e.diskName == d.Disk {
+				dev = e
+				break
+			}
+		}
+		if dev == nil {
+			return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+		}
+	}
+
+	d.mount = dev
+	fmt.Printf("[+] Writing image to %s\n", d.mount.diskName)
+	log.WithField("image", img).WithField("mount", "/Volumes/KERNEL").Debugf("Writing image to %s", d.mount.diskName)
+
+	if err := d.CleanDisk(d.mount.diskName); err != nil {
+		return nil, err
+	}
+
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		help.ExecCmd("unzip", []string{img, "-d", "/Volumes/KERNEL/"})
+		fmt.Println("\r[+] Done writing image to /Volumes/KERNEL")
+	}()
+
+	return job, nil
+}
 
 // Notifies user to choose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -157,71 +206,76 @@ func (d *workstation) WriteToDisk(img string) (job *help.BackgroundJob, err erro
 
 // Lists available mounts
 func (d *workstation) ListRemovableDisk() ([]*MountInfo, error) {
-	regex := regexp.MustCompile("^disk([0-9]+)$")
-	var (
-		devDisks []string
-		out      = []*MountInfo{}
-	)
-
-	files, _ := ioutil.ReadDir("/dev/")
-	for _, f := range files {
-		fileName := f.Name()
-		if regex.MatchString(fileName) {
-			devDisks = append(devDisks, fileName)
+	var out = []*MountInfo{}
+	fmt.Println("[+] Listing available disks...")
+	for attempt := 0; attempt < diskSelectionTries; attempt++ {
+		if attempt > 0 && !dialogs.YesNoDialog("Continue?") {
+			return out, fmt.Errorf("No SD card found")
 		}
-	}
-	for _, devDisk := range devDisks {
-		var p = &MountInfo{}
-		diskMap := make(map[string]string)
-		removable := true
-
-		stdout, err := help.ExecCmd(diskUtil, []string{"info", "/dev/" + devDisk})
-		if err != nil {
-			stdout = ""
+		regex := regexp.MustCompile("^disk([0-9]+)$")
+		var devDisks []string
+		files, _ := ioutil.ReadDir("/dev/")
+		for _, f := range files {
+			fileName := f.Name()
+			if regex.MatchString(fileName) {
+				devDisks = append(devDisks, fileName)
+			}
 		}
-		diskutilInfo := strings.Split(stdout, "\n")
-		for _, line := range diskutilInfo {
-			if strings.Contains(line, "Protocol") {
-				diskProtocol := strings.Trim(strings.Split(line, ":")[1], " ")
-				for _, protocol := range []string{"SATA", "ATA", "Disk Image", "PCI", "SAS"} {
-					if strings.Contains(diskProtocol, protocol) {
-						removable = false
+		for _, devDisk := range devDisks {
+			var p = &MountInfo{}
+			diskMap := make(map[string]string)
+			removable := true
+
+			stdout, err := help.ExecCmd(diskUtil, []string{"info", "/dev/" + devDisk})
+			if err != nil {
+				stdout = ""
+			}
+			diskutilInfo := strings.Split(stdout, "\n")
+			for _, line := range diskutilInfo {
+				if strings.Contains(line, "Protocol") {
+					diskProtocol := strings.Trim(strings.Split(line, ":")[1], " ")
+					for _, protocol := range []string{"SATA", "ATA", "Disk Image", "PCI", "SAS"} {
+						if strings.Contains(diskProtocol, protocol) {
+							removable = false
+						}
 					}
 				}
-			}
-			if strings.Contains(line, "Device Identifier") {
-				diskName := strings.Trim(strings.Split(line, ":")[1], " ")
-				diskMap["diskName"] = "/dev/" + diskName
-				diskMap["diskNameRaw"] = "/dev/r" + diskName
-			}
+				if strings.Contains(line, "Device Identifier") {
+					diskName := strings.Trim(strings.Split(line, ":")[1], " ")
+					diskMap["diskName"] = "/dev/" + diskName
+					diskMap["diskNameRaw"] = "/dev/r" + diskName
+				}
 
-			if strings.Contains(line, "Device / Media Name") {
-				deviceName := strings.Trim(strings.Split(line, ":")[1], " ")
-				deviceName = strings.Split(deviceName, " Media")[0]
-				diskMap["deviceName"] = deviceName
-			}
+				if strings.Contains(line, "Device / Media Name") {
+					deviceName := strings.Trim(strings.Split(line, ":")[1], " ")
+					deviceName = strings.Split(deviceName, " Media")[0]
+					diskMap["deviceName"] = deviceName
+				}
 
-			if strings.Contains(line, "Total Size") {
-				deviceSize := strings.Trim(strings.Split(line, ":")[1], " ")
-				deviceSize = strings.Split(deviceSize, " (")[0]
-				diskMap["deviceSize"] = deviceSize
+				if strings.Contains(line, "Total Size") {
+					deviceSize := strings.Trim(strings.Split(line, ":")[1], " ")
+					deviceSize = strings.Split(deviceSize, " (")[0]
+					diskMap["deviceSize"] = deviceSize
+				}
+			}
+			if removable {
+				p.deviceName = diskMap["deviceName"]
+				p.deviceSize = diskMap["deviceSize"]
+				p.diskName = diskMap["diskName"]
+				p.diskNameRaw = diskMap["diskNameRaw"]
+				out = append(out, p)
+				log.Debug(diskMap)
 			}
 		}
-		if removable {
-			p.deviceName = diskMap["deviceName"]
-			p.deviceSize = diskMap["deviceSize"]
-			p.diskName = diskMap["diskName"]
-			p.diskNameRaw = diskMap["diskNameRaw"]
-			out = append(out, p)
-			log.Debug(diskMap)
+
+		if len(out) == 0 {
+			fmt.Println("[-] Removable disks not found.\n[-] Please insert your SD card and start command again")
+			continue
 		}
+		d.mounts = out
+		break
 	}
 
-	if !(len(out) > 0) {
-		return nil, fmt.Errorf("removable disks not found.\n[-] Please insert your SD card and start command again")
-	}
-
-	d.mounts = out
 	return out, nil
 }
 
@@ -241,11 +295,11 @@ func (d *workstation) Eject() error {
 // Unmounts the mounted disk
 func (d *workstation) Unmount() error {
 	if d.writable {
-		fmt.Printf("[+] Unmounting your sd card :%s\n", d.mount.diskName)
+		fmt.Printf("[+] Unmounting: %s\n", d.mount.deviceName)
 		stdout, err := help.ExecCmd(diskUtil,
 			[]string{
 				"unmountDisk",
-				d.mount.deviceName,
+				d.mount.diskName,
 			})
 		if err != nil {
 			return fmt.Errorf("error unmounting disk: %s\n[-] Cause: %s", d.mount.diskName, stdout)
@@ -254,8 +308,39 @@ func (d *workstation) Unmount() error {
 	return nil
 }
 
-// CleanDisk does nothing on macOS
-func (d *workstation) CleanDisk() error {
+// CleanDisk formats disk into single fat32 partition
+func (d *workstation) CleanDisk(disk string) error {
+	log.Debug("CleanDisk")
+	if disk == "" {
+		return fmt.Errorf("No disk to format")
+	}
+
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+
+		args := []string{
+			diskUtil,
+			"partitionDisk",
+			disk,
+			"1",
+			"mbr",
+			"fat32",
+			"KERNEL",
+			"100%",
+		}
+		if _, _, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		}
+		job.Active(false)
+	}()
+
+	if err := help.WaitJobAndSpin("Formatting", job); err != nil {
+		return err
+	}
+
+	d.writable = true
 	return nil
 }
 

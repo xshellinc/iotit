@@ -11,8 +11,9 @@ type WorkStation interface {
 	ListRemovableDisk() ([]*MountInfo, error)
 	Unmount() error
 	WriteToDisk(img string) (job *help.BackgroundJob, err error)
+	CopyToDisk(img string) (job *help.BackgroundJob, err error)
 	Eject() error
-	CleanDisk() error
+	CleanDisk(disk string) error
 	PrintDisks()
 }
 

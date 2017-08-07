@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"os/exec"
 )
 

@@ -3,12 +3,13 @@ package workstation
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -31,6 +32,7 @@ func newWorkstation(disk string) WorkStation {
 
 // Lists available mounts
 func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
+	fmt.Println("[+] Listing available disks...")
 	regex := regexp.MustCompile(`(sd[a-z])$`)
 	regexMmcblk := regexp.MustCompile(`(mmcblk[0-9])$`)
 	var (
@@ -105,8 +107,8 @@ func (l *linux) ListRemovableDisk() ([]*MountInfo, error) {
 // Unmounts the disk
 func (l *linux) Unmount() error {
 	if l.workstation.writable != false {
-		fmt.Printf("[+] Unmounting disk:%s\n", l.workstation.mount.deviceName)
-		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.deviceName)
+		fmt.Printf("[+] Unmounting disk: %s\n", l.workstation.mount.deviceName)
+		stdout, err := help.ExecSudo(sudo.InputMaskedPassword, nil, "umount", l.workstation.mount.diskName)
 		if err != nil {
 			return fmt.Errorf("Error unmounting disk:%s from %s with error %s, stdout: %s", l.workstation.mount.diskName, l.folder, err.Error(), stdout)
 		}
@@ -116,6 +118,62 @@ func (l *linux) Unmount() error {
 
 const diskSelectionTries = 3
 const writeAttempts = 3
+const cleanTemplate = `n
+p
+1
+
+
+w
+q
+`
+
+// CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
+func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+	log.Debug("CopyToDisk")
+	_, err = l.ListRemovableDisk()
+	if err != nil {
+		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
+		return nil, err
+	}
+
+	var dev *MountInfo
+	if len(l.Disk) == 0 {
+		rng := make([]string, len(l.workstation.mounts))
+		for i, e := range l.workstation.mounts {
+			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
+		}
+		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
+		dev = l.workstation.mounts[num]
+	} else {
+		for _, e := range l.workstation.mounts {
+			if e.diskName == l.Disk {
+				dev = e
+				break
+			}
+		}
+		if dev == nil {
+			return nil, fmt.Errorf("Disk name not recognised, try to list disks with " + dialogs.PrintColored("disks") + " argument")
+		}
+	}
+
+	l.workstation.mount = dev
+	fmt.Printf("[+] Writing image to %s\n", dev.diskName)
+	log.WithField("image", img).WithField("mount", "/media/KERNEL").Debugf("Writing image to %s", dev.diskName)
+
+	if err := l.CleanDisk(dev.diskName); err != nil {
+		return nil, err
+	}
+
+	job = help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		help.ExecCmd("unzip", []string{img, "-d", "/media/KERNEL/"})
+		fmt.Println("\r[+] Done writing image to /media/KERNEL")
+	}()
+
+	return job, nil
+}
 
 // Notifies user to chose a mount, after that it tries to write the data with `diskSelectionTries` number of retries
 func (l *linux) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
@@ -232,7 +290,89 @@ func (l *linux) Eject() error {
 }
 
 // CleanDisk does nothing on linux
-func (l *linux) CleanDisk() error {
+func (l *linux) CleanDisk(disk string) error {
+	log.WithField("disk", disk).Debug("CleanDisk")
+	if disk == "" {
+		return fmt.Errorf("No disk to format")
+	}
+	job := help.NewBackgroundJob()
+	go func() {
+		defer job.Close()
+		job.Active(true)
+		log.Info("[+] Unmounting")
+		cmd := fmt.Sprintf("for n in %s* ; do umount $n ; done", disk)
+		if out, err := help.ExecCmd("sh", []string{"-c", cmd}); err == nil {
+			log.WithField("cmd", cmd).Debug(strings.TrimSpace(out))
+		}
+
+		log.Info("[+] Wiping previous partitions info")
+		args := []string{
+			"wipefs",
+			"-a",
+			disk,
+		}
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("wipefs output")
+		}
+
+		log.Info("[+] Creating new partition table")
+		dst := help.GetTempDir() + help.Separator() + "fdisk.in"
+		help.CreateFile(dst)
+		help.WriteFile(dst, cleanTemplate)
+
+		// fdisk /dev/mmcblk0 < /tmp/fdisk.cmd
+		dst = help.GetTempDir() + help.Separator() + "fdisk.cmd"
+		help.CreateFile(dst)
+		help.WriteFile(dst, fmt.Sprintf("fdisk %s < %s/fdisk.in", disk, help.GetTempDir()))
+		os.Chmod(dst, 0755)
+
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, dst); err != nil {
+			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("fdisk output")
+		}
+
+		log.Info("[+] Formatting into FAT32 partition")
+		partition := disk + "1"
+		if strings.Contains(disk, "blk") {
+			partition = disk + "p1"
+		}
+		args = []string{
+			"mkdosfs",
+			"-n",
+			"KERNEL",
+			partition,
+			"-F",
+			"32",
+		}
+		if out, eut, err := sudo.Exec(sudo.InputMaskedPassword, job.Progress, args...); err != nil {
+			job.Error(err)
+		} else if string(out) != "" || string(eut) != "" {
+			log.WithField("out", strings.TrimSpace(string(out))).WithField("eout", strings.TrimSpace(string(eut))).Debug("mkdosfs output")
+		}
+		log.Debug("mkdosfs done")
+		help.ExecCmd("mkdir", []string{"/media/KERNEL/"})
+		log.Debug("mkdir done")
+		log.Info("[+] Mounting")
+		if out, err := help.ExecCmd("mount", []string{partition, "/media/KERNEL/"}); err != nil {
+			log.Debug(strings.TrimSpace(out))
+			job.Error(fmt.Errorf("Can't mount %s", partition))
+			return
+		}
+		log.Debug("mount done")
+		l.workstation.mount.deviceName = "/media/KERNEL"
+		l.workstation.mount.diskName = partition
+		l.workstation.writable = true
+		job.Active(false)
+	}()
+
+	if err := help.WaitJobAndSpin("You need to have "+dialogs.PrintColored("dosfstools")+" package installed. Formatting", job); err != nil {
+		return err
+	}
+
+	l.workstation.writable = true
 	return nil
 }
 
