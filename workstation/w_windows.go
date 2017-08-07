@@ -103,25 +103,25 @@ const diskSelectionTries = 3
 const writeAttempts = 5
 
 // CopyToDisk Notifies user to choose a mount, after that it tries to copy the data
-func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
+func (w *windows) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
 	log.Debug("CopyToDisk")
-	_, err = l.ListRemovableDisk()
+	_, err = w.ListRemovableDisk()
 	if err != nil {
 		fmt.Println("[-] SD card is not found, please insert an unlocked SD card")
 		return nil, err
 	}
 
 	var dev *MountInfo
-	if len(l.Disk) == 0 {
-		rng := make([]string, len(l.workstation.mounts))
-		for i, e := range l.workstation.mounts {
+	if len(w.Disk) == 0 {
+		rng := make([]string, len(w.workstation.mounts))
+		for i, e := range w.workstation.mounts {
 			rng[i] = fmt.Sprintf(dialogs.PrintColored("%s")+" - "+dialogs.PrintColored("%s")+" (%s)", e.deviceName, e.diskName, e.deviceSize)
 		}
 		num := dialogs.SelectOneDialog("Select disk to format: ", rng)
-		dev = l.workstation.mounts[num]
+		dev = w.workstation.mounts[num]
 	} else {
-		for _, e := range l.workstation.mounts {
-			if e.diskName == l.Disk {
+		for _, e := range w.workstation.mounts {
+			if e.diskName == w.Disk {
 				dev = e
 				break
 			}
@@ -131,11 +131,11 @@ func (l *linux) CopyToDisk(img string) (job *help.BackgroundJob, err error) {
 		}
 	}
 
-	l.workstation.mount = dev
+	w.workstation.mount = dev
 	fmt.Printf("[+] Writing image to %s\n", dev.diskName)
 	log.WithField("image", img).WithField("mount", "N:").Debugf("Writing image to %s", dev.diskName)
 
-	if err := l.CleanDisk(dev.diskName); err != nil {
+	if err := w.CleanDisk(dev.diskName); err != nil {
 		return nil, err
 	}
 
@@ -231,7 +231,7 @@ func (w *windows) WriteToDisk(img string) (job *help.BackgroundJob, err error) {
 					if strings.Contains(sout, "Access is denied") || strings.Contains(sout, "The device is not ready") {
 						fmt.Println("\n[-] Can't write to disk. Please make sure to run this tool as administrator, close all Explorer windows, try reconnecting your disk and finally reboot your computer.\n [-] You may need to run this tool with `clean` argument to clean your disk partition table before applying image.")
 						if dialogs.YesNoDialog("Or we can try to clean it's partitions right now, should we proceed?") {
-							if derr := w.CleanDisk(); derr != nil {
+							if derr := w.CleanDisk(""); derr != nil {
 								fmt.Println("[-] Disk cleaning failed:", derr)
 								continue
 							} else {
