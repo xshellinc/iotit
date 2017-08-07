@@ -1,3 +1,15 @@
+## [0.3.2]
+
+### [ADDED]
+- Flashing Toradex Colibri iMX6 support
+
+### [UPDATED]
+- Improved log command
+
+### [FIXED]
+- Bugfix
+
+
 ## [0.3.0]
 
 ### [ADDED]
