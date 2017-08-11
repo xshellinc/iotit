@@ -1,4 +1,4 @@
-## [0.3.2]
+## [0.3.3]
 
 ### [ADDED]
 - Flashing Toradex Colibri iMX6 support
