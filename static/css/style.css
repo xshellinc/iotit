@@ -6,18 +6,23 @@ body {
     font-weight: 400;
 }
 /* –––––––––––––––––––––––––––––––––––––––––––––––––– */
-h1, h2, h3 { line-height: 1.4em; letter-spacing: 0.0rem; font-weight: 600; }
+h1, h2, h3 {color: #33CC99; line-height: 1.4em; letter-spacing: 0.0rem; font-weight: 600; padding-bottom: 0.2rem;
+    border-bottom: 1px solid #FF3399;}
+h4, h5, h6 {color: #33CC99; line-height: 1.4em; letter-spacing: 0.0rem; font-weight: 600; padding-bottom: 0.2rem;
+}
 h1{
-    font-size: 3.8rem;
+    font-size: 4.8rem;
 }
 h2 {
-    font-size: 2.8rem;
-    padding-bottom: 0.2rem;
-    border-bottom: 1px solid #b3b3b3;
+    font-size: 3.8rem;
 }
 h3 {
-    font-size: 1.8rem;
+    font-size: 2.8rem;
 }
+h4, h5, h6 {
+   font-size: 1.8rem;
+}
+
 p {
     text-align: justify;
 }
@@ -25,10 +30,10 @@ a {
     transition: all .2s;
 }
 a:link, a:visited {
-    color: black;
+    color: #FF3399;
 }
 a:hover {
-    color: gray;
+    color: #FF99CC;
 }
 button {
     height: 4.5rem;
@@ -49,6 +54,8 @@ button:hover {
 }
 code{
     font-family: "Inconsolata", monospace;
+    background-color: #006666;
+      border: 1px solid #33CC99;
 }
 img {
     vertical-align: bottom;
@@ -59,11 +66,12 @@ a:hover img {
 }
 /* –––––––––––––––––––––––––––––––––––––––––––––––––– */
 .container {
-    padding: 3.0rem 0rem 1.5rem 0rem;
+    padding: 3.0rem 0rem 0rem 0rem;
 }
 .header {
     color: white;
-    background: linear-gradient(20deg, #40577F,#292A2D);
+    background: #33CC99;
+    border-bottom: 3px solid #FF3399;
 }
 .header h2{
     border:none;
@@ -77,10 +85,12 @@ a:hover img {
     color: lightgray;
 }
 .overview{
-    background: #D8D8D8;
+    background: #003366;
+    color: #ddd;
+    font-weight: 400;
 }
 .footer{
-    background: #D8D8D8;
+    background: #003366;
     text-align: right;
 }
 .footer p{
@@ -88,7 +98,7 @@ a:hover img {
     margin-right: 1.5rem;
 }
 .logodata{
-    max-height: 90px;
+    max-height: 200px;
     margin-bottom: 10px;
 }
 .small{
