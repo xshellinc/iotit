@@ -7,26 +7,22 @@
 
 `iotit` contains a VirtualBox wrapper [go-virtualbox](https://github.com/riobard/go-virtualbox), so it can run on OS that allows installation of VirtualBox.
 
-### SUPPORTED DEVICES
------------
+## SUPPORTED DEVICES
 
+* [BeagleBone](http://beagleboard.org/bone)
+* [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
 * [NanoPi NEO](http://nanopi.io/nanopi-neo.html)
 * [Raspberry Pi](https://www.raspberrypi.org/)
-* [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
-* [BeagleBone](http://beagleboard.org/bone)
+* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
 * [ESP-32](http://esp32.net/)
 * [ESP-8266](http://esp8266.net/)
-* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
-
 
 ### REQUIREMENTS
-------------
 golang >= 1.8
 
 virtualbox >= 5.0
 
 ### INSTALLATION
-------------
 
 The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/downloads/) and download a precompiled binary that matches your OS.
 
@@ -38,7 +34,7 @@ brew tap xshellinc/iotit && brew install iotit
 
 *Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
-##### Windows specific
+#### Windows specific
 
 **NOTE Windows build is still experimental and you may experience problems flashing on windows 7**
 
@@ -70,7 +66,7 @@ go get ./...
 
 *Note:* Although it is not required we recommend to install `ssh-copy-id` for flashing edison.
 
-### DEVELOPMENT ENVIRONMENT
+#### DEVELOPMENT ENVIRONMENT
 
 To build and run with debug log use:
 
@@ -79,7 +75,6 @@ To build and run with debug log use:
 ```
 
 ### COMMANDS
---------
 
 To see available commands launch `iotit help`
 
@@ -118,8 +113,7 @@ OPTIONS:
    --port value, -p value     Serial port for connected device. If set to 'auto' first port will be used.
 ```
 
-#### VIRTUALBOX
-----------------
+### VIRTUALBOX
 During installation user can choose `default` virtualbox specs
 
 Alternatively user can create their own vbox spec by choosing `Create new virtual machine`.
@@ -127,13 +121,40 @@ This will create a spec file with a name of virtualbox and specs such as memory,
 which is applied to `iotit-box`
 
 To delete a custom virtual box preset, go to the iotit folder on your machine on macOS it is at`/Users/{user}/.iotit`. Open the file iotit-vbox.json in a text editor and delete the entry of the preset you want to remove. Entries are in the following form:
+
 ```
-{"name":"test_vbox","uuid":"c1fd7bca-4532-4796-b862-7c16be2d07f4","template":"iotit-box","device":"raspberry-pi","description":"it is a test vbox","option":{"cpu":1,"memory":512,"usb":{"vc":false,"type":{"2.0":false,"3.0":false}}},"SSH":{"SSH":{"User":"root","Server":"localhost","Key":"","Port":"2222","Password":""},"Sudo":false,"SudoPass":""}}
+{
+  "name": "test_vbox",
+  "uuid": "c1fd7bca-4532-4796-b862-7c16be2d07f4",
+  "template": "iotit-box",
+  "device": "raspberry-pi",
+  "description": "it is a test vbox",
+  "option": {
+    "cpu": 1,
+    "memory": 512,
+    "usb": {
+      "vc": false,
+      "type": {
+        "2.0": false,
+        "3.0": false
+      }
+    }
+  },
+  "SSH": {
+    "SSH": {
+      "User": "root",
+      "Server": "localhost",
+      "Key": "",
+      "Port": "2222",
+      "Password": ""
+    },
+    "Sudo": false,
+    "SudoPass": ""
+  }
+}
 ```
 
-
-##### INTERNALS
-----------------
+### INTERNALS
 `$HOME/.iotit` - a directory containing iotit related files
 
 `$HOME/.iotit/mapping.json` - a file containing different device types and urls of images to be downloaded
@@ -148,22 +169,22 @@ across different OSes
 
 Currently 4 workflows are supported:
 
-##### 1 Edison:
+#### 1 Edison:
 - copy installation files into virtualbox
 - run flashall.sh - to reflash edison
 - run edison_configure - to configure
 
-##### 2 SD:
+#### 2 SD:
 - copy installation files into virtualbox
 - mount the image partition into loop via `losetup` and `mount`
 - write configuration files into the image
 - write image into sd-card via `dd` or `diskutil` on macos
 
-##### 3 ESP-32/8266:
+#### 3 ESP-32/8266:
 - upload firmware and bootloader binaries over serial connection
 - configure module parameters using serial connection
 
-##### 4 Toradex Colibri
+#### 4 Toradex Colibri
 - copy installation files into virtualbox
 - run update.sh and create img files
 - copy image files to SD card
@@ -173,7 +194,7 @@ Currently 4 workflows are supported:
 VirtualBox uses alpine virtualbox image with additional software installed
 ```
 bash
-libusb-dev 
+libusb-dev
 xz
 util-linux
 dfu-util
@@ -195,15 +216,13 @@ Intel Edison [0310]
 Intel USB download gadget [9999]
 ```
 
-#### CUSTOM BOARDS FLASHING:
-----------------
+### CUSTOM BOARDS FLASHING:
 Provide image url or path to flash it on SD card.
 
 
-#### STRUCTURE OF `mapping.json`:
-----------------
+### STRUCTURE OF `mapping.json`:
 
-##### Example:
+#### Example:
 ```
 "Devices":
 	[
@@ -244,19 +263,4 @@ DeviceMapping struct {
 has a tree like structure -
 devices are listed using `Name` field, then devices are listed within `Sub` array and etc.
 
-If a `Sub` device doesn't have any image, then parent's images are used instead
-
-
-
-### 概要
-----------------
-
-IoTitを使うことによって、RaspberryPi、Intel Edison、Beaglebone、NanoPi のようなL
-inux系のシングルボードコンピュータを簡単に初期化することができます。
-
-IoTitはOpen SourceのSingle Board Computer向けフラッシュツールです。
-これを使うことでより簡単にSingle Board Computerをセットアップできます。
-
-IoTitは内部でVirtual Boxを使っておりVBのAPIを使うことで、自分専用のカスタマイズも可能です。
-現在は"NanoPI Neo"や"Raspberry PI"、"Intel Edison" "BeagleBone"の4つに対応しています。
-インストールや使い方はシンプルなので上記の"INSTALLATION"を読んで使ってみてください。
+If a `Sub` device doesn't have any image, then parent's images are used instead.
