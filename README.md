@@ -9,13 +9,13 @@
 
 ## SUPPORTED DEVICES
 
+* [BeagleBone](http://beagleboard.org/bone)
+* [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
 * [NanoPi NEO](http://nanopi.io/nanopi-neo.html)
 * [Raspberry Pi](https://www.raspberrypi.org/)
-* [Intel Edison](https://software.intel.com/en-us/iot/hardware/edison)
-* [BeagleBone](http://beagleboard.org/bone)
+* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
 * [ESP-32](http://esp32.net/)
 * [ESP-8266](http://esp8266.net/)
-* [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
 
 ### REQUIREMENTS
 golang >= 1.8
@@ -121,8 +121,37 @@ This will create a spec file with a name of virtualbox and specs such as memory,
 which is applied to `iotit-box`
 
 To delete a custom virtual box preset, go to the iotit folder on your machine on macOS it is at`/Users/{user}/.iotit`. Open the file iotit-vbox.json in a text editor and delete the entry of the preset you want to remove. Entries are in the following form:
+
 ```
-{"name":"test_vbox","uuid":"c1fd7bca-4532-4796-b862-7c16be2d07f4","template":"iotit-box","device":"raspberry-pi","description":"it is a test vbox","option":{"cpu":1,"memory":512,"usb":{"vc":false,"type":{"2.0":false,"3.0":false}}},"SSH":{"SSH":{"User":"root","Server":"localhost","Key":"","Port":"2222","Password":""},"Sudo":false,"SudoPass":""}}
+{
+  "name": "test_vbox",
+  "uuid": "c1fd7bca-4532-4796-b862-7c16be2d07f4",
+  "template": "iotit-box",
+  "device": "raspberry-pi",
+  "description": "it is a test vbox",
+  "option": {
+    "cpu": 1,
+    "memory": 512,
+    "usb": {
+      "vc": false,
+      "type": {
+        "2.0": false,
+        "3.0": false
+      }
+    }
+  },
+  "SSH": {
+    "SSH": {
+      "User": "root",
+      "Server": "localhost",
+      "Key": "",
+      "Port": "2222",
+      "Password": ""
+    },
+    "Sudo": false,
+    "SudoPass": ""
+  }
+}
 ```
 
 ### INTERNALS
@@ -234,17 +263,4 @@ DeviceMapping struct {
 has a tree like structure -
 devices are listed using `Name` field, then devices are listed within `Sub` array and etc.
 
-If a `Sub` device doesn't have any image, then parent's images are used instead
-
-
-### 概要
-
-IoTitを使うことによって、RaspberryPi、Intel Edison、Beaglebone、NanoPi のようなL
-inux系のシングルボードコンピュータを簡単に初期化することができます。
-
-IoTitはOpen SourceのSingle Board Computer向けフラッシュツールです。
-これを使うことでより簡単にSingle Board Computerをセットアップできます。
-
-IoTitは内部でVirtual Boxを使っておりVBのAPIを使うことで、自分専用のカスタマイズも可能です。
-現在は"NanoPI Neo"や"Raspberry PI"、"Intel Edison" "BeagleBone"の4つに対応しています。
-インストールや使い方はシンプルなので上記の"INSTALLATION"を読んで使ってみてください。
+If a `Sub` device doesn't have any image, then parent's images are used instead.
