@@ -178,6 +178,9 @@ func (d *sdFlasher) Configure() error {
 		return err
 	}
 	if !d.mounted {
+		if !dialogs.YesNoDialog("IoTit can't configure this image because no linux partitions were found inside. Do you want to proceed to image writing anyway?") {
+			return fmt.Errorf("Aborted")
+		}
 		return nil
 	}
 	if !d.Quiet {
@@ -247,10 +250,19 @@ func (d *sdFlasher) execOverSSH(command string, outp *string) error {
 	if out, eut, err := d.conf.SSH.Run(command); err != nil {
 		log.Error("[-] Error executing: ", command, eut)
 		return err
-	} else if strings.TrimSpace(out) != "" {
-		log.Debug(strings.TrimSpace(out))
+	} else if strings.TrimSpace(eut) != "" {
+		out = strings.TrimSpace(out)
+		eut = strings.TrimSpace(eut)
+		log.WithField("out", out).WithField("eut", eut).Debug("execOverSSH Error")
 		if outp != nil {
-			*outp = strings.TrimSpace(out)
+			*outp = eut
+		}
+	} else if strings.TrimSpace(out) != "" {
+		out = strings.TrimSpace(out)
+		eut = strings.TrimSpace(eut)
+		log.WithField("out", out).WithField("eut", eut).Debug("execOverSSH Output")
+		if outp != nil {
+			*outp = out
 		}
 	}
 	return nil

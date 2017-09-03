@@ -5,7 +5,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/repo"
-	"github.com/xshellinc/tools/constants"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"gopkg.in/urfave/cli.v1"
@@ -116,7 +115,6 @@ func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 	} else {
 		var e error
 		r, e = repo.GetDeviceRepo(device)
-
 		if e != nil {
 			return nil, e
 		}
@@ -132,38 +130,40 @@ func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 		}
 		fmt.Println("[+] Using", r.Image.Title)
 	}
+
 	if r.Type == "" {
 		r.Type = device
 	}
+
 	switch r.Type {
-	case constants.DEVICE_TYPE_RASPBERRY:
+	case "Raspberry Pi":
 		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
-	case constants.DEVICE_TYPE_BEAGLEBONE:
+	case "Beaglebone":
 		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
-	case constants.DEVICE_TYPE_COLIBRI:
+	case "Toradex Colibri iMX6":
 		i := &colibri{&flasher{Quiet: quiet, CLI: c}, port, disk}
 		i.device = device
 		i.devRepo = r
 		return i, nil
-	case constants.DEVICE_TYPE_EDISON:
+	case "Intel® Edison":
 		i := &edison{flasher: &flasher{Quiet: quiet, CLI: c}, IP: port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
-	case constants.DEVICE_TYPE_ESP:
+	case "Espressif ESP":
 		i := &serialFlasher{&flasher{Quiet: quiet, CLI: c}, port}
 		i.device = device
 		i.devRepo = r
 		return i, nil
-	case constants.DEVICE_TYPE_NANOPI:
+	case "Nano Pi":
 		fallthrough
-	case constants.DEVICE_TYPE_TINKER:
+	case "ASUS Tinker Board":
 		fallthrough
 	default:
 		i := &sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}

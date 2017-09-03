@@ -48,6 +48,7 @@
 		},
 		{
 			"Name": "Intel® Edison",
+            "Alias": "edison",
 			"Images": [
 				{
 					"URL": "http://iotdk.intel.com/images/3.5/edison/iot-devkit-prof-dev-image-edison-20160606.zip",

@@ -58,7 +58,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 		return fileName, filePath, err
 	}
 	// download image over http
-	fmt.Println("[+] Starting download", d.device)
+	fmt.Println("[+] Starting download", d.devRepo.Image.Title)
 	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
 	name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
@@ -204,6 +204,7 @@ func (d *flasher) extractImage(fileName string) error {
 				fmt.Println("[-] CRC error, re-trying...")
 				log.WithField("filePath", filePath).Info("Trying to download and extract image again")
 				help.DeleteFile(filePath)
+				d.conf.SSH.Run("rm " + config.TmpDir + fileName)
 				retries++
 				return d.prepareImage()
 			}
