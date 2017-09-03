@@ -34,9 +34,10 @@ type flasher struct {
 	devRepo *repo.DeviceMapping
 	CLI     *cli.Context
 
-	img    string
-	folder string
-	device string
+	img     string
+	folder  string
+	device  string
+	mounted bool
 }
 
 // validates given image path and downloads image archive to os tmp folder

@@ -60,7 +60,7 @@ func main() {
 		}
 		if err := flasher.Flash(); err != nil {
 			fmt.Println("[-] Error: ", err)
-			return err
+			return nil
 		}
 		return nil
 	}
@@ -87,7 +87,8 @@ func main() {
 					return nil
 				}
 				if err := flasher.Flash(); err != nil {
-					return err
+					fmt.Println("[-] Error: ", err)
+					return nil
 				}
 				return nil
 			},

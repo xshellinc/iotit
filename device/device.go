@@ -22,6 +22,7 @@ var devices = [...]string{
 	constants.DEVICE_TYPE_BEAGLEBONE,
 	constants.DEVICE_TYPE_COLIBRI,
 	constants.DEVICE_TYPE_ESP,
+	constants.DEVICE_TYPE_TINKER,
 	customFlash,
 }
 
@@ -171,6 +172,8 @@ func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 		i.devRepo = r
 		return i, nil
 	case constants.DEVICE_TYPE_NANOPI:
+		fallthrough
+	case constants.DEVICE_TYPE_TINKER:
 		fallthrough
 	default:
 		i := &sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}

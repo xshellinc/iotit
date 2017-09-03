@@ -270,6 +270,26 @@
 					"Pass": ""
 				}
 			]
+		},
+		{
+			"Name": "ASUS Tinker Board",
+			"Alias": "tinker",
+			"Images": [
+				{
+					"URL": "http://dlcdnet.asus.com/pub/ASUS/mb/Linux/Tinker_Board_2GB/20170511-tinker-board-android-marshmallow-userdebug-v131104.zip",
+					"Title": "TinkerOS Android",
+					"Alias": "android",
+					"User": "linaro",
+					"Pass": "linaro"
+				},
+				{
+					"URL": "http://dlcdnet.asus.com/pub/ASUS/mb/Linux/Tinker_Board_2GB/20170417-tinker-board-linaro-stretch-alip-v1.8.zip",
+					"Title": "TinkerOS Debian",
+					"Alias": "debian",
+					"User": "linaro",
+					"Pass": "linaro"
+				}
+			]
 		}
 	]
 }

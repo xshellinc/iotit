@@ -8,7 +8,6 @@ import (
 
 	"regexp"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device/config"
 	"github.com/xshellinc/iotit/workstation"
@@ -27,7 +26,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	log.WithField("img", d.img).Debug("Attaching an image")
 
 	if d.img == "" {
-		return errors.New("Image not found, please check if the repo is valid")
+		return fmt.Errorf("Image not found, please check if the repo is valid")
 	}
 
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", config.TmpDir, d.img))
@@ -40,6 +39,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err
 	}
+	d.mounted = false
 	if loopMount == "" {
 		command = fmt.Sprintf("ls /dev/loop0p*")
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
@@ -50,39 +50,48 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		}
 		opts := compiler.FindAllString(out, -1)
 		if len(opts) == 0 {
-			return errors.New("Cannot find a mounting point")
+			log.Info("Cannot find a mounting point")
+			return nil
 		}
 		unmount := fmt.Sprintf("umount %s", config.MountDir)
 		for _, loop := range opts {
 			command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
 			if err := d.execOverSSH(command, nil); err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 			command = fmt.Sprintf("ls %s", config.MountDir)
 			out := ""
 			if err := d.execOverSSH(command, &out); err != nil {
-				return err
+				log.Error(err)
+				continue
 			}
 			if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
 				if err := d.execOverSSH(unmount, nil); err != nil {
-					return err
+					log.Error(err)
+					continue
 				}
-			} else {
-				return nil
 			}
+			d.mounted = true
+			return nil
 		}
-		return errors.New("Can't find linux root partition inside that image")
+		log.Info("Can't find linux root partition inside that image")
+		return nil
 	}
 	log.Debug("Mounting sd folder on", loopMount)
 	command = fmt.Sprintf("mount -o rw /dev/loop0%s %s", loopMount, config.MountDir)
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err
 	}
+	d.mounted = true
 	return nil
 }
 
 // UnmountImg is a method to unlink image folder and detach image from the loop
 func (d *sdFlasher) UnmountImg() error {
+	if d.mounted {
+		return nil
+	}
 	log.Debug("Unmounting image folder")
 	command := fmt.Sprintf("umount %s", config.MountDir)
 	if err := d.execOverSSH(command, nil); err != nil {
@@ -135,7 +144,7 @@ func (d *sdFlasher) Write() error {
 		}
 	}
 
-	log.Debug("Removing sd from dir")
+	log.Debug("Removing image from tmp dir")
 	if err := os.Remove(img); err != nil {
 		log.Error("Can not remove image: " + err.Error())
 	}
@@ -163,8 +172,11 @@ func (d *sdFlasher) Configure() error {
 	log.WithField("device", "SD").Debug("Configure")
 	c := config.NewDefault(d.conf.SSH)
 
-	if err := d.MountImg(fmt.Sprintf("")); err != nil {
+	if err := d.MountImg(""); err != nil {
 		return err
+	}
+	if !d.mounted {
+		return nil
 	}
 	if !d.Quiet {
 		if dialogs.YesNoDialog("Would you like to configure your board?") {
