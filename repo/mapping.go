@@ -114,6 +114,14 @@ func (d *DeviceCollection) findDevice(device string) (*DeviceMapping, error) {
 	return nil, errors.New(device + " device is not supported")
 }
 
+func (d *DeviceCollection) getDevices() []string {
+	devices := []string{}
+	for _, obj := range d.Devices {
+		devices = append(devices, obj.Name)
+	}
+	return devices
+}
+
 // DownloadDevicesRepository downloads new mapping.json from the cloud
 func DownloadDevicesRepository() {
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
@@ -169,6 +177,15 @@ func GetDeviceRepo(device string) (*DeviceMapping, error) {
 	}
 
 	return dm.findDevice(device)
+}
+
+func GetDevices() []string {
+	if dm == nil {
+		if err := initDeviceCollection(); err != nil {
+			return []string{}
+		}
+	}
+	return dm.getDevices()
 }
 
 // initDeviceCollection initializes deviceCollection from file, alternatively from the internal constant

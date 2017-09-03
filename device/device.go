@@ -12,19 +12,7 @@ import (
 )
 
 // CustomFlash custom method enum
-const customFlash = "custom board"
-
-// devices is a list of currently supported devices
-var devices = [...]string{
-	constants.DEVICE_TYPE_RASPBERRY,
-	constants.DEVICE_TYPE_EDISON,
-	constants.DEVICE_TYPE_NANOPI,
-	constants.DEVICE_TYPE_BEAGLEBONE,
-	constants.DEVICE_TYPE_COLIBRI,
-	constants.DEVICE_TYPE_ESP,
-	constants.DEVICE_TYPE_TINKER,
-	customFlash,
-}
+const customFlash = "Custom board"
 
 // New returns new Flasher instance
 func New(c *cli.Context) Flasher {
@@ -52,7 +40,9 @@ func New(c *cli.Context) Flasher {
 			deviceType = d.Name
 		}
 	} else {
-		deviceType = devices[dialogs.SelectOneDialog("Select device type: ", devices[:])]
+		deviceNames := repo.GetDevices()
+		deviceNames = append(deviceNames, customFlash)
+		deviceType = deviceNames[dialogs.SelectOneDialog("Select device type: ", deviceNames)]
 	}
 
 	fmt.Println("[+] Flashing", deviceType)

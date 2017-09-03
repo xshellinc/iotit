@@ -41,6 +41,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 	}
 	d.mounted = false
 	if loopMount == "" {
+		log.Debug("Empty loopMount, trying to detect linux partition")
 		command = fmt.Sprintf("ls /dev/loop0p*")
 		compiler, _ := regexp.Compile(`loop0p[\d]+`)
 
@@ -55,6 +56,7 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 		}
 		unmount := fmt.Sprintf("umount %s", config.MountDir)
 		for _, loop := range opts {
+			log.WithField("loop", loop).Debug("Iterating over partitions")
 			command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
 			if err := d.execOverSSH(command, nil); err != nil {
 				log.Error(err)
@@ -69,8 +71,8 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 			if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
 				if err := d.execOverSSH(unmount, nil); err != nil {
 					log.Error(err)
-					continue
 				}
+				continue
 			}
 			d.mounted = true
 			return nil
