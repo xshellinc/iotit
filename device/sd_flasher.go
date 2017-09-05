@@ -162,7 +162,7 @@ func (d *sdFlasher) Write() error {
 		log.Error(err)
 	}
 
-	return nil
+	return d.Done()
 }
 
 // Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
@@ -215,7 +215,7 @@ func (d *sdFlasher) Flash() error {
 		return err
 	}
 
-	return d.Done()
+	return nil
 }
 
 // Done prints out final success message

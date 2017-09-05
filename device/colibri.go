@@ -99,7 +99,7 @@ func (d *colibri) Flash() error {
 		return err
 	}
 
-	return d.Done()
+	return nil
 }
 
 func (d *colibri) installTools() error {
@@ -202,7 +202,7 @@ func (d *colibri) Write() error {
 		return err
 	}
 
-	return nil
+	return d.Done()
 }
 
 func readResponse() string {
