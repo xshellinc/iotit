@@ -14,6 +14,7 @@
 * [NanoPi NEO](http://nanopi.io/nanopi-neo.html)
 * [Raspberry Pi](https://www.raspberrypi.org/)
 * [Toradex Colibri iMX6](https://www.toradex.com/computer-on-modules/colibri-arm-family/nxp-freescale-imx6)
+* [ASUS Tinker Board](https://www.asus.com/uk/Single-Board-Computer/Tinker-Board/)
 * [ESP-32](http://esp32.net/)
 * [ESP-8266](http://esp8266.net/)
 
@@ -228,9 +229,11 @@ Provide image url or path to flash it on SD card.
 	[
 	  {
 	    "Name":"device_name_or_category",
+        "Alias":"short_name",
 	    "Sub":[
 	      {
 	        "Name":"device_name_or_sub_category",
+            "Alias":"short_name"
 	        "Sub":[],
 	        "Images:[]
 	      }
@@ -238,7 +241,8 @@ Provide image url or path to flash it on SD card.
 	    "Images":[
 	      {
 	        "Url":"url",
-            "Title":"url_title"
+            "Title":"url_title",
+            "Alias":"short_name"
 	      }
 	    ]
 	  }
@@ -250,11 +254,12 @@ If you do not specify any images for sub categeory it will choose whatever you h
 #### Structure:
 ```
 DeviceMapping struct {
-    Name string
-    Sub []DeviceMapping
-    []Images struct {
-        Url url,
-        Title string
+    Name      string
+	Alias     string
+    Sub       []DeviceMapping
+    []Images  struct {
+        Url    url
+        Title  string
     }
 }
 ```

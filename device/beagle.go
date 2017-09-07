@@ -80,5 +80,5 @@ func (d *beagleBone) Flash() error {
 		return err
 	}
 
-	return d.Done()
+	return nil
 }

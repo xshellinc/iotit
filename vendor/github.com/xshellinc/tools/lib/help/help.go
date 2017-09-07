@@ -930,6 +930,9 @@ func GenericRunOverSsh(command, ip, user, password, port string, sudo bool, verb
 				fmt.Println("[-] Timeout running command : ", command)
 				return out, errors.New(eut)
 			}
+		} else {
+			fmt.Println("[-] Timeout running command : ", command)
+			return out, errors.New(eut)
 		}
 	}
 

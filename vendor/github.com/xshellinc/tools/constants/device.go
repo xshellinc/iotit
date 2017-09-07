@@ -15,6 +15,7 @@ const (
 	UNAME_RASPBERRY  = "raspberrypi"
 	UNAME_NANOPI     = "FriendlyARM"
 	UNAME_BEAGLEBONE = "BeagleBone"
+	UNAME_TINKER     = "tinker"
 
 	DEVICE_TYPE_RASPBERRY  = "raspberry-pi"
 	DEVICE_TYPE_EDISON     = "edison"
@@ -22,6 +23,7 @@ const (
 	DEVICE_TYPE_BEAGLEBONE = "beaglebone"
 	DEVICE_TYPE_COLIBRI    = "colibri iMX6"
 	DEVICE_TYPE_ESP        = "esp"
+	DEVICE_TYPE_TINKER     = "tinker"
 
 	LSB_RELEASE_RASPBERRY = "Raspbian"
 

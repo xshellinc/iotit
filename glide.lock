@@ -1,5 +1,5 @@
 hash: 97357ca4e232e5fcff58ef03f4b87bbd4d5aa77080d0c09ab4b244c384514499
-updated: 2017-07-24T18:22:26.021331051+03:00
+updated: 2017-09-03T13:27:13.958869863+03:00
 imports:
 - name: github.com/howeyc/gopass
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
@@ -20,9 +20,9 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/sirupsen/logrus
-  version: a3f95b5c423586578a4e099b11a46c2479628cac
+  version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
 - name: github.com/tj/go-spin
-  version: 866762925be273d8db6a8b816f359ca41d61bcdb
+  version: 30574f5fadef1aa5c61d4c42e936785af9f03ada
 - name: github.com/xshellinc/esp-flasher
   version: 2771a7899f00f186902703056d681b30795ecf62
   subpackages:
@@ -38,7 +38,7 @@ imports:
 - name: github.com/xshellinc/go-virtualbox
   version: a6405bc2b4bc7aed8273f125f31ca9e4a908ef13
 - name: github.com/xshellinc/tools
-  version: 1158427130ded29beed45b1fbc2a14c34bb237b9
+  version: 3e109ed9e6e9b39b772c39774a78ff5f46f0fd49
   subpackages:
   - constants
   - dialogs
@@ -48,7 +48,7 @@ imports:
   - lib/sudo
   - locale
 - name: golang.org/x/crypto
-  version: 6914964337150723782436d56b3f21610a74ce7b
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
   - curve25519
   - ed25519
@@ -57,15 +57,15 @@ imports:
   - ssh/agent
   - ssh/terminal
 - name: golang.org/x/sys
-  version: c4489faa6e5ab84c0ef40d6ee878f7a030281f0f
+  version: 7ddbeae9ae08c6a06a59597f0c9edbc5ff2444ce
   subpackages:
   - unix
   - windows
   - windows/registry
 - name: gopkg.in/cheggaaa/pb.v1
-  version: f6ccf2184de4dd34495277e38dc19b6e7fbe0ea2
+  version: 657164d0228d6bebe316fdf725c69f131a50fb10
 - name: gopkg.in/urfave/cli.v1
-  version: 0bdeddeeb0f650497d603c4ad7b20cfe685682f6
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9

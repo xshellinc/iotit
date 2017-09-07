@@ -34,10 +34,13 @@ type flasher struct {
 	devRepo *repo.DeviceMapping
 	CLI     *cli.Context
 
-	img    string
-	folder string
-	device string
+	img     string
+	folder  string
+	device  string
+	mounted bool
 }
+
+var retries = 0
 
 // validates given image path and downloads image archive to os tmp folder
 func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
@@ -55,7 +58,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 		return fileName, filePath, err
 	}
 	// download image over http
-	fmt.Println("[+] Starting download", d.device)
+	fmt.Println("[+] Starting download", d.devRepo.Image.Title)
 	log.WithField("url", d.devRepo.Image.URL).WithField("dir", d.devRepo.Dir()).Debug("download")
 	name, bar, err := help.DownloadFromUrlWithAttemptsAsync(d.devRepo.Image.URL, d.devRepo.Dir(), 3, wg)
 	if err != nil {
@@ -73,7 +76,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 	return fileName, filePath, err
 }
 
-// PrepareForFlashing method inits virtualbox, download necessary files from the repo into the vbox
+// Prepare method inits virtualbox, downloads os image and uploads it into vm
 func (d *flasher) Prepare() error {
 	log.Debug("Prepare")
 	if err := vbox.CheckVBInstalled(); err != nil {
@@ -81,12 +84,9 @@ func (d *flasher) Prepare() error {
 	}
 
 	d.conf = vbox.NewConfig(d.device)
-	// @todo change name and description
 	log.Debug("Configuring virtual box")
 	var err error
-	d.vbox, err = d.conf.GetVbox(d.device, d.Quiet)
-
-	if err != nil {
+	if d.vbox, err = d.conf.GetVbox(d.device, d.Quiet); err != nil {
 		return err
 	}
 	log.WithField("name", d.vbox.Name).Info("Selected profile")
@@ -103,42 +103,7 @@ func (d *flasher) Prepare() error {
 
 	help.DeleteHost(filepath.Join(help.UserHomeDir(), ".ssh", "known_hosts"), "localhost")
 
-	fileName := ""
-	filePath := ""
-
-	if fn, fp, err := d.DownloadImage(); err == nil {
-		fileName = fn
-		filePath = fp
-	} else {
-		return err
-	}
-
-	if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
-		fmt.Printf("[+] Uploading %s to virtual machine\n", fileName)
-		if err := d.conf.SSH.Scp(filePath, config.TmpDir); err != nil {
-			return err
-		}
-	} else {
-		log.Debug("Image already exists inside VM")
-	}
-	log.WithField("path", filePath).WithField("name", fileName).Info("Image")
-
-	if strings.HasSuffix(fileName, ".zip") {
-		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), fileName)); err == nil && len(files) == 1 {
-			if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
-				log.Debug("Image file already extracted")
-				d.img = files[0].Name
-			}
-		}
-	}
-
-	if d.img == "" {
-		if err := d.extractImage(fileName); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return d.prepareImage()
 }
 
 func (d *flasher) startVM() error {
@@ -172,17 +137,78 @@ func (d *flasher) startVM() error {
 	return nil
 }
 
+func (d *flasher) prepareImage() error {
+	var (
+		fileName, filePath string
+	)
+
+	if fn, fp, err := d.DownloadImage(); err == nil {
+		fileName = fn
+		filePath = fp
+	} else {
+		return err
+	}
+
+	if err := d.uploadImage(fileName, filePath); err != nil {
+		return err
+	}
+
+	if d.img == "" {
+		if err := d.extractImage(fileName); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *flasher) uploadImage(fileName, filePath string) error {
+	if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + fileName); err != nil || len(strings.TrimSpace(eut)) > 0 {
+		fmt.Printf("[+] Uploading %s to virtual machine\n", fileName)
+		if err := d.conf.SSH.Scp(filePath, config.TmpDir); err != nil {
+			return err
+		}
+	}
+	log.Debug("Image already exists inside VM")
+	log.WithField("path", filePath).WithField("name", fileName).Info("Image")
+	return nil
+}
+
 func (d *flasher) extractImage(fileName string) error {
 	if strings.HasSuffix(fileName, ".img") {
 		d.img = fileName
 		return nil
 	}
+
+	if strings.HasSuffix(fileName, ".zip") {
+		if files, err := help.GetZipFiles(help.AddPathSuffix(runtime.GOOS, d.devRepo.Dir(), fileName)); err == nil && len(files) == 1 {
+			if _, eut, err := d.conf.SSH.Run("ls " + config.TmpDir + files[0].Name); err == nil && len(strings.TrimSpace(eut)) == 0 {
+				log.Debug("Image file already extracted")
+				d.img = files[0].Name
+			}
+		}
+	}
+
 	fmt.Printf("[+] Extracting %s \n", fileName)
 	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
 	log.WithField("command", command).Debug("Extracting an image...")
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
-	if err != nil || len(strings.TrimSpace(eut)) > 0 {
+	out = strings.TrimSpace(out)
+	eut = strings.TrimSpace(eut)
+	if err != nil || len(eut) > 0 {
+		log.WithField("err", eut).Debug("Extract error")
+		if eut == "unzip: crc error" {
+			filePath := filepath.Join(d.devRepo.Dir(), fileName)
+			if help.Exists(filePath) && retries < 2 {
+				fmt.Println("[-] CRC error, re-trying...")
+				log.WithField("filePath", filePath).Info("Trying to download and extract image again")
+				help.DeleteFile(filePath)
+				d.conf.SSH.Run("rm " + config.TmpDir + fileName)
+				retries++
+				return d.prepareImage()
+			}
+		}
 		fmt.Println("[-] ", eut)
 		return err
 	}

@@ -97,7 +97,7 @@ func (d *raspberryPi) Flash() error {
 		return err
 	}
 
-	return d.Done()
+	return nil
 }
 
 // interfaceConfig is a value for raspberryPi for dhcpcd.conf
