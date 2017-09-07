@@ -1,3 +1,15 @@
+## [0.3.4]
+
+### [ADDED]
+- Flashing Asus Tinker Board support
+- Device type selection now features full name
+
+### [UPDATED]
+- Dependencies
+
+### [FIXED]
+- Bugfix
+
 ## [0.3.3]
 
 ### [ADDED]
