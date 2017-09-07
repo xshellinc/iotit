@@ -285,7 +285,7 @@
 					"Pass": "linaro"
 				},
 				{
-					"URL": "http://dlcdnet.asus.com/pub/ASUS/mb/Linux/Tinker_Board_2GB/20170417-tinker-board-linaro-stretch-alip-v1.8.zip",
+					"URL": "http://isaax-distro.s3-website-ap-northeast-1.amazonaws.com/boards/tinker/v1.8/20170417-tinker-board-linaro-stretch-alip-v1.8.img.zip",
 					"Title": "TinkerOS Debian",
 					"Alias": "debian",
 					"User": "linaro",
