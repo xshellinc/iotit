@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ping"
@@ -266,6 +266,21 @@ func SaveWifi(storage map[string]interface{}) error {
 		return errors.New(err.Error() + ":" + eut)
 	}
 
+	if _, ok := storage[Interface]; !ok {
+		log.Debug("Adding wlan0 to interfaces...")
+		fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
+
+		_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, `
+    auto wlan0
+    iface wlan0 inet dhcp
+    source-directory /etc/network/interfaces.d
+`, fp))
+		if err != nil {
+			log.WithField("eut", eut).Error(err.Error())
+		}
+
+	}
+
 	return nil
 }
 
@@ -291,7 +306,7 @@ func SetInterface(storage map[string]interface{}) error {
 		if dialogs.YesNoDialog("Change values?") {
 			AskInterfaceParams(&i)
 		}
-
+		//TODO: allow user to setup several static interfaces at once
 		switch device[num] {
 		case "eth0":
 			storage[Interface] = fmt.Sprintf(InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
