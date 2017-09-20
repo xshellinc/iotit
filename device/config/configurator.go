@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
 	"github.com/xshellinc/tools/lib/ping"
@@ -59,6 +59,7 @@ func NewDefault(ssh ssh_helper.Util) *Configurator {
 	config.AddConfigFn(Wifi, NewCallbackFn(SetWifi, SaveWifi))
 	config.AddConfigFn(Interface, NewCallbackFn(SetInterface, SaveInterface))
 	config.AddConfigFn(DNS, NewCallbackFn(SetSecondaryDNS, SaveSecondaryDNS))
+	config.AddConfigFn("Hostname", NewCallbackFn(SetHostname, SaveHostname))
 	return config
 }
 
@@ -266,6 +267,21 @@ func SaveWifi(storage map[string]interface{}) error {
 		return errors.New(err.Error() + ":" + eut)
 	}
 
+	if _, ok := storage[Interface]; !ok {
+		log.Debug("Adding wlan0 to interfaces...")
+		fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
+
+		_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, `
+    auto wlan0
+    iface wlan0 inet dhcp
+    source-directory /etc/network/interfaces.d
+`, fp))
+		if err != nil {
+			log.WithField("eut", eut).Error(err.Error())
+		}
+
+	}
+
 	return nil
 }
 
@@ -291,7 +307,7 @@ func SetInterface(storage map[string]interface{}) error {
 		if dialogs.YesNoDialog("Change values?") {
 			AskInterfaceParams(&i)
 		}
-
+		//TODO: allow user to setup several static interfaces at once
 		switch device[num] {
 		case "eth0":
 			storage[Interface] = fmt.Sprintf(InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
@@ -395,4 +411,58 @@ func AskInterfaceParams(i *Interfaces) {
 	i.Gateway = dialogs.GetSingleAnswer("Please enter your gateway: ", dialogs.IpAddressValidator)
 	i.Netmask = dialogs.GetSingleAnswer("Please enter your netmask: ", dialogs.IpAddressValidator)
 	i.DNS = dialogs.GetSingleAnswer("Please enter your dns server: ", dialogs.IpAddressValidator)
+}
+
+// SetHostname is a default method with a dialog to configure device hostname
+func SetHostname(storage map[string]interface{}) error {
+	ssh, ok := storage["ssh"].(ssh_helper.Util)
+	if !ok {
+		return errors.New("Cannot get ssh config")
+	}
+	fp := help.AddPathSuffix("unix", MountDir, "/etc/hostname")
+	out, eut, err := ssh.Run("cat " + fp)
+	if err != nil || strings.TrimSpace(eut) != "" {
+		log.WithField("eut", eut).Error(err)
+		return err
+	}
+	hostname := strings.TrimSpace(out)
+	fmt.Println("[+] Default hostname: ", hostname)
+
+	if dialogs.YesNoDialog("Do you want to change default hostname?") {
+		storage["NewHostname"] = dialogs.GetSingleAnswer("New hostname: ", dialogs.EmptyStringValidator)
+		storage["OldHostname"] = hostname
+	}
+
+	return nil
+}
+
+// SaveHostname is a default method to save hostname into the image
+func SaveHostname(storage map[string]interface{}) error {
+
+	if _, ok := storage["OldHostname"]; !ok {
+		return nil
+	}
+	if _, ok := storage["NewHostname"]; !ok {
+		return nil
+	}
+
+	ssh, ok := storage["ssh"].(ssh_helper.Util)
+	if !ok {
+		return errors.New("Cannot get ssh config")
+	}
+
+	hosts := help.AddPathSuffix("unix", MountDir, "/etc/hosts")
+	hostname := help.AddPathSuffix("unix", MountDir, "/etc/hostname")
+	data := fmt.Sprintf("'s/%s/%s/g'", storage["OldHostname"], storage["NewHostname"])
+
+	if _, eut, err := ssh.Run(fmt.Sprintf(`sed -i %s %s`, data, hosts)); err != nil || strings.TrimSpace(eut) != "" {
+		log.WithField("eut", eut).Error(err)
+		return err
+	}
+	if _, eut, err := ssh.Run(fmt.Sprintf(`sed -i %s %s`, data, hostname)); err != nil || strings.TrimSpace(eut) != "" {
+		log.WithField("eut", eut).Error(err)
+		return err
+	}
+
+	return nil
 }
