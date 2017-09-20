@@ -28,6 +28,7 @@ const (
 		"iface eth0 inet manual\n" +
 		"\n" +
 		"allow-hotplug wlan0\n" +
+		"auto wlan0\n" +
 		"iface wlan0 inet static\n" +
 		"address %s\n" +
 		"netmask %s\n" +
