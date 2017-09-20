@@ -336,8 +336,9 @@ func SaveInterface(storage map[string]interface{}) error {
 	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, storage[Interface], fp))
-	if err != nil {
-		return errors.New(err.Error() + ":" + eut)
+	if err != nil || strings.TrimSpace(eut) != "" {
+		log.WithField("eut", eut).Error(err)
+		return err
 	}
 
 	return nil

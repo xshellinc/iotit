@@ -188,7 +188,7 @@ func (d *flasher) extractImage(fileName string) error {
 			}
 		}
 	}
-
+	d.conf.SSH.Run("rm -rf " + config.TmpDir + "*.img")
 	fmt.Printf("[+] Extracting %s \n", fileName)
 	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
 	log.WithField("command", command).Debug("Extracting an image...")

@@ -2,7 +2,6 @@ package device
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -144,11 +143,6 @@ func (d *sdFlasher) Write() error {
 		if err := help.WaitJobAndSpin("Flashing", job); err != nil {
 			return err
 		}
-	}
-
-	log.Debug("Removing image from tmp dir")
-	if err := os.Remove(img); err != nil {
-		log.Error("Can not remove image: " + err.Error())
 	}
 
 	if err := w.Unmount(); err != nil {
