@@ -269,12 +269,11 @@ func SaveWifi(storage map[string]interface{}) error {
 
 	if _, ok := storage[Interface]; !ok {
 		log.Debug("Adding wlan0 to interfaces...")
-		fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
+		fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces.d", "wlan0")
 
 		_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, `
     auto wlan0
     iface wlan0 inet dhcp
-    source-directory /etc/network/interfaces.d
 `, fp))
 		if err != nil {
 			log.WithField("eut", eut).Error(err.Error())
@@ -311,10 +310,12 @@ func SetInterface(storage map[string]interface{}) error {
 		switch device[num] {
 		case "eth0":
 			storage[Interface] = fmt.Sprintf(InterfaceETH, i.Address, i.Netmask, i.Gateway, i.DNS)
+			storage["InterfaceName"] = "eth0"
 			fmt.Println("[+]  Ethernet interface configuration was updated")
 		case "wlan0":
 			storage[Interface] = fmt.Sprintf(InterfaceWLAN, i.Address, i.Netmask, i.Gateway, i.DNS)
-			fmt.Println("[+]  wifi interface configuration was updated")
+			fmt.Println("[+]  WiFi interface configuration was updated")
+			storage["InterfaceName"] = "wlan0"
 		}
 
 	}
@@ -328,13 +329,16 @@ func SaveInterface(storage map[string]interface{}) error {
 	if _, ok := storage[Interface]; !ok {
 		return nil
 	}
+	if _, ok := storage["InterfaceName"]; !ok {
+		return nil
+	}
 
 	ssh, ok := storage["ssh"].(ssh_helper.Util)
 	if !ok {
 		return errors.New("Cannot get ssh config")
 	}
 
-	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces")
+	fp := help.AddPathSuffix("unix", MountDir, IsaaxConfDir, "network", "interfaces.d", storage["InterfaceName"].(string))
 
 	_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" > %s`, storage[Interface], fp))
 	if err != nil || strings.TrimSpace(eut) != "" {
