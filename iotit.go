@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xshellinc/iotit/device"
 	// "github.com/xshellinc/iotit/repo"
+	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/iotit/workstation"
 	"github.com/xshellinc/tools/dialogs"
 	"github.com/xshellinc/tools/lib/help"
@@ -134,6 +135,18 @@ func main() {
 				if err := flasher.Write(); err != nil {
 					return err
 				}
+				return nil
+			},
+		},
+		{
+			Name:    "update",
+			Aliases: []string{"u"},
+			Usage:   "Update list of supported devices and images",
+			Action: func(c *cli.Context) error {
+				if err := repo.DownloadDevicesRepository(); err != nil {
+					return err
+				}
+				fmt.Println("[+] Mapping file updated successfully.")
 				return nil
 			},
 		},
