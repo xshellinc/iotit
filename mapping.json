@@ -1,19 +1,19 @@
 {
-	"Version": "2017-09-03-11:11:11",
+	"Version": "2017-09-21-11:11:11",
 	"Devices": [
 		{
 			"Name": "Raspberry Pi",
 			"Alias": "raspi",
 			"Images": [
 				{
-					"URL": "https://downloads.raspberrypi.org/raspbian_lite_latest",
+					"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-09-08/2017-09-07-raspbian-stretch-lite.zip",
 					"Title": "Raspbian Lite",
 					"Alias": "lite",
 					"User": "pi",
 					"Pass": "raspberry"
 				},
 				{
-					"URL": "https://downloads.raspberrypi.org/raspbian_latest",
+					"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2017-09-08/2017-09-07-raspbian-stretch.zip",
 					"Title": "Raspbian with PIXEL",
 					"Alias": "full",
 					"User": "pi",
