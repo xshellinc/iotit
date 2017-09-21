@@ -39,6 +39,7 @@ func (d *raspberryPi) Configure() error {
 	// replace default interface configuration with custom raspi configurator
 	c.SetConfigFn(config.Interface, config.NewCallbackFn(setInterface, saveInterface))
 	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiSSH, nil))
+	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiCamera, nil))
 
 	go func() {
 		defer job.Close()
@@ -194,6 +195,27 @@ func touchSSH(ssh ssh_helper.Util) error {
 	return nil
 }
 
+// enablePiCamera is enabling camera
+func enablePiCamera(storage map[string]interface{}) error {
+	if dialogs.YesNoDialog("Would you like to enable camera interface?") {
+		ssh, ok := storage["ssh"].(ssh_helper.Util)
+		if !ok {
+			return errors.New("Cannot get ssh config")
+		}
+		data := `
+start_x=1
+gpu_mem=128
+`
+		// disable_camera_led=1
+		_, eut, err := ssh.Run(fmt.Sprintf(`echo "%s" >> %s`, data, bootMount+"config.txt"))
+		if err != nil || strings.TrimSpace(eut) != "" {
+			log.WithField("eut", eut).Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
 // MountImg is a method to attach image to loop and mount it
 func (d *raspberryPi) MountBoot() error {
 	log.Debug("Creating tmp folder")
@@ -202,7 +224,7 @@ func (d *raspberryPi) MountBoot() error {
 	}
 
 	log.Debug("Mounting boot partition")
-	command := fmt.Sprintf("mount -o rw /dev/loop0%s %s", raspiBoot, bootMount)
+	command := fmt.Sprintf("mount -o rw /dev/loop0p1 %s", bootMount)
 	log.WithField("cmd", command).Debug("Mounting boot folder")
 	if err := d.exec(command); err != nil {
 		return err
