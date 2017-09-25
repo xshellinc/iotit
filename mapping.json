@@ -6,7 +6,7 @@
 			"Alias": "raspi",
 			"Images": [
 				{
-					"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-09-08/2017-09-07-raspbian-stretch-lite.zip",
+					"URL": "http://isaax-distro.s3-website-ap-northeast-1.amazonaws.com/boards/raspberry/stretch/2017-09-07-raspbian-stretch-lite.img.zip",
 					"Title": "Raspbian Lite",
 					"Alias": "lite",
 					"User": "pi",
