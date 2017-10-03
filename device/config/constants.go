@@ -8,6 +8,7 @@ const (
 	Interface = "Interface"
 	DNS       = "DNS"
 	SSH       = "SSH"
+	Camera    = "Camera"
 
 	MountDir = "/tmp/isaax-sd/"
 

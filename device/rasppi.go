@@ -39,7 +39,7 @@ func (d *raspberryPi) Configure() error {
 	// replace default interface configuration with custom raspi configurator
 	c.SetConfigFn(config.Interface, config.NewCallbackFn(setInterface, saveInterface))
 	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiSSH, nil))
-	c.AddConfigFn(config.SSH, config.NewCallbackFn(enablePiCamera, nil))
+	c.AddConfigFn(config.Camera, config.NewCallbackFn(enablePiCamera, nil))
 
 	go func() {
 		defer job.Close()
