@@ -52,7 +52,7 @@ func (w *windows) ListRemovableDisk() ([]*MountInfo, error) {
 	// ugly fix for windows 7 bug where `format:csv` is broken. Also GO double escaping quoted arguments.
 	cmd := exec.Command(`cmd`)
 	cmd.SysProcAttr = &syscall.SysProcAttr{}
-	cmd.SysProcAttr.CmdLine = `cmd /s /c "wmic diskdrive get DeviceID,index,InterfaceType,MediaType,Model,Size /format:"%WINDIR%\System32\wbem\en-US\csv""`
+	cmd.SysProcAttr.CmdLine = `cmd /s /c "wmic diskdrive get DeviceID,index,InterfaceType,MediaType,Model,Size /format:csv"`
 	stdoutb, err := cmd.Output()
 	stdout := string(stdoutb)
 	log.Debug(stdout)
