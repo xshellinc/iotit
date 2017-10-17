@@ -1,3 +1,8 @@
+## [0.4.1]
+
+### [FIXED]
+- Dropped windows 7 support to fix windows 10
+
 ## [0.4.0]
 
 ### [ADDED]
