@@ -8,6 +8,7 @@ const (
 	Interface = "Interface"
 	DNS       = "DNS"
 	SSH       = "SSH"
+	Camera    = "Camera"
 
 	MountDir = "/tmp/isaax-sd/"
 
@@ -20,27 +21,14 @@ const (
 	IsaaxConfDir = "/etc/"
 	TmpDir       = "/tmp/"
 
-	InterfaceWLAN string = "source-directory /etc/network/interfaces.d\n" +
-		"\n" +
-		"auto lo\n" +
-		"iface lo inet loopback\n" +
-		"\n" +
-		"iface eth0 inet manual\n" +
-		"\n" +
-		"allow-hotplug wlan0\n" +
+	InterfaceWLAN string = "auto wlan0\n" +
 		"iface wlan0 inet static\n" +
 		"address %s\n" +
 		"netmask %s\n" +
 		"gateway %s\n" +
-		"dns-nameservers %s\n" +
-		"wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf\n"
+		"dns-nameservers %s\n"
 
-	InterfaceETH string = "source-directory /etc/network/interfaces.d\n" +
-		"\n" +
-		"auto lo\n" +
-		"iface lo inet loopback\n" +
-		"\n" +
-		"auto eth0\n" +
+	InterfaceETH string = "auto eth0\n" +
 		"iface eth0 inet static\n" +
 		"address %s\n" +
 		"netmask %s\n" +

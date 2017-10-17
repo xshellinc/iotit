@@ -188,7 +188,7 @@ func (d *flasher) extractImage(fileName string) error {
 			}
 		}
 	}
-
+	d.conf.SSH.Run("rm -rf " + config.TmpDir + "*.img")
 	fmt.Printf("[+] Extracting %s \n", fileName)
 	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
 	log.WithField("command", command).Debug("Extracting an image...")
@@ -198,7 +198,7 @@ func (d *flasher) extractImage(fileName string) error {
 	eut = strings.TrimSpace(eut)
 	if err != nil || len(eut) > 0 {
 		log.WithField("err", eut).Debug("Extract error")
-		if eut == "unzip: crc error" {
+		if eut == "unzip: crc error" || strings.Contains(eut, "unzip: corrupted data") {
 			filePath := filepath.Join(d.devRepo.Dir(), fileName)
 			if help.Exists(filePath) && retries < 2 {
 				fmt.Println("[-] CRC error, re-trying...")

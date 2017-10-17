@@ -123,16 +123,26 @@ func (d *DeviceCollection) getDevices() []string {
 }
 
 // DownloadDevicesRepository downloads new mapping.json from the cloud
-func DownloadDevicesRepository() {
+func DownloadDevicesRepository() error {
+	log.Info("Downloading new mapping.json...")
+	if err := help.DownloadFile(path, imagesRepo); err != nil {
+		log.Error(err)
+		return err
+	}
+	// update file modification date so on the next run we don't try to download it again
+	if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+// CheckDevicesRepository checks mapping.json for updates
+func CheckDevicesRepository() {
+	log.Info("Checking for mapping.json updates...")
 	if info, err := os.Stat(path); os.IsNotExist(err) || time.Now().Sub(info.ModTime()).Hours() >= 24 {
-		log.Info("Checking for mapping.json updates...")
-		if err := help.DownloadFile(path, imagesRepo); err != nil {
-			log.Error(err)
-		}
-		// update file modification date so on the next run we don't try to download it again
-		if err := os.Chtimes(path, time.Now(), time.Now()); err != nil {
-			log.Error(err)
-		}
+		DownloadDevicesRepository()
 	}
 }
 

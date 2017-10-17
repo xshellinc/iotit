@@ -28,7 +28,7 @@ func New(c *cli.Context) Flasher {
 	}
 
 	//once in 24h update mapping json
-	repo.DownloadDevicesRepository()
+	repo.CheckDevicesRepository()
 
 	var deviceType string
 

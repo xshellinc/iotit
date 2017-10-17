@@ -1,3 +1,17 @@
+## [0.4.0]
+
+### [ADDED]
+- Ability to enable camera interface on Raspberry Pi
+- Ability to set hostname
+- Ability to update mapping file from the cloud
+
+### [UPDATED]
+- Vendor images links
+- Dependencies
+
+### [FIXED]
+- Bugfix
+
 ## [0.3.4]
 
 ### [ADDED]
