@@ -25,8 +25,12 @@ virtualbox >= 5.0
 
 ### INSTALLATION
 
-The easiest way is to go to [Isaax - binary distribution page](https://isaax.io/downloads/) and download a precompiled binary that matches your OS.
+#### DOWNLOAD FROM RELEASE 
+The easiest way is to go to [Releases](https://github.com/xshellinc/iotit/releases) and download a precompiled binary that matches your OS and architecture.
 
+If you are not sure about your computer details, take a look at this [article](https://www.chiefarchitect.com/support/article/KB-01230/determining-if-your-computer-is-32-bit-or-64-bit.html)
+
+#### OSX HOMEBREW
 On macOS you can install `IoTit` from homebrew:
 
 ```
@@ -35,7 +39,7 @@ brew tap xshellinc/iotit && brew install iotit
 
 *Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
-#### Windows specific
+#### WINDOWS
 
 **NOTE Windows build is still experimental and you may experience problems flashing on windows 7**
 
@@ -55,7 +59,7 @@ Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter un
 - Espressif ESP8266 Lolin/NodeMCU [CH340](https://wiki.wemos.cc/downloads) [[for macOS 10.12 take it here](https://github.com/adrianmihalko/ch340g-ch34g-ch34x-mac-os-x-driver)]
 - Espressif ESP32 [CP210x](https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers)
 
-#### Building
+#### Building from source
 
 If you want to build binaries yourself, then follow the regular recommendations for [go build](https://golang.org/pkg/go/build/)
 
