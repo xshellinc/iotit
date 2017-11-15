@@ -2,10 +2,15 @@
 # IoTit Flashing tool
 
 
-
 **IoTit** (written in Golang) is an open source command-line utility for flashing (initializing) IoT devices.
 
-`iotit` contains a VirtualBox wrapper [go-virtualbox](https://github.com/riobard/go-virtualbox), so it can run on OS that allows installation of VirtualBox.
+The easiest way to get `IoTit` is to go to the [Releases](https://github.com/xshellinc/iotit/releases) tab in this repository and download a precompiled binary that matches your OS and architecture.
+
+If you are not sure about your computer details, take a look at this [article](https://www.chiefarchitect.com/support/article/KB-01230/determining-if-your-computer-is-32-bit-or-64-bit.html)
+
+For other intallation methods see the installation section below.
+
+`IoTit` contains a VirtualBox wrapper [go-virtualbox](https://github.com/riobard/go-virtualbox), so it can only run on an OS that allows installation of VirtualBox.
 
 ## SUPPORTED DEVICES
 
@@ -25,11 +30,6 @@ virtualbox >= 5.0
 
 ### INSTALLATION
 
-#### DOWNLOAD FROM RELEASE 
-The easiest way is to go to [Releases](https://github.com/xshellinc/iotit/releases) and download a precompiled binary that matches your OS and architecture.
-
-If you are not sure about your computer details, take a look at this [article](https://www.chiefarchitect.com/support/article/KB-01230/determining-if-your-computer-is-32-bit-or-64-bit.html)
-
 #### OSX HOMEBREW
 On macOS you can install `IoTit` from homebrew:
 
@@ -37,7 +37,7 @@ On macOS you can install `IoTit` from homebrew:
 brew tap xshellinc/iotit && brew install iotit
 ```
 
-*Note:* `iotit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
+*Note:* `IoTit` requires [VM VirtualBox](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html) and [Extension Pack](http://www.oracle.com/technetwork/server-storage/virtualbox/downloads/index.html#extpack) to be installed on your machine.
 
 #### WINDOWS
 
@@ -49,7 +49,7 @@ You will need to install [git-for-windows](https://git-for-windows.github.io/)
 
 Upon installing, you will need to add both git and Unix tools to the system PATH [example screenshot](https://raw.githubusercontent.com/xshellinc/iotit/master/static/img/git-win.png)
 
-Windows PowerShell or CMD should be run as `Administrator` for `iotit` to be able to write on external drives.
+Windows PowerShell or CMD should be run as `Administrator` for `IoTit` to be able to write on external drives.
 
 **When flashing `Intel® Edison` make sure to provide external power supply.**
 Flashing `Intel® Edison` under Windows will render it's usb-ethernet adapter unusable under macOS and vice versa [source](https://communities.intel.com/message/430384).
@@ -168,7 +168,7 @@ To delete a custom virtual box preset, go to the iotit folder on your machine on
 
 `$HOME/.iotit/images/{device}/{image_pack}` - packed images grouped by device names
 
-`iotit` uses x64 virtualbox in order to flash and configure devices,
+`IoTit` uses x64 virtualbox in order to flash and configure devices,
 because it allows to work with linux partitions and reduces installation requirements
 across different OSes
 
