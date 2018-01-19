@@ -40,7 +40,7 @@ type DeviceCollection struct {
 }
 
 // Images repository URL
-const imagesRepo = "https://cdn.isaax.io/iotit/mapping.json"
+const imagesRepo = "https://isaaxartifacts.blob.core.windows.net/iotit/mapping.json"
 
 var path string
 var dm *DeviceCollection
