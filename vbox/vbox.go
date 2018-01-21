@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/constants"
@@ -355,12 +355,14 @@ func (vc *Config) GetVbox(device string, quiet bool) (*virtualbox.Machine, error
 		return a, err
 	}
 
-	vboxs := vc.Enable(conf, VBoxName, device)
+	// vboxs := vc.Enable(conf, VBoxName, device)
 	n := VBoxTypeDefault
 VBoxInit:
-	if !quiet {
-		n = selectVboxPreset(conf, vboxs)
-	}
+
+	// disable profile selection
+	// if !quiet {
+	//     n = selectVboxPreset(conf, vboxs)
+	// }
 
 	switch n {
 	case VBoxTypeNew:

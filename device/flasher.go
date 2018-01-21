@@ -92,7 +92,7 @@ func (d *flasher) Prepare() error {
 	log.WithField("name", d.vbox.Name).Info("Selected profile")
 
 	if d.vbox.State != virtualbox.Running {
-		fmt.Printf(`[+] Selected virtual machine
+		fmt.Printf(`[+] Using virtual machine
 	Name - `+dialogs.PrintColored("%s")+`
 	Description - `+dialogs.PrintColored("%s")+"\n", d.vbox.Name, d.vbox.Description)
 
