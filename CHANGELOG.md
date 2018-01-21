@@ -1,3 +1,10 @@
+## [0.4.2]
+
+### [UPDATED]
+- Changed link to images mapping file location
+- Disabled vbox profile selection step
+- Readme updated
+
 ## [0.4.1]
 
 ### [FIXED]
