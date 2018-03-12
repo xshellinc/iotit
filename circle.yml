@@ -4,7 +4,7 @@ machine:
 
 dependencies:
   pre:
-    - go get github.com/goreleaser/goreleaser
+    - curl -sL http://git.io/goreleaser | bash
     - gem install --no-ri --no-rdoc fpm
     - sudo apt-get install rpm
 
