@@ -216,7 +216,7 @@ gpu_mem=128
 	return nil
 }
 
-// MountImg is a method to attach image to loop and mount it
+// MountBoot is a method to attach image to loop and mount it
 func (d *raspberryPi) MountBoot() error {
 	log.Debug("Creating tmp folder")
 	if err := d.exec(fmt.Sprintf("mkdir -p %s", bootMount)); err != nil {

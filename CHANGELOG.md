@@ -1,3 +1,8 @@
+## [0.4.3]
+
+### [ADDED]
+- Add ability to auto-fix broken images with resize2fs
+
 ## [0.4.2]
 
 ### [UPDATED]

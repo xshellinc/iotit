@@ -58,8 +58,34 @@ func (d *sdFlasher) MountImg(loopMount string) error {
 			log.WithField("loop", loop).Debug("Iterating over partitions")
 			command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
 			if err := d.execOverSSH(command, nil); err != nil {
-				log.Error(err)
-				continue
+				if strings.Contains(err.Error(), "wrong fs type, bad option, bad superblock") {
+					if err := d.execOverSSH("dmesg|tail -n 1", &out); err != nil {
+						log.Error(err)
+						continue
+					}
+					log.Debug(out)
+
+					compiler2, _ := regexp.Compile(`block count (\d+) exceeds size of device \((\d+) blocks\)`)
+					result := compiler2.FindAllSubmatch([]byte(out), -1)
+					if len(result) == 0 {
+						log.Error("block info not found")
+						continue
+					}
+					if err := d.execOverSSH("apk add e2fsprogs-extra", nil); err != nil {
+						log.Error(err)
+						continue
+					}
+					command = fmt.Sprintf("resize2fs -f /dev/%s %s", loop, string(result[0][2]))
+					d.execOverSSH(command, nil)
+					command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
+					if err := d.execOverSSH(command, nil); err != nil {
+						log.Error(err)
+						continue
+					}
+				} else {
+					log.WithField("type", "not bad superblock").Error(err)
+					continue
+				}
 			}
 			command = fmt.Sprintf("ls %s", config.MountDir)
 			out := ""
@@ -251,6 +277,7 @@ func (d *sdFlasher) execOverSSH(command string, outp *string) error {
 		if outp != nil {
 			*outp = eut
 		}
+		return fmt.Errorf(eut)
 	} else if strings.TrimSpace(out) != "" {
 		out = strings.TrimSpace(out)
 		eut = strings.TrimSpace(eut)
