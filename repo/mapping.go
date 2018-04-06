@@ -19,6 +19,7 @@ type DeviceImage struct {
 	Title string `json:"Title,omitempty"`
 	User  string `json:"User,omitempty"`
 	Pass  string `json:"Pass,omitempty"`
+	Hash  string `json:"Hash,omitempty"`
 }
 
 // DeviceMapping is a collection of device, it sub-types and sets of images for these devices

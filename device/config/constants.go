@@ -38,12 +38,13 @@ const (
 		"iface default inet dhcp\n"
 
 	WPAconf = `ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-
+    country=us
 	update_config=1
 
 	network={
 		ssid=\"%s\"
 		psk=\"%s\"
+        
 	}
 	`
 )
