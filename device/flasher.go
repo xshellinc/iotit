@@ -253,6 +253,7 @@ func (d *flasher) extractImage(fileName, localPath string) error {
 				return err
 			}
 			log.Debug("uploaded")
+			help.DeleteFile(filepath.Join(help.GetTempDir(), fileName))
 		} else {
 			fmt.Println("[-] ", eut)
 			return fmt.Errorf(eut)
