@@ -25,14 +25,13 @@ type raspberryPi struct {
 	*sdFlasher
 }
 
+func (d *raspberryPi) prepare() error {
+	return d.Prepare()
+}
+
 // Configure overrides sdFlasher Configure() method with custom config
 func (d *raspberryPi) Configure() error {
-	if err := d.Prepare(); err != nil {
-		return err
-	}
-
 	log.WithField("device", "raspi").Debug("Configure")
-	fmt.Println("[+] Configuring...")
 
 	job := help.NewBackgroundJob()
 	c := config.NewDefault(d.conf.SSH) // create config with default callbacks
@@ -53,9 +52,13 @@ func (d *raspberryPi) Configure() error {
 		}
 	}()
 
+	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
+		return err
+	}
+
+	fmt.Println("[+] Configuring...")
 	if !d.Quiet {
 		if dialogs.YesNoDialog("Would you like to configure your board?") {
-			// setup while background process mounting img
 			if err := c.Setup(); err != nil {
 				return err
 			}
@@ -64,10 +67,6 @@ func (d *raspberryPi) Configure() error {
 		if err := touchSSH(d.conf.SSH); err != nil {
 			fmt.Println("[-] Error:", err.Error())
 		}
-	}
-
-	if err := help.WaitJobAndSpin("Waiting", job); err != nil {
-		return err
 	}
 
 	// write configs that were setup above
@@ -89,6 +88,10 @@ func (d *raspberryPi) Configure() error {
 
 // Flash configures and flashes image
 func (d *raspberryPi) Flash() error {
+
+	if err := d.prepare(); err != nil {
+		return err
+	}
 
 	if err := d.Configure(); err != nil {
 		return err

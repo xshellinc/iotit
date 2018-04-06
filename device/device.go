@@ -137,12 +137,12 @@ func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 
 	switch r.Type {
 	case "Raspberry Pi":
-		i := &raspberryPi{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
+		i := &raspberryPi{&sdFlasher{flasher: &flasher{Quiet: quiet, CLI: c}, Disk: disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
 	case "Beaglebone":
-		i := &beagleBone{&sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}}
+		i := &beagleBone{&sdFlasher{flasher: &flasher{Quiet: quiet, CLI: c}, Disk: disk}}
 		i.device = device
 		i.devRepo = r
 		return i, nil
@@ -166,7 +166,7 @@ func getFlasher(device, image string, c *cli.Context) (Flasher, error) {
 	case "ASUS Tinker Board":
 		fallthrough
 	default:
-		i := &sdFlasher{&flasher{Quiet: quiet, CLI: c}, disk}
+		i := &sdFlasher{flasher: &flasher{Quiet: quiet, CLI: c}, Disk: disk}
 		i.device = device
 		i.devRepo = r
 		return i, nil
