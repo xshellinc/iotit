@@ -1,8 +1,11 @@
 package device
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -72,7 +75,6 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 	wg.Wait()
 	bar.Finish()
 	time.Sleep(time.Second * 2)
-
 	return fileName, filePath, err
 }
 
@@ -147,6 +149,26 @@ func (d *flasher) prepareImage() error {
 		filePath = fp
 	} else {
 		return err
+	}
+
+	if len(d.devRepo.Image.Hash) > 0 {
+		fmt.Println("[+] Calculating sha256 of the downloaded image")
+		f, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		h := sha256.New()
+		if _, err := io.Copy(h, f); err != nil {
+			return err
+		}
+		hash := fmt.Sprintf("%x", h.Sum(nil))
+		log.WithField("sum", hash).WithField("hash", d.devRepo.Image.Hash).Debug("comparing")
+		if hash != d.devRepo.Image.Hash {
+			return fmt.Errorf("wrong sha256 hash")
+		}
+		fmt.Println("[+] SHA256 verified")
 	}
 
 	if err := d.uploadImage(fileName, filePath); err != nil {
