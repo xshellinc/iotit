@@ -152,7 +152,7 @@ func (d *flasher) prepareImage() error {
 	}
 
 	if len(d.devRepo.Image.Hash) > 0 {
-		fmt.Println("[+] Calculating sha256 of the downloaded image")
+		fmt.Println("[+] Calculating SHA256 of the downloaded image")
 		f, err := os.Open(filePath)
 		if err != nil {
 			return err
@@ -166,7 +166,7 @@ func (d *flasher) prepareImage() error {
 		hash := fmt.Sprintf("%x", h.Sum(nil))
 		log.WithField("sum", hash).WithField("hash", d.devRepo.Image.Hash).Debug("comparing")
 		if hash != d.devRepo.Image.Hash {
-			return fmt.Errorf("wrong sha256 hash")
+			return fmt.Errorf("wrong SHA256 hash")
 		}
 		fmt.Println("[+] SHA256 verified")
 	}
@@ -176,7 +176,7 @@ func (d *flasher) prepareImage() error {
 	}
 
 	if d.img == "" {
-		if err := d.extractImage(fileName); err != nil {
+		if err := d.extractImage(fileName, filePath); err != nil {
 			return err
 		}
 	}
@@ -196,7 +196,7 @@ func (d *flasher) uploadImage(fileName, filePath string) error {
 	return nil
 }
 
-func (d *flasher) extractImage(fileName string) error {
+func (d *flasher) extractImage(fileName, localPath string) error {
 	if strings.HasSuffix(fileName, ".img") {
 		d.img = fileName
 		return nil
@@ -210,16 +210,19 @@ func (d *flasher) extractImage(fileName string) error {
 			}
 		}
 	}
+
 	d.conf.SSH.Run("rm -rf " + config.TmpDir + "*.img")
 	fmt.Printf("[+] Extracting %s \n", fileName)
 	command := fmt.Sprintf(help.GetExtractCommand(fileName), help.AddPathSuffix("unix", config.TmpDir, fileName), config.TmpDir)
+
 	log.WithField("command", command).Debug("Extracting an image...")
 	d.conf.SSH.SetTimer(help.SshExtendedCommandTimeout)
 	out, eut, err := d.conf.SSH.Run(command)
 	out = strings.TrimSpace(out)
 	eut = strings.TrimSpace(eut)
+
 	if err != nil || len(eut) > 0 {
-		log.WithField("err", eut).Debug("Extract error")
+		log.WithField("out", out).WithField("eut", eut).WithField("err", err).Debug("Extract error")
 		if eut == "unzip: crc error" || strings.Contains(eut, "unzip: corrupted data") {
 			filePath := filepath.Join(d.devRepo.Dir(), fileName)
 			if help.Exists(filePath) && retries < 2 {
@@ -230,18 +233,42 @@ func (d *flasher) extractImage(fileName string) error {
 				retries++
 				return d.prepareImage()
 			}
+		} else if strings.Contains(eut, "unzip: bad length") {
+			// unzip inside VM failed, trying to unzip on a host and upload full image
+			log.WithField("p", localPath).Debug("unzip into: ", help.GetTempDir())
+			if err := help.Unzip(localPath, help.GetTempDir()); err != nil {
+				return err
+			}
+			files, err := filepath.Glob("*")
+			if err != nil {
+				return err
+			}
+			fileName = ""
+			for _, f := range files {
+				if strings.HasSuffix(f, ".img") {
+					fileName = f
+				}
+			}
+			if err := d.uploadImage(fileName, filepath.Join(help.GetTempDir(), fileName)); err != nil {
+				return err
+			}
+			log.Debug("uploaded")
+		} else {
+			fmt.Println("[-] ", eut)
+			return fmt.Errorf(eut)
 		}
-		fmt.Println("[-] ", eut)
-		return err
-	}
-	log.Debug(out)
-	for _, raw := range strings.Split(out, " ") {
-		s := strings.TrimSpace(raw)
-		if s != "" && strings.HasSuffix(s, ".img") {
-			d.img = s
-			return nil
+	} else {
+		log.Debug(out)
+
+		for _, raw := range strings.Split(out, " ") {
+			s := strings.TrimSpace(raw)
+			if s != "" && strings.HasSuffix(s, ".img") {
+				d.img = s
+				return nil
+			}
 		}
 	}
+
 	if out, _, err := d.conf.SSH.Run("ls -1 " + config.TmpDir); err == nil && len(strings.TrimSpace(out)) > 0 {
 		log.WithField("command", "ls -1").Debug(out)
 		for _, raw := range strings.Split(strings.TrimSpace(out), "\n") {
