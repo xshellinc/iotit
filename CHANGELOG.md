@@ -1,3 +1,14 @@
+## [0.4.4]
+
+### [ADDED]
+- Add ability to verify sha256 of the downloaded image
+
+### [UPDATED]
+- Updated links to latest raspbian distos
+
+### [FIXED]
+- Fixed image unzipping
+
 ## [0.4.3]
 
 ### [ADDED]
