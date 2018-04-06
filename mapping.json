@@ -1,23 +1,25 @@
 {
-	"Version": "2018-01-21-11:11:11",
+	"Version": "2018-04-06-11:11:11",
 	"Devices": [
 	  {
 		"Name": "Raspberry Pi",
 		"Alias": "raspi",
 		"Images": [
 		  {
-			"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/boards/raspberry/stretch/2017-11-29-raspbian-stretch-lite.zip",
+			"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2018-03-14/2018-03-13-raspbian-stretch-lite.zip",
 			"Title": "Raspbian Lite",
 			"Alias": "lite",
 			"User": "pi",
-			"Pass": "raspberry"
+			"Pass": "raspberry",
+            "Hash": "d58b4bd15e53380b8627df49b26ff7ccd80fc5d424a5cafe48a83fee58fc7047"
 		  },
 		  {
-			"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/boards/raspberry/stretch/2017-11-29-raspbian-stretch.zip",
+			"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2018-03-14/2018-03-13-raspbian-stretch.zip",
 			"Title": "Raspbian with PIXEL",
 			"Alias": "full",
 			"User": "pi",
-			"Pass": "raspberry"
+			"Pass": "raspberry",
+            "Hash": "d6d64a8bfad37de6bc7d975a335c69b8c6164a33b1ef0c79c888a9b83db5063f"
 		  }
 		]
 	  },
