@@ -17,100 +17,94 @@ import (
 // sdFlasher is a used as a generic flasher for devices except raspberrypi/nanopi and others defined in the device package
 type sdFlasher struct {
 	*flasher
-	Disk string
+	Disk       string
+	configured bool
 }
 
 // MountImg is a method to attach image to loop and mount it
 func (d *sdFlasher) MountImg(loopMount string) error {
-	log.WithField("img", d.img).Debug("Attaching an image")
+	log.WithField("img", d.img).Debug("attaching an image")
 
 	if d.img == "" {
-		return fmt.Errorf("Image not found, please check if the repo is valid")
+		return fmt.Errorf("image not found, please check if the repo is valid")
 	}
 
+	d.execOverSSH("losetup -D", nil)
 	command := fmt.Sprintf("losetup -f -P %s", help.AddPathSuffix("unix", config.TmpDir, d.img))
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err
 	}
 
-	log.Debug("Creating tmp folder")
+	log.Debug("creating tmp folder")
 	command = fmt.Sprintf("mkdir -p %s", config.MountDir)
 	if err := d.execOverSSH(command, nil); err != nil {
 		return err
 	}
-	d.mounted = false
-	if loopMount == "" {
-		log.Debug("Empty loopMount, trying to detect linux partition")
-		command = fmt.Sprintf("ls /dev/loop0p*")
-		compiler, _ := regexp.Compile(`loop0p[\d]+`)
 
-		out := ""
-		if err := d.execOverSSH(command, &out); err != nil {
+	d.mounted = false
+
+	if loopMount != "" {
+		log.Debug("mounting sd folder on ", loopMount)
+		if err := d.mount("loop0"+loopMount, config.MountDir); err != nil {
 			return err
 		}
-		opts := compiler.FindAllString(out, -1)
-		if len(opts) == 0 {
-			log.Info("Cannot find a mounting point")
-			return nil
-		}
-		unmount := fmt.Sprintf("umount %s", config.MountDir)
-		for _, loop := range opts {
-			log.WithField("loop", loop).Debug("Iterating over partitions")
-			command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
-			if err := d.execOverSSH(command, nil); err != nil {
-				if strings.Contains(err.Error(), "wrong fs type, bad option, bad superblock") {
-					if err := d.execOverSSH("dmesg|tail -n 1", &out); err != nil {
-						log.Error(err)
-						continue
-					}
-					log.Debug(out)
 
-					compiler2, _ := regexp.Compile(`block count (\d+) exceeds size of device \((\d+) blocks\)`)
-					result := compiler2.FindAllSubmatch([]byte(out), -1)
-					if len(result) == 0 {
-						log.Error("block info not found")
-						continue
-					}
-					if err := d.execOverSSH("apk add e2fsprogs-extra", nil); err != nil {
-						log.Error(err)
-						continue
-					}
-					command = fmt.Sprintf("resize2fs -f /dev/%s %s", loop, string(result[0][2]))
-					d.execOverSSH(command, nil)
-					command = fmt.Sprintf("mount -o rw /dev/%s %s", loop, config.MountDir)
-					if err := d.execOverSSH(command, nil); err != nil {
-						log.Error(err)
-						continue
-					}
-				} else {
-					log.WithField("type", "not bad superblock").Error(err)
-					continue
-				}
-			}
-			command = fmt.Sprintf("ls %s", config.MountDir)
-			out := ""
-			if err := d.execOverSSH(command, &out); err != nil {
-				log.Error(err)
-				continue
-			}
-			if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
-				if err := d.execOverSSH(unmount, nil); err != nil {
-					log.Error(err)
-				}
-				continue
-			}
-			d.mounted = true
-			return nil
-		}
-		log.Info("Can't find linux root partition inside that image")
+		d.mounted = true
 		return nil
 	}
-	log.Debug("Mounting sd folder on", loopMount)
-	command = fmt.Sprintf("mount -o rw /dev/loop0%s %s", loopMount, config.MountDir)
-	if err := d.execOverSSH(command, nil); err != nil {
+
+	log.Debug("empty loopMount, trying to detect linux partition")
+	command = fmt.Sprintf("ls /dev/loop0p*")
+	compiler, _ := regexp.Compile(`loop0p[\d]+`)
+
+	out := ""
+	if err := d.execOverSSH(command, &out); err != nil {
 		return err
 	}
-	d.mounted = true
+
+	opts := compiler.FindAllString(out, -1)
+	if len(opts) == 0 {
+		log.Info("cannot find loop device")
+		return nil
+	}
+
+	unmount := fmt.Sprintf("umount %s", config.MountDir)
+	d.execOverSSH(unmount, nil)
+
+	for _, loop := range opts {
+		log.WithField("loop", loop).Debug("iterating over partitions")
+
+		if err := d.mount(loop, config.MountDir); err != nil {
+			continue
+		}
+		log.Debug("mounted successfully")
+		command = fmt.Sprintf("ls %s", config.MountDir)
+		out := ""
+		if err := d.execOverSSH(command, &out); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		if strings.Contains(out, "config.txt") {
+			fmt.Println("[+] Raspberry Pi image detected.")
+			log.Debug("detected raspberry pi partition")
+			// we've got raspi image
+			r := raspberryPi{d}
+			d.execOverSSH(unmount, nil)
+			d.configured = true
+			return r.Configure()
+		} else if !strings.Contains(out, "etc") && !strings.Contains(out, "opt") {
+			if err := d.execOverSSH(unmount, nil); err != nil {
+				log.Error(err)
+			}
+			continue
+		}
+
+		d.mounted = true
+		return nil
+	}
+
+	log.Info("can't find linux root partition inside that image")
 	return nil
 }
 
@@ -185,7 +179,8 @@ func (d *sdFlasher) Write() error {
 	return d.Done()
 }
 
-// Configure method overrides generic flasher method and includes logic of mounting configuring and flashing the device into the sdCard
+// Configure method overrides generic flasher method
+// and includes logic of mounting configuring and flashing the device into the sdCard
 func (d *sdFlasher) Configure() error {
 	if err := d.Prepare(); err != nil {
 		return err
@@ -197,6 +192,12 @@ func (d *sdFlasher) Configure() error {
 	if err := d.MountImg(""); err != nil {
 		return err
 	}
+
+	if d.configured {
+		// configure was overriden in mountimg
+		return nil
+	}
+
 	if !d.mounted {
 		if !dialogs.YesNoDialog("IoTit can't configure this image because no linux partitions were found inside. Do you want to proceed to image writing anyway?") {
 			return fmt.Errorf("Aborted")
@@ -261,6 +262,49 @@ func (d *sdFlasher) Done() error {
 			d.devRepo.Image.User, d.devRepo.Image.Pass)
 	}
 	fmt.Println("\t\t If you have any questions or suggestions feel free to make an issue at https://github.com/xshellinc/iotit/issues/ or tweet us @isaax_iot")
+
+	return nil
+}
+
+func (d *sdFlasher) mount(loop, mount string) error {
+	mountCommand := fmt.Sprintf("mount -o rw /dev/%s %s", loop, mount)
+	err := d.execOverSSH(mountCommand, nil)
+	if err == nil {
+		return nil
+	}
+
+	if strings.Contains(err.Error(), "wrong fs type, bad option, bad superblock") {
+		out := ""
+		command := "dmesg|tail -n 1"
+		if err := d.execOverSSH(command, &out); err != nil {
+			log.WithField("c", command).Error(err)
+			return err
+		}
+		log.WithField("c", command).Debug(out)
+
+		compiler2, _ := regexp.Compile(`block count (\d+) exceeds size of device \((\d+) blocks\)`)
+		result := compiler2.FindAllSubmatch([]byte(out), -1)
+		if len(result) == 0 {
+			log.Error("block info not found")
+			return fmt.Errorf("block info not found")
+		}
+		command = "apk add e2fsprogs-extra"
+		if err := d.execOverSSH(command, nil); err != nil {
+			log.WithField("c", command).Error(err)
+			return err
+		}
+
+		command = fmt.Sprintf("resize2fs -f /dev/%s %s", loop, string(result[0][2]))
+		d.execOverSSH(command, nil)
+
+		if err := d.execOverSSH(mountCommand, nil); err != nil {
+			log.WithField("e", err).Error("mount after fix err")
+			return err
+		}
+	} else if !strings.Contains(err.Error(), "is already mounted") {
+		log.Error(err)
+		return err
+	}
 
 	return nil
 }

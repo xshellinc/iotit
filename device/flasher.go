@@ -57,7 +57,7 @@ func (d *flasher) DownloadImage() (fileName, filePath string, err error) {
 			fmt.Println("[-] Image location is neither valid URL nor existing file. Aborting.")
 			return "", "", errors.New("Invalid image location")
 		}
-		fmt.Println("[+] Using local image file for ", d.device)
+		fmt.Printf("[+] Using local image file for "+dialogs.PrintColored("%s")+"\n", d.device)
 		return fileName, filePath, err
 	}
 	// download image over http
@@ -86,12 +86,11 @@ func (d *flasher) Prepare() error {
 	}
 
 	d.conf = vbox.NewConfig(d.device)
-	log.Debug("Configuring virtual box")
+	log.Debug("configuring virtual box")
 	var err error
 	if d.vbox, err = d.conf.GetVbox(d.device, d.Quiet); err != nil {
 		return err
 	}
-	log.WithField("name", d.vbox.Name).Info("Selected profile")
 
 	if d.vbox.State != virtualbox.Running {
 		fmt.Printf(`[+] Using virtual machine

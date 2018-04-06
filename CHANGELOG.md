@@ -1,3 +1,8 @@
+## [0.4.5]
+
+### [ADDED]
+- Add ability to detect raspberry pi image in custom images
+
 ## [0.4.4]
 
 ### [ADDED]
