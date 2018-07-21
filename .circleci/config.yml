@@ -1,0 +1,53 @@
+version: 2
+
+jobs:
+  build:
+    working_directory: /go/src/github.com/xshellinc/iotit
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - run:
+          name: Get dependencies
+          command: 'go get ./...'
+      - run:
+          name: Build
+          command: './build.sh'
+  release:
+    working_directory: /go/src/github.com/xshellinc/iotit
+    docker:
+      - image: circleci/golang:1.10
+    steps:
+      - checkout
+      - run:
+          name: Get dependencies
+          command: 'sudo apt-get update && sudo apt-get install rpm'
+      - deploy:
+          name: Release
+          command: 'curl -sL http://git.io/goreleaser | bash'
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              ignore: /^[0-9]+(\.[0-9]+)*/
+  build-and-release:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*/
+      - release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*/

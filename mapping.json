@@ -6,20 +6,20 @@
 		"Alias": "raspi",
 		"Images": [
 		  {
-			"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2018-03-14/2018-03-13-raspbian-stretch-lite.zip",
+			"URL": "http://director.downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2018-04-19/2018-04-18-raspbian-stretch-lite.zip",
 			"Title": "Raspbian Lite",
 			"Alias": "lite",
 			"User": "pi",
 			"Pass": "raspberry",
-            "Hash": "d58b4bd15e53380b8627df49b26ff7ccd80fc5d424a5cafe48a83fee58fc7047"
+            "Hash": "5a0747b2bfb8c8664192831b7dc5b22847718a1cb77639a1f3db3683b242dc96"
 		  },
 		  {
-			"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2018-03-14/2018-03-13-raspbian-stretch.zip",
+			"URL": "http://director.downloads.raspberrypi.org/raspbian/images/raspbian-2018-04-19/2018-04-18-raspbian-stretch.zip",
 			"Title": "Raspbian with PIXEL",
 			"Alias": "full",
 			"User": "pi",
 			"Pass": "raspberry",
-            "Hash": "d6d64a8bfad37de6bc7d975a335c69b8c6164a33b1ef0c79c888a9b83db5063f"
+            "Hash": "0e2922e551a895b136f2ea83d1bc0ca71e016e6d50244ba3da52bd764df5d1b6"
 		  }
 		]
 	  },

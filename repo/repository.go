@@ -19,10 +19,10 @@ import (
 )
 
 // S3Bucket stores default S3 bucket path
-const S3Bucket = "https://cdn.isaax.io/isaax-distro/versions.json"
+const S3Bucket = "http://cdn.isaax.io/iotit/versions.json"
 
 // IoTItRepo stores default iotit repo path
-const IoTItRepo = "https://cdn.isaax.io/iotit/version.json"
+const IoTItRepo = "https://cdn.isaax.io/iotit/versions.json"
 
 // Releases
 const (
