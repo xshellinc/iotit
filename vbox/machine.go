@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	pipeline "github.com/mattn/go-pipeline"
+	log "github.com/sirupsen/logrus"
 	virtualbox "github.com/xshellinc/go-virtualbox"
 	"github.com/xshellinc/iotit/repo"
 	"github.com/xshellinc/tools/dialogs"
@@ -34,7 +34,9 @@ func CheckMachine(machine string) error {
 	// checking file location
 	if !fileExists(machinePath) {
 		repository, err := repo.NewRepositoryVM()
-
+		if err != nil {
+			return err
+		}
 		// checking local repository
 		if repository.GetURL() == "" {
 			return errors.New("URL is not set for downloading VBox image")
