@@ -31,7 +31,7 @@
 			"Alias": "esp32",
 			"Images": [
 			  {
-				"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/isaax-distro/boards/esp/32/firmata.zip",
+				"URL": "https://cdn.isaax.io/iotit/boards/esp/32/firmata.zip",
 				"Title": "Firmata"
 			  }
 			]
@@ -41,7 +41,7 @@
 			"Alias": "esp8266",
 			"Images": [
 			  {
-				"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/isaax-distro/boards/esp/8266/firmata.zip",
+				"URL": "https://cdn.isaax.io/iotit/boards/esp/8266/firmata.zip",
 				"Title": "Firmata"
 			  }
 			]
@@ -219,7 +219,7 @@
 			"Alias": "bb",
 			"Images": [
 			  {
-				"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/isaax-distro/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
+				"URL": "https://cdn.isaax.io/iotit/boards/beaglebone/ubuntu-16.04.1/bone-ubuntu-16.04.1-console-armhf-2016-10-06-2gb.zip",
 				"Title": "Ubuntu 16.04",
 				"Alias": "ubuntu",
 				"User": "ubuntu",
@@ -287,7 +287,7 @@
 			"Pass": "linaro"
 		  },
 		  {
-			"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/boards/tinker/v2.0.4/20171115-tinker-board-linaro-stretch-alip-v2.0.4.img.zip",
+			"URL": "https://cdn.isaax.io/iotit/boards/tinker/v2.0.4/20171115-tinker-board-linaro-stretch-alip-v2.0.4.img.zip",
 			"Title": "TinkerOS Debian",
 			"Alias": "debian",
 			"User": "linaro",
@@ -300,7 +300,7 @@
 		"Alias": "dragonboard",
 		"Images": [
 		  {
-			"URL": "https://isaaxartifacts.blob.core.windows.net/iotit/boards/dragonboard/debian/linaro-stretch-alip-qcom-snapdragon-arm64-20171016-283.img.zip",
+			"URL": "https://cdn.isaax.io/iotit/boards/dragonboard/debian/linaro-stretch-alip-qcom-snapdragon-arm64-20171016-283.img.zip",
 			"Title": "DragonBoard 410c Debian",
 			"Alias": "debian",
 			"User": "",
