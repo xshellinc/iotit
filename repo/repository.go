@@ -19,7 +19,7 @@ import (
 )
 
 // S3Bucket stores default S3 bucket path
-const S3Bucket = "http://cdn.isaax.io/iotit/versions.json"
+const S3Bucket = "https://cdn.isaax.io/iotit/versions.json"
 
 // IoTItRepo stores default iotit repo path
 const IoTItRepo = "https://cdn.isaax.io/iotit/versions.json"
